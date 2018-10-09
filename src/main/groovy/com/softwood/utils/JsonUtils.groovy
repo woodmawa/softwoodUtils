@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject
 import javax.inject.Inject
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
+import java.security.InvalidParameterException
 import java.time.Instant
 import java.time.temporal.Temporal
 
@@ -162,6 +163,16 @@ class JsonUtils {
         props
     }
 
+    def toObject ( json) {
+        if (json instanceof JsonArray) {
+            //convert to List of
+        } else if (json instanceof JsonObject)  {
+
+        } else  {
+            throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
+        }
+
+    }
     def toJson (def pogo) {
 
         def json = new JsonObject()
