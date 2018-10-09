@@ -25,17 +25,17 @@ class JsonUtils {
 
     class Options {
 
-        @Inject private String host = "localhost" //assumed default
-        @Inject private int port = 8080 //assumed default
-        private boolean optionalLinks = false
-        private boolean includeVersion = false
-        private boolean compoundDocument = false
-        private boolean excludeNulls = true
-        private boolean excludeClass = true
-        private boolean summaryEnabled = false
-        private List excludedFieldNames = []
-        private List excludedFieldTypes = []
-        private int defaultExpandLevels = 2
+        @Inject String host = "localhost" //assumed default
+        @Inject int port = 8080 //assumed default
+        boolean optionalLinks = false
+        boolean includeVersion = false
+        boolean compoundDocument = false
+        boolean excludeNulls = true
+        boolean excludeClass = true
+        boolean summaryEnabled = false
+        List excludedFieldNames = []
+        List excludedFieldTypes = []
+        int defaultExpandLevels = 2
 
         Map converters = new HashMap<Class, Closure>()
         //todo too hard codes still
