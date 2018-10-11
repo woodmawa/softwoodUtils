@@ -737,9 +737,10 @@ class JsonUtils {
 
 
                 if (supportedStandardTypes.contains (it.value.getClass())) {
-                    json.put ("key", encodedKey)
-                    json.put ("value", it.value)
-                    mapEntries.add (json)
+                    JsonObject entry = new JsonObject ()
+                    entry.put ("key", encodedKey as JsonObject)
+                    entry.put ("value", it.value)
+                    mapEntries.add (entry as Object)
                 } else {
                     def jItem
                     if (!jsonApiEncoded) {
@@ -764,9 +765,10 @@ class JsonUtils {
 
                     }
                     if (jItem) {
-                        json.put ("key", encodedKey as JsonObject)
-                        json.put ("value", jItem)
-                        mapEntries.add (json)
+                        JsonObject entry = new JsonObject ()
+                        entry.put ("key", encodedKey as JsonObject)
+                        entry.put ("value", jItem )
+                        mapEntries.add (entry as Object)
                     }
                 }
             }
