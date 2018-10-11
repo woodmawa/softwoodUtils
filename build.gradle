@@ -26,18 +26,18 @@ dependencies {
 }
 
 //should include java and groovy
-/*task sourceJar (type : Jar) {
+task sourceJar (type : Jar) {
     from sourceSets.main.allGroovy
     classifier "sources"
 }
-*/
+
 publishing {
     publications {
         mavenGroovy(MavenPublication) {
             from components.java
-           //artifact (sourceJar) {
-                //classifier = 'sources'
-            //}
+           artifact (sourceJar) {
+                classifier = 'sources'
+            }
             // more goes in here
         }
     }

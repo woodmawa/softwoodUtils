@@ -14,7 +14,7 @@ import java.time.temporal.Temporal
 class JsonUtils {
 
     List supportedStandardTypes = [Integer, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
-    List simpleAttributeTypes = [Number, byte[], Temporal, UUID, URI, String, Boolean, Instant, CharSequence, Enum]
+    List simpleAttributeTypes = [Number, byte[], Temporal, UUID, URI, String, GString, Boolean, Instant, CharSequence, Enum]
     Map classInstanceHasBeenEncodedOnce = new LinkedHashMap()
     int iterLevel = 0
     List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
@@ -34,6 +34,7 @@ class JsonUtils {
         boolean excludeNulls = true
         boolean excludeClass = true
         boolean summaryEnabled = false
+        boolean excludePrivateFields = false
         List excludedFieldNames = []
         List excludedFieldTypes = []
         int defaultExpandLevels = 2
@@ -96,6 +97,11 @@ class JsonUtils {
             this
         }
 
+        Options excludePrivateFields (boolean value = true){
+            excludePrivateFields = value
+            this
+        }
+
         Options excludeNulls (boolean value = true){
             excludeNulls = value
             this
@@ -105,6 +111,7 @@ class JsonUtils {
             excludeClass = value
             this
         }
+
         Options excludeFieldByNames(String name, args=null){
             excludedFieldNames << name
             if (args) {
@@ -113,11 +120,21 @@ class JsonUtils {
             this
         }
 
+        Options excludeFieldByNames(List<String> names){
+            excludedFieldNames.addAll(names)
+            this
+        }
+
         Options excludeFieldByTypes(Class clazz, args=null){
             excludedFieldTypes << clazz
             if (args) {
                 args.each {excludedFieldTypes << it}
             }
+            this
+        }
+
+        Options excludeFieldByTypes(List<Class> clazzes){
+            excludedFieldTypes.addAll(clazzes)
             this
         }
 
@@ -149,6 +166,11 @@ class JsonUtils {
         thisFields.each { Field f ->
             def synthetic = f.isSynthetic()
             def privateField = Modifier.isPrivate(f.modifiers)  //test to see if private is set
+            if (options.excludePrivateFields)   //will encode private fields by default
+                return
+            def transientField = Modifier.isTransient(f.modifiers)
+            if (transientField) //skip transient fields
+                return
             if(!synthetic) {
                     def accessible = f.isAccessible()
                     if (!accessible)
@@ -183,12 +205,15 @@ class JsonUtils {
 
         iterLevel++
 
-        if (Iterable.isAssignableFrom(pogo.getClass()) )
+        if (pogo == null){
+            iterLevel--
+            return pogo
+        }
+        else if (Iterable.isAssignableFrom(pogo.getClass()) )
             json =  encodeIterableType(pogo)
         else if (Map.isAssignableFrom(pogo.getClass()))
             json =  encodeMapType(pogo )
         else if (isSimpleAttribute(pogo.getClass())){
-
             iterLevel--
             return pogo
         }
@@ -201,10 +226,14 @@ class JsonUtils {
                 //json.put(item, pogo.toString())
                 iterLevel--
                 JsonObject wrapper = new JsonObject()
-                wrapper.put ("isPreviouslyEncoded", true)
+                JsonObject jsonObj = new JsonObject()
+
+                jsonObj.put ("entityType", pogo.getClass().canonicalName)
+                jsonObj.put ("isPreviouslyEncoded", true)
                 if (pogo.hasProperty ("id"))
-                    wrapper.put ("id", pogo.getProperty ("id"))
-                wrapper.put ("shortForm", pogo.toString())
+                    jsonObj.put ("id", pogo.getProperty ("id").toString())
+                jsonObj.put ("shortForm", pogo.toString())
+                wrapper.put ("entityData", jsonObj)
                 return wrapper // pogo.toString()
             }
 
@@ -242,17 +271,14 @@ class JsonUtils {
 
                 def field = encodeFieldType(prop)
                 if (field ) {
-                    def id = (prop.value.hasProperty("id")) ? (prop.value as GroovyObject).getProperty("id").toString() : "unknown"
-                    def name = (prop.value.hasProperty("name")) ? (prop.value as GroovyObject).getProperty("name") : "unknown"
-                    if (id == "unknown" && name != "unknown")
-                        id = name
-
                     def wrapper = new JsonObject()
                     wrapper.put ("type", prop.value.getClass().simpleName)
                     if (!isSimpleAttribute(prop.value.getClass())) {
-                        if (id != "unknown")
+                        def id = (prop.value.hasProperty("id")) ? (prop.value as GroovyObject).getProperty("id").toString() : "<not defined>"
+                        def name = (prop.value.hasProperty("name")) ? (prop.value as GroovyObject).getProperty("name") : "<not defined>"
+                        if (id != "<not defined>")
                             wrapper.put("id", id)
-                        if (name != "unknown")
+                        if (name != "<not defined>")
                             wrapper.put("name", name)
                     }
                     wrapper.put ("value", field )
@@ -263,25 +289,24 @@ class JsonUtils {
                 def arrayResult = encodeIterableType ( prop.value)
                 if (arrayResult) {
                     //jsonFields.put(prop.key, arrayResult)
-                    jsonCollections.put(prop.key, arrayResult)
+                    jsonCollections.put(prop.key.toString(), arrayResult)
                 }
             }
             for (prop in mapFields){
                 def result = encodeMapType ( prop.value)
                 if (result) {
-                    jsonMaps.put(prop.key, result)
+                    jsonMaps.put(prop.key.toString(), result)
                 }
             }
 
-            def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "unknown"
-            def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "unknown"
-            if (id == "unknown" && name != "unknown")
-                id = name
+            def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "<not defined>"
+            def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
             def type = pogo.getClass().name
             jsonFields.put ("entityType", type)
             if (!isSimpleAttribute(pogo.getClass())) {
-                jsonFields.put("id", id)
-                if (name != "unknown" )
+                if (id != "<not defined>")
+                    jsonFields.put("id", id)
+                if (name != "<not defined>" )
                     jsonFields.put("name", name)
             }
             jsonFields.put ("attributes", jsonAttributes)
@@ -297,7 +322,7 @@ class JsonUtils {
 
             }
 
-            json.put ("data", jsonFields)
+            json.put ("entityData", jsonFields)
         }
         iterLevel--
         if (iterLevel == 0) {
@@ -574,6 +599,7 @@ class JsonUtils {
                         else {
                             //println "iter level $iterLevel exeeded default $options.defaultExpandLevels, just provide summary encoding for object   "
                             JsonObject wrapper = new JsonObject()
+                            wrapper.put("entityType", prop.value.getClass().canonicalName)
                             wrapper.put ("isSummarised", true)
                             if (prop?.value.hasProperty ("id"))
                                 wrapper.put ("id", (prop?.value as GroovyObject).getProperty ("id").toString())
@@ -633,9 +659,9 @@ class JsonUtils {
                         def id, altId, type
                         def pogo
                         pogo = it
-                        id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "unknown"
-                        altId = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "unknown"
-                        if (id == "unknown" && altId != "unknown")
+                        id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "<not defined>"
+                        altId = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
+                        if (id == "<not defined>" && altId != "<not defined>")
                             id = altId
                         type = it.getClass().simpleName
 
@@ -661,7 +687,8 @@ class JsonUtils {
 
     @CompileStatic
     private JsonObject encodeMapType (map, jsonApiEncoded = false, JsonArray includedArray=null) {
-        JsonObject json = new JsonObject()
+        JsonArray mapEntries = new JsonArray ()
+        JsonObject encMapEntries = new JsonObject ()
 
         /* Map */
         if (map instanceof Map) {
@@ -672,8 +699,47 @@ class JsonUtils {
             }
 
             map.each {Map.Entry it ->
+                JsonObject json = new JsonObject()
+
+                //the key in a map might be a complex object - if so we need an encoded summary for json entry
+                def encodedKey
+                if (isSimpleAttribute(it.key.getClass()))
+                    encodedKey = it.key.toString() //just use basic type as key for json entry
+                else {
+                    //key is itself an an entity, so put key summary details of object details as key
+                    def entityRef = it.key
+                    JsonObject keyWrapper = new JsonObject ()
+
+                    if (classInstanceHasBeenEncodedOnce [(entityRef)] ) {
+                        //println "already encoded pogo $pogo so just put toString summary "
+                        keyWrapper.put("entityType", entityRef?.getClass().canonicalName)
+                        keyWrapper.put("isPreviouslyEncoded", true)
+                        if (entityRef.hasProperty("id"))
+                            keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
+                        keyWrapper.put("shortForm", entityRef.toString())
+                        JsonObject mapEntityKey = new JsonObject ()
+                        mapEntityKey.put ("entityData", keyWrapper)
+                        encodedKey =  mapEntityKey
+                    } else {
+                        //else just put summary of object as the key - dont fully encode here
+                        keyWrapper.put("entityType", entityRef?.getClass().canonicalName)
+                        keyWrapper.put("isSummarised", true)
+                        if (entityRef.hasProperty("id"))
+                            keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
+                        if (entityRef.hasProperty("name"))
+                            keyWrapper.put("name", (entityRef as GroovyObject).getProperty("name").toString())
+                        keyWrapper.put("shortForm", entityRef.toString())  //encode toString of entity as value
+                        JsonObject mapEntityKey = new JsonObject()
+                        mapEntityKey.put("entityData", keyWrapper)
+                        encodedKey = mapEntityKey
+                    }
+                }
+
+
                 if (supportedStandardTypes.contains (it.value.getClass())) {
-                    json.put ((String) it.key, it.value)
+                    json.put ("key", encodedKey)
+                    json.put ("value", it.value)
+                    mapEntries.add (json)
                 } else {
                     def jItem
                     if (!jsonApiEncoded) {
@@ -690,18 +756,26 @@ class JsonUtils {
                         jItem.put ("type", type)
                         jItem.put ("id", id)
 
+                        //todo not guarden enough? - breaks out to toJsonApi
                         if (options.compoundDocument) {
                             //double derefence to object if from map attribute
                             def encodedClassInstance = toJsonApi (it.value, includedArray )
                         }
 
                     }
-                    if (jItem)
-                        json.put ((String)it.key, jItem)
+                    if (jItem) {
+                        json.put ("key", encodedKey as JsonObject)
+                        json.put ("value", jItem)
+                        mapEntries.add (json)
+                    }
                 }
             }
-
-            return json
+            if (mapEntries.size() == 0)
+                return
+            else {
+                encMapEntries.put("withMapEntries", mapEntries)
+                return encMapEntries
+            }
         }
     }
 
