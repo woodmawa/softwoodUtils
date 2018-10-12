@@ -195,7 +195,14 @@ class JsonUtils {
         }
 
     }
-    def toJson (def pogo) {
+
+    /**
+     * encode pogo and if name is build jsonObject of name and encoded value
+     * @param pogo
+     * @param name optional name, if set used as key for encoded basic type value
+     * @return
+     */
+    def toJson (def pogo, String named= null) {
 
         def json = new JsonObject()
 
@@ -210,12 +217,20 @@ class JsonUtils {
             return pogo
         }
         else if (Iterable.isAssignableFrom(pogo.getClass()) )
+            if (named)
+                json.put ("$named",  encodeIterableType(pogo))
+        else
             json.put ("iterable",  encodeIterableType(pogo))
         else if (Map.isAssignableFrom(pogo.getClass()))
-            json.put ("map",  encodeMapType(pogo ))
+            if (named)
+                json.put ("$named",  encodeIterableType(pogo))
+            else
+                json.put ("map",  encodeMapType(pogo ))
         else if (isSimpleAttribute(pogo.getClass())){
-            iterLevel--
-            return pogo
+            if (named)
+                json.put ("$named", pogo)
+            else
+                json.put ("${pogo.getClass().simpleName}", pogo)
         }
         else {
             //json = new JsonObject()

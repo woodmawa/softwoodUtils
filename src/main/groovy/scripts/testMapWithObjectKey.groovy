@@ -42,7 +42,7 @@ options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
 
-//println "encoded int as "+jsonGenerator.toJson (2).encodePrettily()
+println "encoded int as "+jsonGenerator.toJson (2).encodePrettily()
 println "encoded list int as "+jsonGenerator.toJson ([2]).encodePrettily()
 println "encoded map as "+jsonGenerator.toJson ([a:2]).encodePrettily()
 
