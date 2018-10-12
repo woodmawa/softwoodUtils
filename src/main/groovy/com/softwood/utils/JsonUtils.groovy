@@ -210,9 +210,9 @@ class JsonUtils {
             return pogo
         }
         else if (Iterable.isAssignableFrom(pogo.getClass()) )
-            json =  encodeIterableType(pogo)
+            json.put ("iterable",  encodeIterableType(pogo))
         else if (Map.isAssignableFrom(pogo.getClass()))
-            json =  encodeMapType(pogo )
+            json.put ("map",  encodeMapType(pogo ))
         else if (isSimpleAttribute(pogo.getClass())){
             iterLevel--
             return pogo
@@ -689,6 +689,7 @@ class JsonUtils {
     private JsonObject encodeMapType (map, jsonApiEncoded = false, JsonArray includedArray=null) {
         JsonArray mapEntries = new JsonArray ()
         JsonObject encMapEntries = new JsonObject ()
+        boolean isSimpleKey = true  //default position, normally a string
 
         /* Map */
         if (map instanceof Map) {
@@ -708,6 +709,8 @@ class JsonUtils {
                 else {
                     //key is itself an an entity, so put key summary details of object details as key
                     def entityRef = it.key
+                    isSimpleKey = false
+
                     JsonObject keyWrapper = new JsonObject ()
 
                     if (classInstanceHasBeenEncodedOnce [(entityRef)] ) {
@@ -738,9 +741,14 @@ class JsonUtils {
 
                 if (supportedStandardTypes.contains (it.value.getClass())) {
                     JsonObject entry = new JsonObject ()
-                    entry.put ("key", encodedKey as JsonObject)
-                    entry.put ("value", it.value)
-                    mapEntries.add (entry as Object)
+                    if (isSimpleKey) {
+                        entry.put("key", encodedKey as String)
+                    } else {
+                        entry.put("key", encodedKey as JsonObject)
+                    }
+                    entry.put("value", it.value)
+                    mapEntries.add(entry as Object)
+
                 } else {
                     def jItem
                     if (!jsonApiEncoded) {
