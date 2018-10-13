@@ -37,7 +37,7 @@ class JsonUtils {
         boolean excludePrivateFields = false
         List excludedFieldNames = []
         List excludedFieldTypes = []
-        int defaultExpandLevels = 2
+        int defaultExpandLevels = 1
 
         Map converters = new HashMap<Class, Closure>()
         //todo too hard codes still
@@ -67,14 +67,17 @@ class JsonUtils {
 
         Options setExpandLevels (level){
             defaultExpandLevels = level
+            this
         }
 
         Options setHost (String hostname) {
             host = hostname
+            this
         }
 
         Options setPort (int portNumber) {
             port = portNumber
+            this
         }
 
         Options jsonApiIncludeVersion  (boolean value = false) {
