@@ -210,7 +210,9 @@ class JsonUtils {
         def json = new JsonObject()
 
         if (iterLevel == 0) {
-            json.put ("softwoodEncoded", "v1.0")
+            JsonObject metaData = new JsonObject ()
+            metaData.put ("version", "1.0")
+            json.put ("softwoodEncoded", metaData)
         }
 
         iterLevel++

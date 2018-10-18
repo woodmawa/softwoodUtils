@@ -57,6 +57,6 @@ options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
 
-//println "from parent : " + jsonGenerator.toJson (parent).encodePrettily()
-
+println "from parent : " + jsonGenerator.toJson (parent).encodePrettily()
+println "----"
 println "from child1  : " + jsonGenerator.toJson (child1).encodePrettily()
