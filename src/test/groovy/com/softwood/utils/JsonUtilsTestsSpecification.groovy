@@ -28,6 +28,7 @@ class JsonUtilsTestsSpecification extends Specification {
         options.excludeFieldByNames("ci")
         options.excludeNulls(true)
         options.summaryClassFormEnabled(false)
+        options.includeVersion(true)
 
         jsonGenerator = options.build()
 
