@@ -70,7 +70,7 @@ class JsonUtilsTestsSpecification extends Specification {
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         def children = result.entityData.collectionAttributes.children
-        //println json.encodePrettily()
+        println "encoded parent: " + json.encodePrettily()
         def secondLevelChildRefToParent = children[1].entityData.attributes.parent.value
 
         then : "we expect "
@@ -98,7 +98,7 @@ class JsonUtilsTestsSpecification extends Specification {
         Map result = slurper.parseText(json.encode())
         def parent = result.entityData.attributes.parent.value
         //def children = result.entityData.collectionAttributes.children
-        println json.encodePrettily()
+        println "encoded child of parent: "+ json.encodePrettily()
         def secondLevelParentRefToSecondChild = parent.entityData.collectionAttributes.children[1]
 
         then : "we expect "
