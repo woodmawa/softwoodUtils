@@ -1,5 +1,6 @@
 package com.softwood.utils
 
+import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
@@ -77,6 +78,11 @@ class JsonUtils {
 
         Options setPort (int portNumber) {
             port = portNumber
+            this
+        }
+
+        Options includeVersion  (boolean value = false) {
+            includeVersion = value
             this
         }
 
@@ -189,6 +195,8 @@ class JsonUtils {
     }
 
     def toObject ( json) {
+        JsonSlurper slurper = new JsonSlurper()
+        Map result = slurper.parseText(json.encode())
         if (json instanceof JsonArray) {
             //convert to List of
         } else if (json instanceof JsonObject)  {
@@ -210,7 +218,11 @@ class JsonUtils {
         def json = new JsonObject()
 
         if (iterLevel == 0) {
-            json.put ("softwoodEncoded", "v1.0")
+            if (options.includeVersion) {
+                JsonObject metaData = new JsonObject()
+                metaData.put("version", "1.0")
+                json.put("softwoodEncoded", metaData)
+            }
         }
 
         iterLevel++
