@@ -121,11 +121,14 @@ class JsonUtilsTestsSpecification extends Specification {
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
 
+        //should throw  exception
+        result.entityData.attributes.getImaginaryFieldAccessor.value
 
-        then :" expect, no transient and no private fields? and no false accessors  "
+
+        then :" expect, no transient and no false accessors  "
         result.entityData.attributes.publicIntField.value == 2
-        result.entityData.attributes.privateIntField.value == 3 //need to check this 
-
+        result.entityData.attributes.privateIntField.value == 3 //if options.excludePrivateFields is true this wont show
+        thrown (java.lang.NullPointerException)
 
     }
 
