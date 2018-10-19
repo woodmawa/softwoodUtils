@@ -25,6 +25,10 @@ class JsonUtils {
         this.options = options
     }
 
+    /**
+     * inner class to set options in fluent api form and then build the
+     * generator with the options provided
+     */
     class Options {
 
         @Inject String host = "localhost" //assumed default
@@ -194,12 +198,18 @@ class JsonUtils {
         props
     }
 
-    def toObject ( json) {
+    //using softwood encoding at mo
+    def toObject (Class<?> instance, JsonObject json) {
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         if (json instanceof JsonArray) {
             //convert to List of
         } else if (json instanceof JsonObject)  {
+            def rootEntity = result.entityData
+            def canonicalClazz = rootEntity.entityType  //canonical class string from server
+            //def parts = canonicalClazz.split(".")
+            //def simpleClazz = parts[-1]
+            //Class.forName(simpleClazz)
 
         } else  {
             throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")

@@ -110,7 +110,27 @@ class JsonUtilsTestsSpecification extends Specification {
         secondLevelParentRefToSecondChild.entityData.isPreviouslyEncoded == true
         secondLevelParentRefToSecondChild.entityData.shortForm == "Child (name:Jill) "
     }
-}
+
+    def "encode class with private and transient fields" (){
+        given : "class with number of real and imaginary accessors "
+        Demo demo = new Demo( transientInt: 1, publicIntField: 2, privateIntField: 3)
+
+        when : " we encode  the class "
+        JsonObject json = jsonGenerator.toJson ( demo)
+        println "encoded Demo as : " + json.encodePrettily()
+        JsonSlurper slurper = new JsonSlurper()
+        Map result = slurper.parseText(json.encode())
+
+
+        then :" expect, no transient and no private fields? and no false accessors  "
+        result.entityData.attributes.publicIntField.value == 2
+        result.entityData.attributes.privateIntField.value == 3 //need to check this 
+
+
+    }
+
+
+    }
 
 class Simple {
     String name
@@ -135,4 +155,14 @@ class Child {
     String toString() {
         "Child (name:$name) "
     }
+}
+
+class Demo {
+    transient transientInt
+    int realIntField
+    public int publicIntField
+    private int privateIntField
+    int getImaginaryFieldAccessor () { 1}
+
+
 }
