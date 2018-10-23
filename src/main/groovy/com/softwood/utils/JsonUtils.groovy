@@ -217,6 +217,58 @@ class JsonUtils {
 
     }
 
+    def toTmfJson (def pogo, String named= null) {
+        def json = new JsonObject()
+
+        if (iterLevel == 0) {
+            if (options.includeVersion) {
+                JsonObject metaData = new JsonObject()
+                metaData.put("version", "1.0")
+                json.put("tmfEncoded", metaData)
+            }
+        }
+
+        iterLevel++
+
+        if (pogo == null){
+            iterLevel--
+            return pogo
+        } else if (isSimpleAttribute(pogo.getClass())) {
+            if (named) {
+                json.put("$named", pogo)
+            }else {
+                json.put ("${pogo.getClass().simpleName}", pogo)
+            }
+        } else {
+
+        }
+        iterLevel--
+        if (iterLevel == 0) {
+            classInstanceHasBeenEncodedOnce.clear()
+        }
+        json
+
+        /*else if (Iterable.isAssignableFrom(pogo.getClass()) )
+            if (named)
+                json.put ("$named",  encodeIterableType(pogo))
+            else
+                json.put ("iterable",  encodeIterableType(pogo))
+        else if (Map.isAssignableFrom(pogo.getClass()))
+            if (named)
+                json.put ("$named",  encodeIterableType(pogo))
+            else
+                json.put ("map",  encodeMapType(pogo ))
+        else if (isSimpleAttribute(pogo.getClass())){
+            if (named)
+                json.put ("$named", pogo)
+            else
+                json.put ("${pogo.getClass().simpleName}", pogo)
+        } else {
+
+        }*/
+    }
+
+
     /**
      * encode pogo and if name is build jsonObject of name and encoded value
      * @param pogo
