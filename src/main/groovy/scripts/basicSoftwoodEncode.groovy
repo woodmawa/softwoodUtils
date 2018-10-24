@@ -1,5 +1,6 @@
 package scripts
 
+import com.softwood.utils.JsonEncodingStyle
 import com.softwood.utils.JsonUtils
 import groovy.json.JsonOutput
 
@@ -10,11 +11,12 @@ options.registerConverter(LocalDateTime) {it.toString()}
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)
+options.setJsonEncodingStyle(JsonEncodingStyle.softwood)
 options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
 
 
-println "encode int 2 : " + jsonGenerator.toTmfJson(2)
-println "encode list int [1,2] : " + jsonGenerator.toTmfJson([1,2])
-println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
+println "encode int 2 : " + jsonGenerator.toJson(2)
+println "encode list int [2] : " + jsonGenerator.toJson([2])
+println "encode map [a:2] : " + jsonGenerator.toJson([a:2])
