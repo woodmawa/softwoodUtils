@@ -310,9 +310,6 @@ class JsonUtils {
 
             for ( prop in props) {
 
-                boolean iterable = Iterable.isAssignableFrom(prop.value.getClass())
-                boolean mappable = Map.isAssignableFrom(prop.value.getClass())
-
                 if (Iterable.isAssignableFrom(prop.value.getClass())) {
                     def arrayResult = encodeIterableType ( prop.value, JsonEncodingStyle.tmf)
                     if (arrayResult) {
