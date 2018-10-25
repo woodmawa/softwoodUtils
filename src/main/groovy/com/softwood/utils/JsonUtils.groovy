@@ -271,6 +271,88 @@ class JsonUtils {
                  else
                      json = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
         else {
+            //json = new JsonObject()
+            if (classInstanceHasBeenEncodedOnce[(pogo)]) {
+                //println "already encoded pogo $pogo so just put toString summary and stop recursing"
+
+                //def item = (pogo.hasProperty ("name")) ? pogo.name : pogo.getClass().simpleName
+                //json.put(item, pogo.toString())
+                iterLevel--
+                JsonObject wrapper = new JsonObject()
+                JsonObject jsonObj = new JsonObject()
+
+                jsonObj.put ("@type", pogo.getClass().canonicalName)
+                jsonObj.put ("isPreviouslyEncoded", true)
+                if (pogo.hasProperty ("id"))
+                    jsonObj.put ("id", pogo.getProperty ("id").toString())
+                jsonObj.put ("shortForm", pogo.toString())
+                wrapper.put ("entity", jsonObj)
+                return wrapper // pogo.toString()
+            }
+
+            if (!classInstanceHasBeenEncodedOnce.containsKey((pogo))) {
+                classInstanceHasBeenEncodedOnce.putAll([(pogo): new Boolean(true)])
+            }
+
+
+            //Map props = pogo.properties
+            Map props = getDeclaredFields (pogo)
+
+            //println "toJson: pogo ($pogo) has nonIterableFields $nonIterableFields at  iterLev ($iterLevel) "
+
+            def jsonFields = new JsonObject()
+            def jsonEntityReferences = new JsonObject()
+
+            //def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "<not defined>"
+            //def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
+            def type = pogo.getClass().name
+            jsonFields.put ("@type", type)
+
+            for ( prop in props) {
+
+                boolean iterable = Iterable.isAssignableFrom(prop.value.getClass())
+                boolean mappable = Map.isAssignableFrom(prop.value.getClass())
+
+                if (Iterable.isAssignableFrom(prop.value.getClass())) {
+                    def arrayResult = encodeIterableType ( prop.value, JsonEncodingStyle.tmf)
+                    if (arrayResult) {
+                        //jsonFields.put(prop.key, arrayResult)
+                        jsonFields.put(prop.key.toString(), arrayResult)
+                    } else {
+                        if (!options.excludeNulls)
+                            return json.putNull(prop.key.toString())
+                    }
+                } else if (Map.isAssignableFrom(prop.value.getClass())) {
+                    def result = encodeMapType ( prop.value, JsonEncodingStyle.tmf)
+                    if (result) {
+                        jsonFields.put(prop.key.toString(), result)
+                    } else {
+                        if (!options.excludeNulls)
+                            return json.putNull(prop.key.toString())
+                    }
+                } else {
+                    //must be an ordinary field
+                    def field = encodeFieldType(prop, JsonEncodingStyle.tmf)
+                    if (field ) {
+                        def wrapper = new JsonObject()
+                        if (!isSimpleAttribute(prop.value.getClass())) {
+                            //entity object to encode
+                            wrapper.put ("@type", prop.value.getClass().simpleName)
+                            wrapper.put ("value", field )
+                            jsonFields.put (prop.key.toString(), wrapper )
+                        } else {
+                            jsonFields.put(prop.key.toString(), field)
+                        }
+                    } else {
+                        if (!options.excludeNulls)
+                            return json.putNull(prop.key.toString())
+
+                    }
+                }
+
+            }
+
+            json.put ("entity", jsonFields)
 
 
         }
@@ -802,13 +884,12 @@ class JsonUtils {
         JsonObject json = new JsonObject()
         JsonArray jList = new JsonArray ()
 
+
         /* List || instanceof Queue || Map.Entry from any entrySet iterator )*/
         if (Iterable.isAssignableFrom(iterable.getClass())) {
             //println "process an list/queue type"
-            if (options.excludeNulls) {
-                if (iterable.size() == 0) {
-                    return
-                }
+            if (iterable.size() == 0) {
+                return jList
             }
 
             iterable.each {
@@ -817,9 +898,6 @@ class JsonUtils {
                 } else {
                     def jItem
                     switch (style) {
-                        case JsonEncodingStyle.softwood :
-                            jItem = this.toJson(it)
-                            break
                         case JsonEncodingStyle.jsonApi :
                             def id, altId, type
                             def pogo
@@ -840,35 +918,17 @@ class JsonUtils {
                             }
 
                             break
+                        case JsonEncodingStyle.softwood :
+                            jItem = this.toJson(it)
+                            break
                         case JsonEncodingStyle.tmf :
+                            jItem = this.toJson(it)
+
                             break
                         default :
                             if (jItem)
                                 jList.add(jItem)
                             break
-                    }
-                    if (!jsonApiEncoded) {
-                        jItem = this.toJson(it)
-                    }
-                    else {
-                        def id, altId, type
-                        def pogo
-                        pogo = it
-                        id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "<not defined>"
-                        altId = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
-                        if (id == "<not defined>" && altId != "<not defined>")
-                            id = altId
-                        type = it.getClass().simpleName
-
-                        jItem = new JsonObject()
-                        jItem.put ("type", type)
-                        jItem.put ("id", id.toString())
-
-                        if (options.compoundDocument) {
-                            //encode each iterable object, which will add and compoundDoc 'included' entries
-                            def  encodedClassInstance = toJsonApi (it, includedArray )
-                        }
-
                     }
                     if (jItem)
                         jList.add(jItem)
@@ -889,10 +949,9 @@ class JsonUtils {
 
         /* Map */
         if (map instanceof Map) {
-            if (options.excludeNulls) {
-                if (map.size() == 0) {
-                    return
-                }
+            if (map.size() == 0) {
+                return encMapEntries
+
             }
 
             map.each {Map.Entry it ->
