@@ -303,9 +303,7 @@ class JsonUtils {
             def jsonFields = new JsonObject()
             def jsonEntityReferences = new JsonObject()
 
-            //def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "<not defined>"
-            //def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
-            def type = pogo.getClass().name
+           def type = pogo.getClass().name
             jsonFields.put ("@type", type)
 
             for ( prop in props) {
@@ -317,7 +315,7 @@ class JsonUtils {
                         jsonFields.put(prop.key.toString(), arrayResult)
                     } else {
                         if (!options.excludeNulls)
-                            return json.putNull(prop.key.toString())
+                            jsonFields.putNull(prop.key.toString())
                     }
                 } else if (Map.isAssignableFrom(prop.value.getClass())) {
                     def result = encodeMapType ( prop.value, JsonEncodingStyle.tmf)
@@ -325,7 +323,7 @@ class JsonUtils {
                         jsonFields.put(prop.key.toString(), result)
                     } else {
                         if (!options.excludeNulls)
-                            return json.putNull(prop.key.toString())
+                            jsonFields.putNull(prop.key.toString())
                     }
                 } else {
                     //must be an ordinary field
@@ -334,22 +332,22 @@ class JsonUtils {
                         def wrapper = new JsonObject()
                         if (!isSimpleAttribute(prop.value.getClass())) {
                             //entity object to encode
-                            wrapper.put ("@type", prop.value.getClass().simpleName)
-                            wrapper.put ("value", field )
-                            jsonFields.put (prop.key.toString(), wrapper )
+                            //wrapper.put ("@type", prop.value.getClass().simpleName)
+                            //wrapper.put ("value", field )
+                            jsonFields.put (prop.key.toString(), field )
                         } else {
                             jsonFields.put(prop.key.toString(), field)
                         }
                     } else {
                         if (!options.excludeNulls)
-                            return json.putNull(prop.key.toString())
+                            jsonFields.putNull(prop.key.toString())
 
                     }
                 }
-
+                json = jsonFields
             }
 
-            json.put ("entity", jsonFields)
+            //json.put ("entity", jsonFields)
 
 
         }
@@ -804,14 +802,15 @@ class JsonUtils {
                         case JsonEncodingStyle.tmf :
                             //recursive call to expand on this object
                             if (iterLevel <= options.defaultExpandLevels)
-                                jsonEncClass = this?.toJson(prop.value)
+                                jsonEncClass = this?.toTmfJson(prop.value)
                             else {
                                 //println "iter level $iterLevel exeeded default $options.defaultExpandLevels, just provide summary encoding for object   "
                                 JsonObject wrapper = new JsonObject()
-                                wrapper.put("entity", prop.value.getClass().simpleName)
                                 wrapper.put ("isSummarised", true)
-                                if (prop?.value.hasProperty ("id"))
-                                    wrapper.put ("id", (prop?.value as GroovyObject).getProperty ("id").toString())
+                                if (prop?.value.hasProperty ("id")) {
+                                    wrapper.put("@type", prop.value.getClass().simpleName)
+                                    wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                }
 
                                 def keyStr = "shortForm"
                                 def sumValueStr = prop.value.toString()
@@ -857,10 +856,11 @@ class JsonUtils {
                         case JsonEncodingStyle.tmf :
                             if (options.excludeClass == false) {
                                 def wrapper = new JsonObject ()
-                                wrapper.put("entityType", prop.value.getClass().canonicalName)
                                 wrapper.put ("isSummarised" , true )
-                                if (prop?.value.hasProperty ("id"))
-                                    wrapper.put ("id", (prop?.value as GroovyObject).getProperty ("id").toString())
+                                if (prop?.value.hasProperty ("id")) {
+                                    wrapper.put("@type", prop.value.getClass().canonicalName)
+                                    wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                }
 
                                 wrapper.put ("shortForm", prop.value.toString())
                                 return wrapper

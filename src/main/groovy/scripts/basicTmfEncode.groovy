@@ -22,9 +22,15 @@ jsonGenerator = options.build()
 class SimpleTmf {
     String id = "1"
     String name = "simpleInst"
+    Point locationRef
     List sList = []
     Map sMap =[:]
 }
 
+class Point {
+    int x, y,z
+}
+
 SimpleTmf s1 = new SimpleTmf()
+s1.locationRef = new Point (x:1, y:1, z:1)
 println "encode simple s1 : " + jsonGenerator.toTmfJson(s1).encodePrettily()
