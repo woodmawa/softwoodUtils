@@ -20,17 +20,29 @@ jsonGenerator = options.build()
 //println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
 
 class SimpleTmf {
-    String id = "1"
-    String name = "simpleInst"
-    Point locationRef
-    List sList = []
-    Map sMap =[:]
+    //String id = "1"
+    //String name = "simpleInst"
+    //Point locationRef
+    List children = new ArrayList<TmfChild>()
+    //List sList = []
+    //Map sMap =[:]
 }
 
 class Point {
     int x, y,z
 }
 
+class TmfChild {
+    String name
+    SimpleTmf parent
+}
+
+
 SimpleTmf s1 = new SimpleTmf()
-s1.locationRef = new Point (x:1, y:1, z:1)
+//s1.locationRef = new Point (x:1, y:1, z:1)
+TmfChild c1 = new TmfChild(name:"child1", parent:s1)
+TmfChild c2 = new TmfChild(name:"child2", parent:s1)
+s1.children << c1
+s1.children << c2
+
 println "encode simple s1 : " + jsonGenerator.toTmfJson(s1).encodePrettily()

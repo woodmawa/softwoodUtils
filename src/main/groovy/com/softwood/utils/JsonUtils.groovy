@@ -256,7 +256,6 @@ class JsonUtils {
             if (named) {
                 json.put("$named", pogo)
             }else {
-                //json.put ("${pogo.getClass().simpleName}", pogo)
                 iterLevel--
                 return pogo
             }
@@ -275,14 +274,12 @@ class JsonUtils {
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 //println "already encoded pogo $pogo so just put toString summary and stop recursing"
 
-                //def item = (pogo.hasProperty ("name")) ? pogo.name : pogo.getClass().simpleName
-                //json.put(item, pogo.toString())
                 iterLevel--
                 JsonObject wrapper = new JsonObject()
                 JsonObject jsonObj = new JsonObject()
 
-                jsonObj.put ("@type", pogo.getClass().canonicalName)
                 jsonObj.put ("isPreviouslyEncoded", true)
+                jsonObj.put ("@type", pogo.getClass().canonicalName)
                 if (pogo.hasProperty ("id"))
                     jsonObj.put ("id", pogo.getProperty ("id").toString())
                 jsonObj.put ("shortForm", pogo.toString())
@@ -294,16 +291,12 @@ class JsonUtils {
                 classInstanceHasBeenEncodedOnce.putAll([(pogo): new Boolean(true)])
             }
 
-
-            //Map props = pogo.properties
             Map props = getDeclaredFields (pogo)
 
-            //println "toJson: pogo ($pogo) has nonIterableFields $nonIterableFields at  iterLev ($iterLevel) "
-
-            def jsonFields = new JsonObject()
+             def jsonFields = new JsonObject()
             def jsonEntityReferences = new JsonObject()
 
-           def type = pogo.getClass().name
+           def type = pogo.getClass().canonicalName
             jsonFields.put ("@type", type)
 
             for ( prop in props) {
@@ -311,7 +304,6 @@ class JsonUtils {
                 if (Iterable.isAssignableFrom(prop.value.getClass())) {
                     def arrayResult = encodeIterableType ( prop.value, JsonEncodingStyle.tmf)
                     if (arrayResult) {
-                        //jsonFields.put(prop.key, arrayResult)
                         jsonFields.put(prop.key.toString(), arrayResult)
                     } else {
                         if (!options.excludeNulls)
@@ -346,10 +338,6 @@ class JsonUtils {
                 }
                 json = jsonFields
             }
-
-            //json.put ("entity", jsonFields)
-
-
         }
 
         iterLevel--
@@ -407,8 +395,6 @@ class JsonUtils {
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 //println "already encoded pogo $pogo so just put toString summary and stop recursing"
 
-                //def item = (pogo.hasProperty ("name")) ? pogo.name : pogo.getClass().simpleName
-                //json.put(item, pogo.toString())
                 iterLevel--
                 JsonObject wrapper = new JsonObject()
                 JsonObject jsonObj = new JsonObject()
@@ -804,17 +790,25 @@ class JsonUtils {
                             if (iterLevel <= options.defaultExpandLevels)
                                 jsonEncClass = this?.toTmfJson(prop.value)
                             else {
-                                //println "iter level $iterLevel exeeded default $options.defaultExpandLevels, just provide summary encoding for object   "
+                                //check first if object has already been encoded, if so make declare it
                                 JsonObject wrapper = new JsonObject()
-                                wrapper.put ("isSummarised", true)
-                                if (prop?.value.hasProperty ("id")) {
-                                    wrapper.put("@type", prop.value.getClass().simpleName)
-                                    wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
-                                }
+                                if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
+                                    wrapper.put ("isPreviouslyEncoded", true)
+                                    if (prop?.value.hasProperty ("id")) {
+                                        wrapper.put("@type", prop.value.getClass().simpleName)
+                                        wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                    }
+                                    wrapper.put ("shortForm", prop.value.toString())
 
-                                def keyStr = "shortForm"
-                                def sumValueStr = prop.value.toString()
-                                wrapper.put (keyStr, sumValueStr)
+                                } else {
+                                    //else just report we are now summarising at this level and beyond 
+                                    wrapper.put("isSummarised", true)
+                                    if (prop?.value.hasProperty("id")) {
+                                        wrapper.put("@type", prop.value.getClass().simpleName)
+                                        wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                    }
+                                     wrapper.put("shortForm", prop.value.toString())
+                                }
                                 return wrapper
                             }
 
@@ -919,7 +913,7 @@ class JsonUtils {
                             jItem = this.toJson(it)
                             break
                         case JsonEncodingStyle.tmf :
-                            jItem = this.toJson(it)
+                            jItem = this.toTmfJson(it)
 
                             break
                         default :
