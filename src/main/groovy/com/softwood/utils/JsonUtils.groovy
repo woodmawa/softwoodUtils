@@ -801,7 +801,7 @@ class JsonUtils {
                                     wrapper.put ("shortForm", prop.value.toString())
 
                                 } else {
-                                    //else just report we are now summarising at this level and beyond 
+                                    //else just report we are now summarising at this level and beyond
                                     wrapper.put("isSummarised", true)
                                     if (prop?.value.hasProperty("id")) {
                                         wrapper.put("@type", prop.value.getClass().simpleName)
@@ -974,17 +974,27 @@ class JsonUtils {
                                 break
 
                             case JsonEncodingStyle.jsonApi:
+                                //todo
+
                                 break
 
                             case JsonEncodingStyle.tmf:
+                                keyWrapper.put ("isPreviouslyEncoded", true)
+                                if (it?.value.hasProperty ("id")) {
+                                    keyWrapper.put("@type", it.value.getClass().simpleName)
+                                    keyWrapper.put("id", (it?.value as GroovyObject).getProperty("id").toString())
+                                }
+                                keyWrapper.put ("shortForm", it.value.toString())
+
+
                                 break
                         }
                     } else {
                         switch (style) {
                             case JsonEncodingStyle.softwood:
                                 //else just put summary of object as the key - dont fully encode here
-                                keyWrapper.put("entityType", entityRef?.getClass().canonicalName)
                                 keyWrapper.put("isSummarised", true)
+                                keyWrapper.put("entityType", entityRef?.getClass().canonicalName)
                                 if (entityRef.hasProperty("id"))
                                     keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
                                 if (entityRef.hasProperty("name"))
@@ -996,9 +1006,21 @@ class JsonUtils {
                                 break
 
                             case JsonEncodingStyle.jsonApi:
+                                //todo
                                 break
 
                             case JsonEncodingStyle.tmf:
+                                //else just put summary of object as the key - dont fully encode here
+                                keyWrapper.put("isSummarised", true)
+                                keyWrapper.put("@type", entityRef?.getClass().canonicalName)
+                                if (entityRef.hasProperty("id"))
+                                    keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
+                                if (entityRef.hasProperty("name"))
+                                    keyWrapper.put("name", (entityRef as GroovyObject).getProperty("name").toString())
+                                keyWrapper.put("shortForm", entityRef.toString())  //encode toString of entity as value
+                                JsonObject mapEntityKey = new JsonObject()
+                                mapEntityKey.put("entity", keyWrapper)
+                                encodedKey = mapEntityKey
                                 break
                         }
 
@@ -1032,6 +1054,13 @@ class JsonUtils {
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             jItem = this.toJson(it.value)
+                            if (jItem) {
+                                entry = new JsonObject ()
+                                entry.put ("key", encodedKey as JsonObject)
+                                entry.put ("value", jItem )
+                                mapEntries.add (entry as Object)
+                            }
+
                             break
                         case JsonEncodingStyle.jsonApi:
                             def id, altId, type
@@ -1053,14 +1082,12 @@ class JsonUtils {
                             break
                         case JsonEncodingStyle.tmf:
                             jItem = this.toTmfJson(it.value)
-
+                            if (jItem) {
+                                entry = new JsonObject ()
+                                encMapEntries.put (encodedKey.toString(), jItem)
+                                //mapEntries.add (entry as Object)
+                            }
                             break
-                    }
-                    if (jItem) {
-                        entry = new JsonObject ()
-                        entry.put ("key", encodedKey as JsonObject)
-                        entry.put ("value", jItem )
-                        mapEntries.add (entry as Object)
                     }
                 }
             }
@@ -1074,7 +1101,7 @@ class JsonUtils {
                     case JsonEncodingStyle.jsonApi:
                         break
                     case JsonEncodingStyle.tmf:
-                        encMapEntries = entry
+                        //encMapEntries = mapEntries
                         break
                 }
 

@@ -23,9 +23,10 @@ class SimpleTmf {
     //String id = "1"
     //String name = "simpleInst"
     //Point locationRef
-    List children = new ArrayList<TmfChild>()
+    //List children = new ArrayList<TmfChild>()
     //List sList = []
     //Map sMap =[:]
+    Map tmfMap = [:]
 }
 
 class Point {
@@ -42,7 +43,8 @@ SimpleTmf s1 = new SimpleTmf()
 //s1.locationRef = new Point (x:1, y:1, z:1)
 TmfChild c1 = new TmfChild(name:"child1", parent:s1)
 TmfChild c2 = new TmfChild(name:"child2", parent:s1)
-s1.children << c1
-s1.children << c2
+//s1.children << c1
+//s1.children << c2
+s1.tmfMap << [tmf:s1]
 
 println "encode simple s1 : " + jsonGenerator.toTmfJson(s1).encodePrettily()
