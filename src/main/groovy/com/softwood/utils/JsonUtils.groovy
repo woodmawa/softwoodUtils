@@ -254,6 +254,7 @@ class JsonUtils {
         encodedResult
     }
 
+    @CompileStatic
     def toTmfJson (def pogo, String named= null) {
         def json = new JsonObject()
 
@@ -278,13 +279,17 @@ class JsonUtils {
                 return pogo
             }
         } else if (Iterable.isAssignableFrom(pogo.getClass()) )
-                 if (named)
-                     json.put ("$named",  encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf))
+                 if (named) {
+                     JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
+                     (json as JsonObject).put("$named".toString(), encIterable)
+                 }
                  else
                      json = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
         else if (Map.isAssignableFrom(pogo.getClass()))
-                 if (named)
-                     json.put ("$named",  encodeMapType(pogo as Map, JsonEncodingStyle.tmf))
+                 if (named) {
+                     JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
+                     (json as JsonObject).put("$named".toString(), encMap )
+                 }
                  else
                      json = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
         else {
@@ -299,7 +304,7 @@ class JsonUtils {
                 jsonObj.put ("isPreviouslyEncoded", true)
                 jsonObj.put ("@type", pogo.getClass().canonicalName)
                 if (pogo.hasProperty ("id"))
-                    jsonObj.put ("id", pogo.getProperty ("id").toString())
+                    jsonObj.put ("id", (pogo as GroovyObject).getProperty ("id").toString())
                 jsonObj.put ("shortForm", pogo.toString())
                 wrapper.put ("entity", jsonObj)
                 return wrapper // pogo.toString()
@@ -320,7 +325,7 @@ class JsonUtils {
             for ( prop in props) {
 
                 if (Iterable.isAssignableFrom(prop.value.getClass())) {
-                    def arrayResult = encodeIterableType ( prop.value, JsonEncodingStyle.tmf)
+                    def arrayResult = encodeIterableType ( prop.value as Iterable , JsonEncodingStyle.tmf)
                     if (arrayResult) {
                         jsonFields.put(prop.key.toString(), arrayResult)
                     } else {
@@ -328,7 +333,7 @@ class JsonUtils {
                             jsonFields.putNull(prop.key.toString())
                     }
                 } else if (Map.isAssignableFrom(prop.value.getClass())) {
-                    def result = encodeMapType ( prop.value, JsonEncodingStyle.tmf)
+                    def result = encodeMapType ( prop.value as Map, JsonEncodingStyle.tmf)
                     if (result) {
                         jsonFields.put(prop.key.toString(), result)
                     } else {
@@ -393,12 +398,12 @@ class JsonUtils {
         }
         else if (Iterable.isAssignableFrom(pogo.getClass()) )
             if (named)
-                json.put ("$named",  encodeIterableType(pogo))
+                json.put ("$named".toString(),  encodeIterableType(pogo as Iterable))
         else
-            json.put ("iterable",  encodeIterableType(pogo))
+            json.put ("iterable",  encodeIterableType(pogo as Iterable))
         else if (Map.isAssignableFrom(pogo.getClass()))
             if (named)
-                json.put ("$named",  encodeIterableType(pogo))
+                json.put ("$named".toString(),  encodeMapType(pogo as Map))
             else
                 json.put ("map",  encodeMapType(pogo ))
         else if (isSimpleAttribute(pogo.getClass())){
