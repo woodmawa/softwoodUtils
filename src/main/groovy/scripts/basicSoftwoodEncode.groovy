@@ -29,5 +29,14 @@ class SimpleSoftwood {
     Map sMap =[:]
 }
 
+class SoftwoodChild {
+    String name
+    SimpleSoftwood parent
+}
+
+
 SimpleSoftwood s1 = new SimpleSoftwood()
+SoftwoodChild sc1 = new SoftwoodChild(name: "myChild", parent:s1)
+
+s1.sMap << [a:s1, b:sc1]
 println "encode simple s1 : " + jsonGenerator.toJson(s1).encodePrettily()

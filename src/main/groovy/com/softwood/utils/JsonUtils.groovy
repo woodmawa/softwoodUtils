@@ -322,14 +322,12 @@ class JsonUtils {
                     def field = encodeFieldType(prop, JsonEncodingStyle.tmf)
                     if (field ) {
                         def wrapper = new JsonObject()
-                        if (!isSimpleAttribute(prop.value.getClass())) {
-                            //entity object to encode
-                            //wrapper.put ("@type", prop.value.getClass().simpleName)
-                            //wrapper.put ("value", field )
-                            jsonFields.put (prop.key.toString(), field )
+                        jsonFields.put (prop.key.toString(), field )
+                        /*if (!isSimpleAttribute(prop.value.getClass())) {
+                          jsonFields.put (prop.key.toString(), field )
                         } else {
                             jsonFields.put(prop.key.toString(), field)
-                        }
+                        }*/
                     } else {
                         if (!options.excludeNulls)
                             jsonFields.putNull(prop.key.toString())
@@ -771,14 +769,22 @@ class JsonUtils {
                             else {
                                 //println "iter level $iterLevel exeeded default $options.defaultExpandLevels, just provide summary encoding for object   "
                                 JsonObject wrapper = new JsonObject()
-                                wrapper.put("entityType", prop.value.getClass().canonicalName)
-                                wrapper.put ("isSummarised", true)
-                                if (prop?.value.hasProperty ("id"))
-                                    wrapper.put ("id", (prop?.value as GroovyObject).getProperty ("id").toString())
+                                if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
+                                    wrapper.put("entityType", prop.value.getClass().simpleName)
+                                    wrapper.put ("isPreviouslyEncoded", true)
+                                    if (prop?.value.hasProperty ("id")) {
+                                        wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                    }
+                                    wrapper.put ("shortForm", prop.value.toString())
 
-                                def keyStr = "shortForm"
-                                def sumValueStr = prop.value.toString()
-                                wrapper.put (keyStr, sumValueStr)
+                                } else {
+                                    //not seen before but too many levels in - just summarise
+                                    wrapper.put("entityType", prop.value.getClass().canonicalName)
+                                    wrapper.put("isSummarised", true)
+                                    if (prop?.value.hasProperty("id"))
+                                        wrapper.put("id", (prop?.value as GroovyObject).getProperty("id").toString())
+                                    wrapper.put("shortForm", prop.value.toString())
+                                }
                                 return wrapper
                             }
                             break
@@ -818,7 +824,7 @@ class JsonUtils {
                     if (jsonEncClass)
                         return jsonEncClass
                 }else {
-                    //if summary enabled just put the field and toString form
+                    //if summaryEnabled just put the field and toString form
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             if (options.excludeClass == false) {
@@ -980,12 +986,12 @@ class JsonUtils {
 
                             case JsonEncodingStyle.tmf:
                                 keyWrapper.put ("isPreviouslyEncoded", true)
-                                if (it?.value.hasProperty ("id")) {
-                                    keyWrapper.put("@type", it.value.getClass().simpleName)
-                                    keyWrapper.put("id", (it?.value as GroovyObject).getProperty("id").toString())
+                                if (entityRef.hasProperty ("id")) {
+                                    keyWrapper.put("@type", entityRef.getClass().simpleName)
+                                    keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
                                 }
-                                keyWrapper.put ("shortForm", it.value.toString())
-
+                                keyWrapper.put ("shortForm", entityRef.toString())
+                                encodedKey = keyWrapper
 
                                 break
                         }
@@ -1018,9 +1024,7 @@ class JsonUtils {
                                 if (entityRef.hasProperty("name"))
                                     keyWrapper.put("name", (entityRef as GroovyObject).getProperty("name").toString())
                                 keyWrapper.put("shortForm", entityRef.toString())  //encode toString of entity as value
-                                JsonObject mapEntityKey = new JsonObject()
-                                mapEntityKey.put("entity", keyWrapper)
-                                encodedKey = mapEntityKey
+                                encodedKey = keyWrapper
                                 break
                         }
 
@@ -1029,6 +1033,7 @@ class JsonUtils {
 
 
                 if (supportedStandardTypes.contains (it.value.getClass())) {
+                    //value is simple value, just write key and value
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             if (isSimpleKey) {
@@ -1044,19 +1049,26 @@ class JsonUtils {
                             break
 
                         case JsonEncodingStyle.tmf:
-                            entry.put (encodedKey as String, it.value)
+                            if (isSimpleKey) {
+                                encMapEntries.put(encodedKey as String, it.value)
+                            } else  {
+                                //encMapEntries.put ((encodedKey as JsonObject).encode(), it.value)
+                                //looks weird so just use toString as 'key' entry
+                                encMapEntries.put (it.key.toString(), it.value )
+                            }
                             break
                     }
 
 
                 } else {
+                    //else value is complex entity, so encode it and
                     def jItem
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             jItem = this.toJson(it.value)
                             if (jItem) {
                                 entry = new JsonObject ()
-                                entry.put ("key", encodedKey as JsonObject)
+                                entry.put ("key", encodedKey as String)
                                 entry.put ("value", jItem )
                                 mapEntries.add (entry as Object)
                             }
@@ -1073,7 +1085,7 @@ class JsonUtils {
                             jItem.put ("type", type)
                             jItem.put ("id", id)
 
-                            //todo not guarden enough? - breaks out to toJsonApi
+                            //todo not guard enough? - breaks out to toJsonApi
                             if (options.compoundDocument) {
                                 //double derefence to object if from map attribute
                                 def encodedClassInstance = toJsonApi (it.value, includedArray )
@@ -1084,29 +1096,29 @@ class JsonUtils {
                             jItem = this.toTmfJson(it.value)
                             if (jItem) {
                                 entry = new JsonObject ()
+                                //just add each key, value to encodedMapEntries
                                 encMapEntries.put (encodedKey.toString(), jItem)
-                                //mapEntries.add (entry as Object)
                             }
                             break
                     }
                 }
             }
-            if (mapEntries.size() == 0 && style == JsonEncodingStyle.softwood)
-                return
-            else {
-                switch (style) {
-                    case JsonEncodingStyle.softwood:
-                        encMapEntries.put("withMapEntries", mapEntries)
-                        break
-                    case JsonEncodingStyle.jsonApi:
-                        break
-                    case JsonEncodingStyle.tmf:
-                        //encMapEntries = mapEntries
-                        break
+
+            //completed iteration through map and building mapEntries, so now complete the json to return
+            switch (style) {
+                case JsonEncodingStyle.softwood:
+                    //todo check how this looks its returning an array
+                    encMapEntries.put("withMapEntries", mapEntries)
+                    break
+                case JsonEncodingStyle.jsonApi:
+                    break
+                case JsonEncodingStyle.tmf:
+                    //was directly writing each kay/value pair to encmapEntries - just return it
+                    break
                 }
 
-               return encMapEntries
-            }
+            return encMapEntries
+
         }
     }
 
