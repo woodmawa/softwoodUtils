@@ -237,14 +237,14 @@ class JsonUtils {
     }
 
     //wrapper method just invoke correct method based on default jsonStyle
-    def toJson (def pogo, JsonEncodingStyle style = options.jsonStyle){
+    def toJson (def pogo, String named= null, JsonEncodingStyle style = options.jsonStyle){
         def encodedResult
         switch (style) {
             case JsonEncodingStyle.softwood :
-                encodedResult = toSoftwoodJson(pogo)
+                encodedResult = toSoftwoodJson(pogo, named)
                 break
             case JsonEncodingStyle.tmf :
-                encodedResult = toTmfJson(pogo)
+                encodedResult = toTmfJson(pogo, named)
                 break
             case JsonEncodingStyle.jsonApi :
                 encodedResult = toJsonApi (pogo) //need extra attribute ?
