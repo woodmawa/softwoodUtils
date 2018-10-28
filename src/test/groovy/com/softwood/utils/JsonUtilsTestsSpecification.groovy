@@ -37,7 +37,7 @@ class JsonUtilsTestsSpecification extends Specification {
     @Unroll
     def "encodeBasicTypes" () {
         expect :
-            jsonGenerator.toJson (simpleType).encode() == result
+            jsonGenerator.toSoftwoodJson (simpleType).encode() == result
 
         where   :
             simpleType || result
@@ -52,7 +52,7 @@ class JsonUtilsTestsSpecification extends Specification {
         Simple s = new Simple (name: "will", age:55)
 
         when: "we encode as json "
-        JsonObject json = jsonGenerator.toJson ( s)
+        JsonObject json = jsonGenerator.toSoftwoodJson ( s)
 
         then : "we expect "
         json.encode() == /{"softwoodEncoded":{"version":"1.0"},"entityData":{"entityType":"com.softwood.utils.Simple","name":"will","attributes":{"name":{"type":"String","value":"will"},"age":{"type":"Integer","value":55}}}}/
@@ -67,7 +67,7 @@ class JsonUtilsTestsSpecification extends Specification {
         p.children << c2
 
         when: "we encode parent as json "
-        JsonObject json = jsonGenerator.toJson ( p)
+        JsonObject json = jsonGenerator.toSoftwoodJson ( p)
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         def children = result.entityData.collectionAttributes.children
@@ -94,7 +94,7 @@ class JsonUtilsTestsSpecification extends Specification {
         p.children << c2
 
         when: "we encode parent as json "
-        JsonObject json = jsonGenerator.toJson ( c2)
+        JsonObject json = jsonGenerator.toSoftwoodJson ( c2)
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         def parent = result.entityData.attributes.parent.value
@@ -116,7 +116,7 @@ class JsonUtilsTestsSpecification extends Specification {
         Demo demo = new Demo( transientInt: 1, publicIntField: 2, privateIntField: 3)
 
         when : " we encode  the class "
-        JsonObject json = jsonGenerator.toJson ( demo)
+        JsonObject json = jsonGenerator.toSoftwoodJson ( demo)
         println "encoded Demo as : " + json.encodePrettily()
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())

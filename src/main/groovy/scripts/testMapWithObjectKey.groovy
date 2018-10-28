@@ -42,8 +42,8 @@ options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
 
-println "encoded int as "+jsonGenerator.toJson (2).encodePrettily()
-println "encoded list int as "+jsonGenerator.toJson ([2]).encodePrettily()
-println "encoded map as "+jsonGenerator.toJson ([a:2]).encodePrettily()
+println "encoded int as "+jsonGenerator.toSoftwoodJson (2).encodePrettily()
+println "encoded list int as "+jsonGenerator.toSoftwoodJson ([2]).encodePrettily()
+println "encoded map as "+jsonGenerator.toSoftwoodJson ([a:2]).encodePrettily()
 
-println jsonGenerator.toJson(bom).encodePrettily()
+println jsonGenerator.toSoftwoodJson(bom).encodePrettily()

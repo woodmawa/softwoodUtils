@@ -236,6 +236,24 @@ class JsonUtils {
 
     }
 
+    //wrapper method just invoke correct method based on default jsonStyle
+    def toJson (def pogo, JsonEncodingStyle style = options.jsonStyle){
+        def encodedResult
+        switch (style) {
+            case JsonEncodingStyle.softwood :
+                encodedResult = toSoftwoodJson(pogo)
+                break
+            case JsonEncodingStyle.tmf :
+                encodedResult = toTmfJson(pogo)
+                break
+            case JsonEncodingStyle.jsonApi :
+                encodedResult = toJsonApi (pogo) //need extra attribute ?
+                break
+
+        }
+        encodedResult
+    }
+
     def toTmfJson (def pogo, String named= null) {
         def json = new JsonObject()
 
@@ -354,7 +372,8 @@ class JsonUtils {
      * @param name optional name, if set used as key for encoded basic type value
      * @return
      */
-    def toJson (def pogo, String named= null) {
+    @CompileStatic
+    def toSoftwoodJson(def pogo, String named= null) {
 
         def json = new JsonObject()
 
@@ -400,7 +419,7 @@ class JsonUtils {
                 jsonObj.put ("entityType", pogo.getClass().canonicalName)
                 jsonObj.put ("isPreviouslyEncoded", true)
                 if (pogo.hasProperty ("id"))
-                    jsonObj.put ("id", pogo.getProperty ("id").toString())
+                    jsonObj.put ("id", (pogo as GroovyObject).getProperty ("id").toString())
                 jsonObj.put ("shortForm", pogo.toString())
                 wrapper.put ("entityData", jsonObj)
                 return wrapper // pogo.toString()
@@ -428,7 +447,7 @@ class JsonUtils {
             }
             def nonIterableFields = props - iterableFields - mapFields
 
-            //println "toJson: pogo ($pogo) has nonIterableFields $nonIterableFields at  iterLev ($iterLevel) "
+            //println "toSoftwoodJson: pogo ($pogo) has nonIterableFields $nonIterableFields at  iterLev ($iterLevel) "
 
             def jsonFields = new JsonObject()
             def jsonAttributes = new JsonObject()
@@ -451,18 +470,18 @@ class JsonUtils {
                             wrapper.put("name", name)
                     }
                     wrapper.put ("value", field )
-                    jsonAttributes.put (prop.key, wrapper )
+                    jsonAttributes.put (prop.key.toString(), wrapper )
                 }
             }
             for (prop in iterableFields){
-                def arrayResult = encodeIterableType ( prop.value, JsonEncodingStyle.softwood)
+                def arrayResult = encodeIterableType ( prop.value as Iterable, JsonEncodingStyle.softwood)
                 if (arrayResult) {
                     //jsonFields.put(prop.key, arrayResult)
                     jsonCollections.put(prop.key.toString(), arrayResult)
                 }
             }
             for (prop in mapFields){
-                def result = encodeMapType ( prop.value, JsonEncodingStyle.softwood)
+                def result = encodeMapType ( prop.value as Map, JsonEncodingStyle.softwood)
                 if (result) {
                     jsonMaps.put(prop.key.toString(), result)
                 }
@@ -738,11 +757,11 @@ class JsonUtils {
             }
             return result
         }
-        else if (prop.value.respondsTo("toJson")) {
+        else if (prop.value.respondsTo("toSoftwoodJson")) {
             //type already has existing method to get JsonObject so use this
-            println "prop '${prop?.key}', with type '${prop?.value?.getClass()}' supports toJson(), prop.value methods " + prop.value?.metaClass?.methods.collect {it.name}
+            println "prop '${prop?.key}', with type '${prop?.value?.getClass()}' supports toSoftwoodJson(), prop.value methods " + prop.value?.metaClass?.methods.collect {it.name}
 
-            def retJson = prop.value.invokeMethod("toJson", null)
+            def retJson = prop.value.invokeMethod("toSoftwoodJson", null)
             return retJson
         }
         else if (prop.key == "class" && prop.value instanceof Class ) {
@@ -765,7 +784,7 @@ class JsonUtils {
                         case JsonEncodingStyle.softwood :
                             //recursive call to expand on this object
                             if (iterLevel <= options.defaultExpandLevels)
-                                jsonEncClass = this?.toJson(prop.value)
+                                jsonEncClass = this?.toSoftwoodJson(prop.value)
                             else {
                                 //println "iter level $iterLevel exeeded default $options.defaultExpandLevels, just provide summary encoding for object   "
                                 JsonObject wrapper = new JsonObject()
@@ -916,7 +935,7 @@ class JsonUtils {
 
                             break
                         case JsonEncodingStyle.softwood :
-                            jItem = this.toJson(it)
+                            jItem = this.toSoftwoodJson(it)
                             break
                         case JsonEncodingStyle.tmf :
                             jItem = this.toTmfJson(it)
@@ -1065,7 +1084,7 @@ class JsonUtils {
                     def jItem
                     switch (style) {
                         case JsonEncodingStyle.softwood:
-                            jItem = this.toJson(it.value)
+                            jItem = this.toSoftwoodJson(it.value)
                             if (jItem) {
                                 entry = new JsonObject ()
                                 entry.put ("key", encodedKey as String)
