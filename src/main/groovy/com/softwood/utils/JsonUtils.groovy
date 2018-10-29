@@ -1023,7 +1023,7 @@ class JsonUtils {
                         switch (style) {
                             case JsonEncodingStyle.softwood:
                                 //else just put summary of object as the key - dont fully encode here
-                                keyWrapper.put("isSummarised", true)
+                                keyWrapper.put("isEntityKey", true)
                                 keyWrapper.put("entityType", entityRef?.getClass().canonicalName)
                                 if (entityRef.hasProperty("id"))
                                     keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
@@ -1092,7 +1092,10 @@ class JsonUtils {
                             jItem = this.toSoftwoodJson(it.value)
                             if (jItem) {
                                 entry = new JsonObject ()
-                                entry.put ("key", encodedKey as String)
+                                if (isSimpleKey)
+                                    entry.put ("key", encodedKey as String)
+                                else
+                                    entry.put ("key", encodedKey as JsonObject)
                                 entry.put ("value", jItem )
                                 mapEntries.add (entry as Object)
                             }

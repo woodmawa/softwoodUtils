@@ -1,8 +1,19 @@
 package scripts
 
+import com.softwood.utils.JsonEncodingStyle
 import com.softwood.utils.JsonUtils
 
 import java.time.LocalDateTime
+
+class Request {
+    long id = 1
+    String name = "myRequest"
+    BillOfMaterials bom
+
+    String toString () {
+        "Request (name:$name} [id:$id]"
+    }
+}
 
 class Site {
     String name
@@ -24,20 +35,22 @@ class Ci {
 class BillOfMaterials {
     Ci myCi
     Map basket = new HashMap<Site, List<Object>>()
-    //Map mapField = [someThing: "fred", anotherThing: "joe"]
-    //List list = ["a", "b", "c"]
+
 }
 
 Site site = new Site (name:"hsbc ho", id:1)
 Ci ci = new Ci (name:"router27")
 BillOfMaterials bom = new BillOfMaterials()
 bom.myCi = ci
-bom.basket.put (site, ["hello", ci])
+bom.basket.put (site, ["hello", ci])  //one entry with site as key and a list
 
 JsonUtils.Options options = new JsonUtils.Options()
 options.registerConverter(LocalDateTime) {it.toString()}
-options.excludeFieldByNames("ci")
+options.excludeFieldByNames("myCi")
 options.excludeNulls(true)
+//options.setExpandLevels(1)
+options.setJsonEncodingStyle(JsonEncodingStyle.softwood)
+options.setIncludeVersion(true)
 options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
