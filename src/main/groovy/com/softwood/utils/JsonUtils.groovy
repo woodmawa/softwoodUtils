@@ -207,12 +207,18 @@ class JsonUtils {
                     def accessible = f.isAccessible()
                     if (!accessible)
                         f.setAccessible(true)
-
+                    //check its not in excludes category before adding to list of props to encode
+                    if (isInExcludesCategory (f?.name, pogo.getClass())) {
+                        f.setAccessible(accessible)  //reset to orig
+                        return
+                    }
                     props << ["$f.name": f.get(pogo)]
                     f.setAccessible(accessible)  //reset to orig
 
 
             }
+
+
         }
         props
     }
@@ -582,6 +588,7 @@ class JsonUtils {
             jsonAttributes = new JsonObject()
             //do attributes
             for (prop in nonIterableFields) {
+
                 def field = encodeFieldType(prop, JsonEncodingStyle.jsonApi, includedArray)
                 if (field ) {
                     //if field is itself a JsonObject add to relationhips
@@ -1161,7 +1168,23 @@ class JsonUtils {
         entry?.value
     }
 
+    @CompileStatic
     private boolean isSimpleAttribute (Class<?> clazz) {
         simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
+    }
+
+    /*
+     * checks if attribute field name is excluded names or types list
+     */
+    private boolean isInExcludesCategory (String field, Class<?> clazz) {
+        boolean isExcludedName = options.excludedFieldNames.find {it == "${field}".toString()}
+        if (isExcludedName)
+            return true
+        boolean isExcludedType = options.excludedFieldTypes.find {it == clazz}
+        if (isExcludedType)
+            return true
+        else
+            false
+
     }
 }
