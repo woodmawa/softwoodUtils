@@ -208,12 +208,15 @@ class JsonUtils {
                     if (!accessible)
                         f.setAccessible(true)
                     //check its not in excludes category before adding to list of props to encode
-                    if (isInExcludesCategory (f?.name, pogo.getClass())) {
-                        f.setAccessible(accessible)  //reset to orig
+                    if (isInExcludesCategory(f?.name, pogo.getClass())) {
+                        if (!accessible)
+                            f.setAccessible(accessible)  //reset to orig
                         return
                     }
+
                     props << ["$f.name": f.get(pogo)]
-                    f.setAccessible(accessible)  //reset to orig
+                    if (!accessible)
+                        f.setAccessible(accessible)  //reset to orig
 
 
             }
