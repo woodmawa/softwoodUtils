@@ -20,6 +20,15 @@ class JsonUtils {
 
     List supportedStandardTypes = [Integer, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
     List simpleAttributeTypes = [Number, byte[], Temporal, UUID, URI, String, GString, Boolean, Instant, CharSequence, Enum]
+
+    Map classForSimpleTypesLookup = ['Number': Number, 'Enum':Enum, 'Temporal': Temporal,
+                                     'Date': Date, 'Calendar': Calendar, 'Instant':Instant,
+                                     'UUID':UUID, 'URI':URI,
+                                     'String': String, 'GString':GString,
+                                     'byte[]': Byte[], 'Byte': Byte, 'CharSequence': CharSequence, 'Character': Character,
+                                     'Boolean':Boolean, 'Integer':Integer, 'Float':Float, 'Double':Double,
+    'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
+
     Map classInstanceHasBeenEncodedOnce = new LinkedHashMap()
     int iterLevel = 0
     List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
@@ -220,24 +229,41 @@ class JsonUtils {
 
 
             }
-
-
         }
         props
     }
 
+
     //using softwood encoding at mo
-    def toObject (Class<?> instance, JsonObject json) {
+    def toObject (Class<?> clazz, JsonObject json, JsonEncodingStyle style = options.jsonStyle) {
+        def  instance = clazz.newInstance()
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         if (json instanceof JsonArray) {
             //convert to List of
         } else if (json instanceof JsonObject)  {
-            def rootEntity = result.entityData
-            def canonicalClazz = rootEntity.entityType  //canonical class string from server
-            //def parts = canonicalClazz.split(".")
-            //def simpleClazz = parts[-1]
-            //Class.forName(simpleClazz)
+            switch (style) {
+                case JsonEncodingStyle.softwood:
+                    def rootEntity = result.entityData
+                    //get field list in empty new instance
+                    Map instanceProps = getDeclaredFields(instance)
+                    Map jsonAttributes = rootEntity.attributes
+                    for (att in jsonAttributes) {
+                        def attName = att.key
+                        def dyn = Class.forName("java.lang.Integer")
+                        def attType = Class.forName(att.value.type)
+                        def attVal = att.value.value
+                        if (isSimpleAttribute(attType)) {
+                            //just set prop value in corresponding field in the instance
+                            //test if respondsTo?...
+                            if (instance.respondsTo("set$att.key", att.value))
+                                instance["$att.key"] = attVal
+                        }
+
+                    }
+                    instance
+                    break
+            }
 
         } else  {
             throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
@@ -355,12 +381,7 @@ class JsonUtils {
                     if (field ) {
                         def wrapper = new JsonObject()
                         jsonFields.put (prop.key.toString(), field )
-                        /*if (!isSimpleAttribute(prop.value.getClass())) {
-                          jsonFields.put (prop.key.toString(), field )
-                        } else {
-                            jsonFields.put(prop.key.toString(), field)
-                        }*/
-                    } else {
+                   } else {
                         if (!options.excludeNulls)
                             jsonFields.putNull(prop.key.toString())
 
@@ -406,10 +427,10 @@ class JsonUtils {
             return pogo
         }
         else if (Iterable.isAssignableFrom(pogo.getClass()) )
-            if (named)
+            if (named) {
                 json.put ("$named".toString(),  encodeIterableType(pogo as Iterable))
-        else
-            json.put ("iterable",  encodeIterableType(pogo as Iterable))
+            } else
+                json.put ("iterable",  encodeIterableType(pogo as Iterable))
         else if (Map.isAssignableFrom(pogo.getClass()))
             if (named)
                 json.put ("$named".toString(),  encodeMapType(pogo as Map))
@@ -418,8 +439,10 @@ class JsonUtils {
         else if (isSimpleAttribute(pogo.getClass())){
             if (named)
                 json.put ("$named", pogo)
-            else
-                json.put ("${pogo.getClass().simpleName}", pogo)
+            else {
+                iterLevel--
+                return pogo
+            }
         }
         else {
             //json = new JsonObject()
