@@ -9,7 +9,12 @@ import javax.inject.Inject
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.security.InvalidParameterException
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 
 enum JsonEncodingStyle {
@@ -19,7 +24,7 @@ enum JsonEncodingStyle {
 class JsonUtils {
 
     List supportedStandardTypes = [Integer, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
-    List simpleAttributeTypes = [Number, byte[], Temporal, UUID, URI, String, GString, Boolean, Instant, CharSequence, Enum]
+    List simpleAttributeTypes = [Number, Integer, Float, Double, BigDecimal, BigInteger, byte[], Temporal, UUID, URI, String, GString, Boolean, Instant, Date, LocalDateTime, LocalDate, Character, CharSequence, Enum]
 
     Map classForSimpleTypesLookup = ['Number': Number, 'Enum':Enum, 'Temporal': Temporal,
                                      'Date': Date, 'Calendar': Calendar, 'Instant':Instant,
@@ -249,15 +254,50 @@ class JsonUtils {
                     Map instanceProps = getDeclaredFields(instance)
                     Map jsonAttributes = rootEntity.attributes
                     for (att in jsonAttributes) {
-                        def attName = att.key
-                        def dyn = Class.forName("java.lang.Integer")
-                        def attType = Class.forName(att.value.type)
-                        def attVal = att.value.value
-                        if (isSimpleAttribute(attType)) {
+                        String attName = att.key
+                        String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                        def attType = classForSimpleTypesLookup[att.value.type]
+                        def attValue = att.value.value
+                        if (attType !=null && isSimpleAttribute(attType)) {
                             //just set prop value in corresponding field in the instance
                             //test if respondsTo?...
-                            if (instance.respondsTo("set$att.key", att.value))
-                                instance["$att.key"] = attVal
+                            boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
+                            if (supports)
+                                instance["$att.key"] = attValue
+                            else {
+                                /*check to see if Class offers a converter */
+                                if (attValue instanceof String) {
+                                    def metaMeth = attType.metaClass.getStaticMetaMethod("fromString", String)
+                                    if (metaMeth) {
+                                        instance["$att.key"] = attType.fromString(attValue)
+                                        continue
+                                    }
+                                    metaMeth = attType.metaClass.getStaticMetaMethod("decode", String)
+                                    if (metaMeth) {
+                                        instance["$att.key"] = attType.decode(attValue)
+                                        continue
+                                    }
+                                    metaMeth = attType.metaClass.getStaticMetaMethod("parseString", String)
+                                    if (metaMeth) {
+                                        instance["$att.key"] = attType.parseString(attValue)
+                                        continue
+                                    }
+                                    if (attType == Date) {
+                                        instance["$att.key"] = new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
+                                        continue
+                                    }
+                                    if (attType == LocalDateTime || attType == LocalDate) {
+                                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern (DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                                        instance["$att.key"] = attType.parse(attValue, dtf)
+                                        continue
+                                    }
+
+                                    if (attType == URL) {
+                                        instance["$att.key"] = new URL(attValue)
+                                        continue
+                                    }
+                                }
+                            }
                         }
 
                     }

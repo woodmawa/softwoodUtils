@@ -2,6 +2,7 @@ package scripts
 
 import com.softwood.utils.JsonEncodingStyle
 import com.softwood.utils.JsonUtils
+import com.softwood.utils.UuidUtil
 import io.vertx.core.json.JsonObject
 
 import java.time.LocalDateTime
@@ -19,13 +20,17 @@ options.summaryClassFormEnabled(false)
 jsonGenerator = options.build()
 
 class TestClass {
-    int id
+    UUID id
+    float fl
+    String name
+    Date today
+    LocalDateTime ldt
     String toString() {
         "TestClass (id:$id)"
     }
 }
 
-TestClass tc = new TestClass(id:1)
+TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
 
 JsonObject enc = jsonGenerator.toSoftwoodJson(tc)
 println enc.encodePrettily()
