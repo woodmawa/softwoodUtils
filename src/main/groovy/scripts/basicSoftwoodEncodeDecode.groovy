@@ -25,7 +25,7 @@ class TestClass {
     String name
     Date today
     LocalDateTime ldt
-    List simpleList = [1,2,3]
+    List simpleList
 
     String toString() {
         "TestClass (id:$id)"
@@ -33,6 +33,7 @@ class TestClass {
 }
 
 TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
+tc.simpleList = [1,2,3]
 
 JsonObject enc = jsonGenerator.toSoftwoodJson(tc)
 println enc.encodePrettily()

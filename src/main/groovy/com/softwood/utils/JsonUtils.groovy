@@ -18,6 +18,7 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
+import java.util.concurrent.ConcurrentLinkedQueue
 
 enum JsonEncodingStyle {
     tmf, softwood, jsonApi
@@ -316,7 +317,6 @@ class JsonUtils {
                                 instance["$att.key"] = converter (attValue)
                                 return instance
                             }
-
                             if (attType == URL) {
                                 instance["$att.key"] = new URL(attValue)
                                 return instance
@@ -333,19 +333,44 @@ class JsonUtils {
 
     }
 
-    private def decodeCollectionAttribute (instance, att, JsonEncodingStyle style) {
+    private def decodeCollectionAttribute (instance, collectionAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
-                String attName = att.key
-                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
-                def attType = classForSimpleTypesLookup[att.value.type]
-                def attValue = att.value.value
+                String attName = collectionAtt.key
+                def attValue = collectionAtt.value
+                //String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                //def attType = classForSimpleTypesLookup[collectionAtt.value.type]
+                //def attValue = collectionAtt.value.value
 
+                    //not going to work!
+                //use reflection to get field type
+                Field field = instance.getClass().getDeclaredField ("$attName")
+                switch (field.type) {
+                    case ArrayList:
+                    case List:
+                        instance["$attName"] = new ArrayList()
+                        break
+                    case Collection:
+                    case Iterable:
+                    case ConcurrentLinkedQueue:
+                    case Queue:
+                        instance["$attName"] = new ConcurrentLinkedQueue<>()
+                        break
+                }
+                def instCollAtt = instance["$attName"]
+                for (item in attValue ) {
+                    if (isSimpleAttribute(item.getClass()))
+                        instCollAtt << item
+                    else {
+                        //todo else complex and decode item in list
+                    }
+                }
                 break
             case JsonEncodingStyle.tmf:
                 break
 
         }
+        instance
 
     }
 
