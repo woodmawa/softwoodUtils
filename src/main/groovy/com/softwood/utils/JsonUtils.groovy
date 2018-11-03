@@ -4,6 +4,7 @@ import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
+import org.codehaus.groovy.runtime.MethodClosure
 
 import javax.inject.Inject
 import java.lang.reflect.Field
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 
@@ -24,11 +26,12 @@ enum JsonEncodingStyle {
 class JsonUtils {
 
     List supportedStandardTypes = [Integer, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
-    List simpleAttributeTypes = [Number, Integer, Float, Double, BigDecimal, BigInteger, byte[], Temporal, UUID, URI, String, GString, Boolean, Instant, Date, LocalDateTime, LocalDate, Character, CharSequence, Enum]
+    List simpleAttributeTypes = [Number, Integer, Float, Double, BigDecimal, BigInteger, byte[], Temporal, UUID, URI, URL, String, GString, Boolean, Instant, Date, LocalDateTime, LocalDate, LocalTime, Character, CharSequence, Enum]
 
     Map classForSimpleTypesLookup = ['Number': Number, 'Enum':Enum, 'Temporal': Temporal,
                                      'Date': Date, 'Calendar': Calendar, 'Instant':Instant,
-                                     'UUID':UUID, 'URI':URI,
+                                     'LocalDateTime': LocalDateTime, 'LocalDate': LocalDate, 'LocalTime': LocalTime,
+                                     'UUID':UUID, 'URI':URI, 'URL':URL,
                                      'String': String, 'GString':GString,
                                      'byte[]': Byte[], 'Byte': Byte, 'CharSequence': CharSequence, 'Character': Character,
                                      'Boolean':Boolean, 'Integer':Integer, 'Float':Float, 'Double':Double,
@@ -254,60 +257,99 @@ class JsonUtils {
                     Map instanceProps = getDeclaredFields(instance)
                     Map jsonAttributes = rootEntity.attributes
                     for (att in jsonAttributes) {
-                        String attName = att.key
-                        String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
-                        def attType = classForSimpleTypesLookup[att.value.type]
-                        def attValue = att.value.value
-                        if (attType !=null && isSimpleAttribute(attType)) {
-                            //just set prop value in corresponding field in the instance
-                            //test if respondsTo?...
-                            boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
-                            if (supports)
-                                instance["$att.key"] = attValue
-                            else {
-                                /*check to see if Class offers a converter */
-                                if (attValue instanceof String) {
-                                    def metaMeth = attType.metaClass.getStaticMetaMethod("fromString", String)
-                                    if (metaMeth) {
-                                        instance["$att.key"] = attType.fromString(attValue)
-                                        continue
-                                    }
-                                    metaMeth = attType.metaClass.getStaticMetaMethod("decode", String)
-                                    if (metaMeth) {
-                                        instance["$att.key"] = attType.decode(attValue)
-                                        continue
-                                    }
-                                    metaMeth = attType.metaClass.getStaticMetaMethod("parseString", String)
-                                    if (metaMeth) {
-                                        instance["$att.key"] = attType.parseString(attValue)
-                                        continue
-                                    }
-                                    if (attType == Date) {
-                                        instance["$att.key"] = new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
-                                        continue
-                                    }
-                                    if (attType == LocalDateTime || attType == LocalDate) {
-                                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern (DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                                        instance["$att.key"] = attType.parse(attValue, dtf)
-                                        continue
-                                    }
-
-                                    if (attType == URL) {
-                                        instance["$att.key"] = new URL(attValue)
-                                        continue
-                                    }
-                                }
-                            }
-                        }
+                        decodeFieldAttribute (instance, att, style)
+                    }
+                    Map collectionAttributes = rootEntity.collectionAttributes
+                    for (att in collectionAttributes) {
+                        decodeCollectionAttribute (instance, att, style)
 
                     }
                     instance
                     break
             }
-
-        } else  {
+        }
+        else  {
             throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
         }
+
+    }
+
+    private def decodeFieldAttribute (instance, att, JsonEncodingStyle style) {
+        switch (style) {
+            case JsonEncodingStyle.softwood:
+                String attName = att.key
+                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                def attType = classForSimpleTypesLookup[att.value.type]
+                def attValue = att.value.value
+                if (attType !=null && isSimpleAttribute(attType)) {
+                    //just set prop value in corresponding field in the instance
+                    //test if respondsTo?...
+                    boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
+                    if (supports)
+                        instance["$att.key"] = attValue
+                    else {
+                        /*check to see if Class offers a converter */
+                        if (attValue instanceof String) {
+                            def metaMeth = attType.metaClass.getStaticMetaMethod("fromString", String)
+                            if (metaMeth) {
+                                instance["$att.key"] = attType.fromString(attValue)
+                                return instance
+                            }
+                            metaMeth = attType.metaClass.getStaticMetaMethod("decode", String)
+                            if (metaMeth) {
+                                instance["$att.key"] = attType.decode(attValue)
+                                return instance
+                            }
+                            metaMeth = attType.metaClass.getStaticMetaMethod("parseString", String)
+                            if (metaMeth) {
+                                instance["$att.key"] = attType.parseString(attValue)
+                                return instance
+                            }
+                            if (attType == Date) {
+                                instance["$att.key"] = new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
+                                return instance
+                            }
+                            if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
+                                //dynamic lookup for converter
+                                MethodClosure converter = attType.&parse
+                                //DateTimeFormatter dtf = DateTimeFormatter.ofPattern (DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                                instance["$att.key"] = converter (attValue)
+                                return instance
+                            }
+
+                            if (attType == URL) {
+                                instance["$att.key"] = new URL(attValue)
+                                return instance
+                            }
+                        }
+                    }
+                }
+                break  //end softwood encoded field
+
+            case JsonEncodingStyle.tmf:
+                break //end tmf encoded field
+
+        }
+
+    }
+
+    private def decodeCollectionAttribute (instance, att, JsonEncodingStyle style) {
+        switch (style ) {
+            case JsonEncodingStyle.softwood:
+                String attName = att.key
+                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                def attType = classForSimpleTypesLookup[att.value.type]
+                def attValue = att.value.value
+
+                break
+            case JsonEncodingStyle.tmf:
+                break
+
+        }
+
+    }
+
+    private def decodeMapAttribute () {
 
     }
 

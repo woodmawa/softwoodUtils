@@ -25,6 +25,8 @@ class TestClass {
     String name
     Date today
     LocalDateTime ldt
+    List simpleList = [1,2,3]
+
     String toString() {
         "TestClass (id:$id)"
     }
