@@ -1,5 +1,6 @@
 package com.softwood.utils
 
+import com.sun.xml.internal.fastinfoset.util.CharArray
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import io.vertx.core.json.JsonArray
@@ -10,14 +11,14 @@ import javax.inject.Inject
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.security.InvalidParameterException
-import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
 
 enum JsonEncodingStyle {
@@ -26,8 +27,9 @@ enum JsonEncodingStyle {
 
 class JsonUtils {
 
-    List supportedStandardTypes = [Integer, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
-    List simpleAttributeTypes = [Number, Integer, Float, Double, BigDecimal, BigInteger, byte[], Temporal, UUID, URI, URL, String, GString, Boolean, Instant, Date, LocalDateTime, LocalDate, LocalTime, Character, CharSequence, Enum]
+    List jsonEncodableStandardTypes = [Integer, Long, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
+    //UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger,
+    List simpleAttributeTypes = [Number, Integer, Long, Float, Double, byte[], String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
 
     Map classForSimpleTypesLookup = ['Number': Number, 'Enum':Enum, 'Temporal': Temporal,
                                      'Date': Date, 'Calendar': Calendar, 'Instant':Instant,
@@ -36,7 +38,7 @@ class JsonUtils {
                                      'String': String, 'GString':GString,
                                      'byte[]': Byte[], 'Byte': Byte, 'CharSequence': CharSequence, 'Character': Character,
                                      'Boolean':Boolean, 'Integer':Integer, 'Float':Float, 'Double':Double,
-    'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
+                                     'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
 
     Map classInstanceHasBeenEncodedOnce = new LinkedHashMap()
     int iterLevel = 0
@@ -255,16 +257,23 @@ class JsonUtils {
                 case JsonEncodingStyle.softwood:
                     def rootEntity = result.entityData
                     //get field list in empty new instance
-                    Map instanceProps = getDeclaredFields(instance)
                     Map jsonAttributes = rootEntity.attributes
                     for (att in jsonAttributes) {
                         decodeFieldAttribute (instance, att, style)
                     }
+                    //process any collections attributes
                     Map collectionAttributes = rootEntity.collectionAttributes
                     for (att in collectionAttributes) {
                         decodeCollectionAttribute (instance, att, style)
 
                     }
+
+                    Map mapAttributes = rootEntity.mapAttributes
+                    for (att in mapAttributes) {
+                        decodeMapAttribute (instance, att, style)
+
+                    }
+
                     instance
                     break
             }
@@ -273,6 +282,35 @@ class JsonUtils {
             throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
         }
 
+    }
+
+    private def decodeSimpleAttribute (attType, attValue, JsonEncodingStyle style) {
+        switch (style) {
+            case JsonEncodingStyle.softwood:
+                if (Number.isAssignableFrom (attType) || attType == Enum || attType == Boolean)
+                    return attValue
+                else if (attType == String || attType == CharArray)
+                    return attValue
+                else if (attType == byte[])
+                    return attValue
+                else if (attType == Date) {
+                    return  new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
+                }
+                else if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
+                    return attType.parse (attValue)
+                }
+                else if (attType == URI) {
+                    return new URI (attValue)
+                }
+                else if (attType == URL) {
+                    return new URI (attValue)
+                }
+                else if (attType == UUID) {
+                    return UUID.fromString (attValue)
+                }
+
+                break
+        }
     }
 
     private def decodeFieldAttribute (instance, att, JsonEncodingStyle style) {
@@ -287,42 +325,14 @@ class JsonUtils {
                     //test if respondsTo?...
                     boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
                     if (supports)
+                        //if setter exists for AttValue then use it
                         instance["$att.key"] = attValue
                     else {
                         /*check to see if Class offers a converter */
-                        if (attValue instanceof String) {
-                            def metaMeth = attType.metaClass.getStaticMetaMethod("fromString", String)
-                            if (metaMeth) {
-                                instance["$att.key"] = attType.fromString(attValue)
-                                return instance
-                            }
-                            metaMeth = attType.metaClass.getStaticMetaMethod("decode", String)
-                            if (metaMeth) {
-                                instance["$att.key"] = attType.decode(attValue)
-                                return instance
-                            }
-                            metaMeth = attType.metaClass.getStaticMetaMethod("parseString", String)
-                            if (metaMeth) {
-                                instance["$att.key"] = attType.parseString(attValue)
-                                return instance
-                            }
-                            if (attType == Date) {
-                                instance["$att.key"] = new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
-                                return instance
-                            }
-                            if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
-                                //dynamic lookup for converter
-                                MethodClosure converter = attType.&parse
-                                //DateTimeFormatter dtf = DateTimeFormatter.ofPattern (DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                                instance["$att.key"] = converter (attValue)
-                                return instance
-                            }
-                            if (attType == URL) {
-                                instance["$att.key"] = new URL(attValue)
-                                return instance
-                            }
-                        }
+                        instance["$att.key"] = decodeSimpleAttribute(attType, attValue, style)
                     }
+                } else {
+                    //todo have to decode complex attribute
                 }
                 break  //end softwood encoded field
 
@@ -337,12 +347,8 @@ class JsonUtils {
         switch (style ) {
             case JsonEncodingStyle.softwood:
                 String attName = collectionAtt.key
-                def attValue = collectionAtt.value
-                //String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
-                //def attType = classForSimpleTypesLookup[collectionAtt.value.type]
-                //def attValue = collectionAtt.value.value
+                def iterableAttValue = collectionAtt.value
 
-                    //not going to work!
                 //use reflection to get field type
                 Field field = instance.getClass().getDeclaredField ("$attName")
                 switch (field.type) {
@@ -356,11 +362,28 @@ class JsonUtils {
                     case Queue:
                         instance["$attName"] = new ConcurrentLinkedQueue<>()
                         break
+                    case ConcurrentLinkedDeque:
+                    case Deque:
+                        instance["$attName"] = new ConcurrentLinkedDeque<>()
+                        break
+                    case HashSet:
+                    case Set:
+                        instance["$attName"] = new HashSet<>()
+                        break
+
                 }
                 def instCollAtt = instance["$attName"]
-                for (item in attValue ) {
-                    if (isSimpleAttribute(item.getClass()))
-                        instCollAtt << item
+                for (item in iterableAttValue ) {
+                    def clazz, value
+                    if (item instanceof Map) {
+                        clazz = classForSimpleTypesLookup[item.type]
+                        value = item.value
+                    } else {
+                        clazz = item.getClass()
+                        value = item
+                    }
+                    if (isSimpleAttribute(clazz))
+                        instance["$attName"] << decodeSimpleAttribute(clazz, value, style)
                     else {
                         //todo else complex and decode item in list
                     }
@@ -374,8 +397,45 @@ class JsonUtils {
 
     }
 
-    private def decodeMapAttribute () {
+    private def decodeMapAttribute (instance, mapAtt, JsonEncodingStyle style) {
+        switch (style ) {
+            case JsonEncodingStyle.softwood:
+                String attName = mapAtt.key
+                def listOfMapEntries = mapAtt.value['withMapEntries']
 
+                //use reflection to get field type
+                Field field = instance.getClass().getDeclaredField ("$attName")
+                switch (field.type) {
+                    case HashMap:
+                        instance["$attName"] = new HashMap()
+                        break
+                    case ConcurrentHashMap:
+                    case Map:
+                        instance["$attName"] = new ConcurrentHashMap<>()
+                        break
+                }
+                def instMapAtt = instance["$attName"]
+                for (item in listOfMapEntries ) {
+                    def clazz, value, key
+
+                    //todo what happens for object as key ?
+
+                    key = item.key
+                    value = item.value
+                    clazz = item.value.getClass()
+
+                  if (isSimpleAttribute(clazz))
+                        instance["$attName"].put (key,  decodeSimpleAttribute(clazz, value, style))
+                    else {
+                        //todo else complex and decode item in list
+                    }
+                }
+                break
+            case JsonEncodingStyle.tmf:
+                break
+
+        }
+        instance
     }
 
     //wrapper method just invoke correct method based on default jsonStyle
@@ -414,11 +474,11 @@ class JsonUtils {
             iterLevel--
             return pogo
         } else if (isSimpleAttribute(pogo.getClass())) {
-            if (named) {
+            if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
                 json.put("$named", pogo)
-            }else {
+            } else {
                 iterLevel--
-                return pogo
+                return encodeSimpleType(pogo, JsonEncodingStyle.tmf)
             }
         } else if (Iterable.isAssignableFrom(pogo.getClass()) )
                  if (named) {
@@ -543,12 +603,12 @@ class JsonUtils {
                 json.put ("$named".toString(),  encodeMapType(pogo as Map))
             else
                 json.put ("map",  encodeMapType(pogo ))
-        else if (isSimpleAttribute(pogo.getClass())){
-            if (named)
-                json.put ("$named", pogo)
-            else {
+        else if ( isSimpleAttribute(pogo.getClass()) ){
+            if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
+                json.put("$named", pogo)
+            } else {
                 iterLevel--
-                return pogo
+                return encodeSimpleType(pogo, JsonEncodingStyle.softwood)
             }
         }
         else {
@@ -871,6 +931,46 @@ class JsonUtils {
     }
 
     @CompileStatic
+    private def encodeSimpleType (value, style) {
+        JsonObject json = new JsonObject()
+
+        if (value instanceof Number)
+            return value
+        else if (value instanceof Boolean)
+            return value
+        else if (value instanceof byte[])
+            return value
+        else if (value instanceof CharSequence)
+            return value as CharSequence
+        else if (value instanceof Character)
+            return value
+        else if (value instanceof Enum)
+            return value
+        else if (value instanceof Date) { //date, Time, Timestamp
+            json.put ("type", value.getClass().simpleName)
+            json.put ("value", value.toString())
+        }
+        else if (value instanceof LocalDateTime || value instanceof LocalDate || value instanceof LocalTime) {
+            json.put ("type", value.getClass().simpleName)
+            json.put ("value", value.toString())
+        }
+        else if (value instanceof URL || value instanceof URI) {
+            json.put ("type", value.getClass().simpleName)
+            json.put ("value", value.toString())
+        }
+        else if (value instanceof UUID ) {
+            json.put ("type", value.getClass().simpleName)
+            json.put ("value", value.toString())
+        } else {
+            json.put("type", value.getClass().simpleName)
+            json.put("unrecognised simple type", true)
+            json.put("value", value.toString())
+        }
+        json
+    }
+
+
+    @CompileStatic
     private def encodeFieldType (Map.Entry prop, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray = null) {
         def json = new JsonObject()
         Closure converter
@@ -919,7 +1019,7 @@ class JsonUtils {
             return prop.value.toString()
         }
         else {
-            if (supportedStandardTypes.contains (prop.value.getClass())) {
+            if (jsonEncodableStandardTypes.contains (prop.value.getClass())) {
                 return prop.value
             } else {
                 def jsonEncClass
@@ -1054,7 +1154,7 @@ class JsonUtils {
             }
 
             iterable.each {
-                if (supportedStandardTypes.contains (it.getClass())) {
+                if (jsonEncodableStandardTypes.contains (it.getClass())) {
                     jList.add (it)
                 } else {
                     def jItem
@@ -1196,7 +1296,7 @@ class JsonUtils {
                 }
 
 
-                if (supportedStandardTypes.contains (it.value.getClass())) {
+                if (jsonEncodableStandardTypes.contains (it.value.getClass())) {
                     //value is simple value, just write key and value
                     switch (style) {
                         case JsonEncodingStyle.softwood:
@@ -1302,8 +1402,29 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private boolean isSimpleAttribute (Class<?> clazz) {
+    private boolean isSimpleAttribute (def item) {
+        Class<?> clazz
+        if (item instanceof Class)
+            clazz = item
+        else
+            clazz = item.getClass()
+
         simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
+    }
+
+    @CompileStatic
+    private boolean isJsonStandardEncodableAttribute (def item) {
+
+        Class<?> clazz
+        if (item instanceof Class)
+            clazz = item
+        else
+            clazz = item.getClass()
+
+        jsonEncodableStandardTypes.find {
+            boolean testRes = (it as Class).isAssignableFrom (clazz)
+            testRes
+        }
     }
 
     /*
