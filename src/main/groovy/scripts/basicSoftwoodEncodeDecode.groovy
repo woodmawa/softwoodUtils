@@ -28,6 +28,7 @@ class TestClass {
     List simpleList  //works for List, Collection
     Map simpleMap
     List subClassList
+    Map complexMap
 
     String toString() {
         "TestClass (id:$id)"
@@ -50,6 +51,7 @@ TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:
 tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
 tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
+tc.complexMap = ['a': sc1]
 
 JsonObject enc
 enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
@@ -58,8 +60,14 @@ println "encoded Date as \n" + enc.encodePrettily()
 enc = jsonGenerator.toSoftwoodJson(LocalDateTime.now())
 println "encoded LDT as \n" + enc.encodePrettily()
 
+enc = jsonGenerator.toSoftwoodJson([1, true])
+println "encoded List as : " + enc.encodePrettily()
+
 enc = jsonGenerator.toSoftwoodJson([a:1, b:true])
 println "encoded map as : " + enc.encodePrettily()
+
+def res = jsonGenerator.toObject(HashMap, enc)
+System.exit(0)
 
 
 enc = jsonGenerator.toSoftwoodJson(tc)
