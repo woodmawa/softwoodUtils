@@ -1301,12 +1301,12 @@ class JsonUtils {
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             if (isSimpleKey) {
-                                entry.put("key", encodedKey as String)
+                                json.put("key", encodedKey as String)
                             } else {
-                                entry.put("key", encodedKey as JsonObject)
+                                json.put("key", encodedKey as JsonObject)
                             }
-                            entry.put("value", it.value)
-                            mapEntries.add(entry as Object)
+                            json.put("value", it.value)
+                            mapEntries.add(json)
                             break
 
                         case JsonEncodingStyle.jsonApi:
@@ -1331,13 +1331,13 @@ class JsonUtils {
                         case JsonEncodingStyle.softwood:
                             jItem = this.toSoftwoodJson(it.value)
                             if (jItem) {
-                                entry = new JsonObject ()
+                                json = new JsonObject ()
                                 if (isSimpleKey)
-                                    entry.put ("key", encodedKey as String)
+                                    json.put ("key", encodedKey as String)
                                 else
-                                    entry.put ("key", encodedKey as JsonObject)
-                                entry.put ("value", jItem )
-                                mapEntries.add (entry as Object)
+                                    json.put ("key", encodedKey as JsonObject)
+                                json.put ("value", jItem )
+                                mapEntries.add (json)
                             }
 
                             break
@@ -1362,7 +1362,6 @@ class JsonUtils {
                         case JsonEncodingStyle.tmf:
                             jItem = this.toTmfJson(it.value)
                             if (jItem) {
-                                entry = new JsonObject ()
                                 //just add each key, value to encodedMapEntries
                                 encMapEntries.put (encodedKey.toString(), jItem)
                             }
