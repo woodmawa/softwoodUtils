@@ -381,10 +381,16 @@ class JsonUtils {
     private def decodeCollectionAttribute (instance, collectionAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
-                if (isSimpleAttribute(collectionAtt)) {
-                    if (instance instanceof Collection)
+                if (instance instanceof Collection ) {
+                    //we are building a list of items, decode the colelctionAtt and add to 'instance' collection
+                    if (isSimpleAttribute(collectionAtt)) {
                         instance.add collectionAtt
-                    return instance
+                        return instance
+                    } else if (collectionAtt['entityData']) {
+                        //json attribute is an complex entity expression so decode and all to instance 
+
+                    }
+
                 }
 
                 String attName = collectionAtt['key']
