@@ -264,7 +264,13 @@ class JsonUtils {
         } else if (json instanceof JsonObject)  {
             switch (style) {
                 case JsonEncodingStyle.softwood:
-                    if (json['map']['withMapEntries'] ) {
+                    if (json['iterable']) {
+                        //just sent a simple Iterable to decode
+                        def collectionAttributes = json['iterable']
+                        for (jsonAtt in collectionAttributes)
+                            decodeCollectionAttribute (instance, jsonAtt, style)
+                    }
+                    else if (json.getAt('map')?.getAt ('withMapEntries') ) {
                         //json is just a single jsonArray of map.entries
                         def mapAttributes = json['map']['withMapEntries']
                         for (jsonAtt in mapAttributes) {
@@ -375,6 +381,12 @@ class JsonUtils {
     private def decodeCollectionAttribute (instance, collectionAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
+                if (isSimpleAttribute(collectionAtt)) {
+                    if (instance instanceof Collection)
+                        instance.add collectionAtt
+                    return instance
+                }
+
                 String attName = collectionAtt['key']
                 def iterableAttValue = collectionAtt['value']
 
