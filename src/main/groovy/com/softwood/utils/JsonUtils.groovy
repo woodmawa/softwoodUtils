@@ -39,13 +39,16 @@ class JsonUtils {
                                      'Boolean':Boolean, 'Integer':Integer, 'Long':Long, 'Float':Float, 'Double':Double,
                                      'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
 
-    Map classInstanceHasBeenEncodedOnce = new LinkedHashMap()
+    //todo note these may need to be thread local ??
+    Map classInstanceHasBeenEncodedOnce = new ConcurrentHashMap()
+    Queue previouslyDecodedClassInstance = new ConcurrentLinkedQueue()
     ThreadLocal<Integer> iterLevel = ThreadLocal.withInitial{0}
 
     List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
 
     protected Options options
     private JsonUtils (Options options) {
+        //add getAt function for array index notation on JsonObject
         JsonObject.metaClass.getAt = {String s -> delegate.getValue(s)}
         this.options = options
     }
@@ -307,9 +310,11 @@ class JsonUtils {
                             decodeMapAttribute (instance, jsonAtt, style)
 
                         }
-                    }
 
-                    instance
+                        //todo : what about is sumarised??
+                        if (entity['isPreviouslyEncoded'] == null)
+                            previouslyDecodedClassInstance.add (instance)
+                    }
                     break
             }
         }
@@ -318,6 +323,9 @@ class JsonUtils {
             throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
         }
         iterLevel.set (--level)
+        if (iterLevel.get () == 0) {
+            previouslyDecodedClassInstance.clear()
+        }
         instance
 
     }
@@ -328,7 +336,7 @@ class JsonUtils {
         println "class $proxyClazzTypeName not in current vm - build an expando proxy instead"
         Expando proxy = new Expando()
         proxy.setProperty('isProxy':true)
-        proxy.setProperty ('proxiedClass', proxyClazzTypeName)
+        proxy.setProperty ('proxiedClassName', proxyClazzTypeName)
 
         switch (style) {
             case JsonEncodingStyle.softwood:
@@ -468,7 +476,8 @@ class JsonUtils {
                 }
                 def instCollAtt = instance["$attName"]
                 for (item in iterableAttValue ) {
-                    def clazz, value, proxy, iterableInstance, isEntity = false
+                    def clazz, value, proxy, iterableInstance, entity, previouslyDecodedEntity, entityId, entityName
+                    boolean isEntity = false, isPreviouslyEncoded = false
                     String clazzName
                     if (item instanceof JsonObject) {
                         //either a map object - or could be an encoded jsonObject as map
@@ -476,8 +485,13 @@ class JsonUtils {
                             clazz = classForSimpleTypesLookup[ (item['type'])]
                             value = item['value']
                         } else if (item['entityData'] ) {
+                            entity = item['entityData']
+                            entityId = entity['id']
+                            entityName = entity['name']
+                            if (entity['isPreviouslyEncoded'])
+                                isPreviouslyEncoded = true
                             isEntity = true
-                            clazzName = item['entityData']['entityType']
+                            clazzName = entity['entityType']
                         }
 
                     } else {
@@ -487,15 +501,25 @@ class JsonUtils {
                     if (!isEntity && isSimpleAttribute(clazz))
                         instance["$attName"].add (decodeSimpleAttribute(clazz, value, style) )
                     else {
-                        try {
-                            clazz = Class.forName(clazzName)
-                            iterableInstance = toObject(clazz, item, style)
-                            instance["$attName"].add (iterableInstance)
-                        } catch (RuntimeException ex) {
-                            //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
-                            def decodedProxy = decodeToProxyInstance(clazzName, item, style)
-                            instance["$attName"].add (decodedProxy)
+                        if (isPreviouslyEncoded) {
+                            previouslyDecodedEntity = previouslyDecodedClassInstance.find {
+                                def runtimeClazzName = (it instanceof Expando && it?.isProxy) ? it.proxiedClassName : it.getClass().canonicalName
+                                def test = runtimeClazzName == clazzName && it?.id?.toString() == entityId.toString()
+                                test
+                            }
+                            if (previouslyDecodedEntity)
+                                instance["$attName"].add (previouslyDecodedEntity)
+                        } else {
+                            try {
+                                clazz = Class.forName(clazzName)
+                                iterableInstance = toObject(clazz, item, style)
+                                instance["$attName"].add(iterableInstance)
+                            } catch (RuntimeException ex) {
+                                //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
+                                def decodedProxy = decodeToProxyInstance(clazzName, item, style)
+                                instance["$attName"].add(decodedProxy)
 
+                            }
                         }
                     }
                 }
@@ -508,6 +532,7 @@ class JsonUtils {
 
     }
 
+    //@CompileStatic
     private def decodeMapAttribute (instance, mapAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
@@ -555,17 +580,21 @@ class JsonUtils {
                 }
                 def instMapAtt = instance["$attName"]
                 for (item in listOfMapEntries ) {
-                    def clazz, clazzName, value, key, mapInstance, proxy, entity
-                    boolean isEntity=false
+                    def clazz, clazzName, value, key, mapInstance, proxy, entity, entityId, entityName, previouslyDecodedEntity
+                    boolean isEntity = false, isPreviouslyEncoded = false
 
                     key = item['key']
                     if (isSimpleAttribute(item['value'].getClass())) {
                         value = item['value']
                         clazz = value.getClass()
                     } else if (item['value']['entityData'] ) {
-                        entity = item['value']
+                        entity = item['value']['entityData']
                         isEntity = true
-                        clazzName = entity['entityData']['entityType']
+                        clazzName = entity['entityType']
+                        if (entity['isPreviouslyEncoded'])
+                            isPreviouslyEncoded = true
+                        entityId = entity['id']
+                        entityName = entity['name']
                     }
 
                     if (!isEntity && isSimpleAttribute(clazz)) {
@@ -573,16 +602,27 @@ class JsonUtils {
                         instance["$attName"].put(key, decodedSimpleValue )
                     }
                     else {
-                      try {
-                          clazz = Class.forName(clazzName)
-                          def decodedMapValue = toObject(clazz, item, style)
-                          instance["$attName"].put (key, decodedMapValue)
-                      } catch (Throwable t) {
-                          //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
-                          def decodedProxyMapValue = decodeToProxyInstance(clazzName, item, style)
-                          instance["$attName"].put (key, decodedProxyMapValue)
+                        if (isPreviouslyEncoded) {
+                            previouslyDecodedEntity = previouslyDecodedClassInstance.find {
+                                def runtimeClazzName = (it instanceof Expando && it?.isProxy) ? it.proxiedClassName : it.getClass().canonicalName
+                                def test = runtimeClazzName == clazzName && it?.id?.toString() == entityId.toString()
+                                test
+                            }
+                            if (previouslyDecodedEntity) {
+                                instance["$attName"].put(key, previouslyDecodedEntity )
+                            }
+                        } else {
+                            try {
+                                clazz = Class.forName(clazzName)
+                                decodedMapValue = toObject(clazz, item, style)
+                                instance["$attName"].put(key, decodedMapValue)
+                            } catch (Throwable t) {
+                                //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
+                                def decodedProxyMapValue = decodeToProxyInstance(clazzName, item, style)
+                                instance["$attName"].put(key, decodedProxyMapValue)
 
-                      }
+                            }
+                        }
                     }
                 }
                 break
