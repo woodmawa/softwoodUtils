@@ -61,7 +61,7 @@ println "encoded Date as \n" + enc.encodePrettily()
 enc = jsonGenerator.toSoftwoodJson(LocalDateTime.now())
 println "encoded LDT as \n" + enc.encodePrettily()*/
 
-
+/*
 def lenc = jsonGenerator.toSoftwoodJson([1, true, sc1])
 println "encoded List as : " + lenc.encodePrettily()
 
@@ -74,7 +74,7 @@ println lres
 //System.exit(0)
 
 def mres = jsonGenerator.toObject(HashMap, menc)
-println mres
+println mres*/
 
 //System.exit(0)
 
