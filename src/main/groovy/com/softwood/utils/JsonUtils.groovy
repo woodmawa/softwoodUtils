@@ -249,15 +249,23 @@ class JsonUtils {
     //using softwood encoding at mo
     def toObject (Class<?> clazz, JsonObject json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
+        def  instance
 
         iterLevel.set (++level)
         if (clazz.isInterface()) {
-            println "must be class not an, interface : $clazz.simpleName"
-            return
+            if (clazz instanceof Collection) {
+                instance = new ConcurrentLinkedQueue<>()
+            } else if (clazz instanceof Map) {
+                instance = new ConcurrentHashMap<>()
+            } else {
+                println "must provide explicit class not an, interface : $clazz.simpleName"
+                return
+            }
+        } else {
+            instance = clazz.newInstance()
         }
 
-        def  instance = clazz.newInstance()
-        Map result = json.getMap()
+        //Map result = json.getMap()
 
         if (json instanceof JsonArray) {
             //convert to List of
@@ -278,14 +286,15 @@ class JsonUtils {
                             instance.putAll (entry)
 
                         }
-                    } else if (json['value'] instanceof JsonArray) {
+                    } /*else if (json['value'] instanceof JsonArray) {
                         //json is just a single list
                         def collectionAttributes = entity['iterable']
                         for (jsonAtt in collectionAttributes) {
                             decodeCollectionAttribute (instance, jsonAtt, style)
 
                         }
-                    } else if (json['entityData']){
+                    } */
+                    else if (json['entityData']){
                         def entity = json['entityData']
 
                         def jsonAttributes = entity["attributes"]
@@ -315,6 +324,36 @@ class JsonUtils {
         }
         iterLevel.set (--level)
         instance
+
+    }
+
+
+    private def decodeToProxyInstance (proxyClazzTypeName, jsonEntity, JsonEncodingStyle style) {
+        //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
+        println "class $proxyClazzTypeName not in current vm - build an expando proxy instead"
+        Expando proxy = new Expando()
+        proxy.setProperty('isProxy':true)
+        proxy.setProperty ('proxiedClass', proxyClazzTypeName)
+
+        switch (style) {
+            case JsonEncodingStyle.softwood:
+                if (jsonEntity['id'])
+                    proxy.setProperty('id', jsonEntity['id'])
+                if (jsonEntity.name)
+                    proxy.setProperty('name', jsonEntity['name'])
+                def attributes = (jsonEntity['entityData']['attributes'] ?: [])
+                for (jsonAtt in attributes) {
+                    if (isSimpleAttribute(jsonAtt['value']?.getClass()))
+                        proxy.setProperty(jsonAtt['key'], jsonAtt['value'])
+                    else if (jsonAtt['entityData']) {
+                        def decodedEntity  = toObject (jsonAtt['entityData']['entityType'])
+                        proxy.setProperty (jsonAtt['key'], decodedEntity)
+                    }
+                }
+
+                break
+        }
+        proxy
 
     }
 
@@ -382,17 +421,27 @@ class JsonUtils {
         switch (style ) {
             case JsonEncodingStyle.softwood:
                 if (instance instanceof Collection ) {
-                    //we are building a list of items, decode the colelctionAtt and add to 'instance' collection
                     if (isSimpleAttribute(collectionAtt)) {
+                        //we are building a list of items, decode the collctionAtt and add to 'instance' collection
                         instance.add collectionAtt
                         return instance
                     } else if (collectionAtt['entityData']) {
-                        //json attribute is an complex entity expression so decode and all to instance 
-
+                        //json attribute is an complex entity expression in the iterable, so decode and add to instance
+                        String clazzName = collectionAtt['entityData']['entityType']
+                        Class clazz = Class.forName(clazzName)
+                        if (clazz) {
+                            //vm already has class loaded
+                            def decodedObj = toObject(clazz, collectionAtt, style)
+                            instance.add decodedObj
+                        } else {
+                            println "no class loaded to decode '$clazzName' json object from"
+                        }
+                        return instance
                     }
 
                 }
 
+                //otherwise starting instance as complex type, and decoding a field from the json
                 String attName = collectionAtt['key']
                 def iterableAttValue = collectionAtt['value']
 
@@ -478,11 +527,30 @@ class JsonUtils {
                 String attName = mapAtt['key']
                 def attValue = mapAtt['value']
 
+                //check in case we are just building basic map,not an entity
                 if (isSimpleAttribute(attValue)) {
                     instance.put (attName, attValue)
                     return instance
+                } else if (Map.isAssignableFrom(instance.getClass()) ) {
+                    //if we are building a new Map - check if attValue is an entity and  is in VM
+                    //if so just decode - else return the built expando proxy
+                    if (attValue.getClass() == JsonObject && attValue['entityData'] ) {
+                        String clazzName = attValue['entityData']['entityType']
+                        try {
+                            Class clazz = Class.forName(clazzName)
+                            if (clazz) {
+                                def decodedAttValue = toObject(clazz, attValue, style)
+                                instance.put(attName, decodedAttValue)
+                            }
+                            return instance
+                        } catch (Throwable t) {
+                            def decodedProxy = decodeToProxyInstance(clazzName, attValue, style)
+                            return decodedProxy
+                        }
+                    }
                 }
 
+                // else we should have received an entity as instance and building json mapEntries into entity
                 //rewrite this
                 def listOfMapEntries = mapAtt['value']['withMapEntries']
 
@@ -499,26 +567,28 @@ class JsonUtils {
                 }
                 def instMapAtt = instance["$attName"]
                 for (item in listOfMapEntries ) {
-                    def clazz, clazzName, value, key, mapInstance, proxy
+                    def clazz, clazzName, value, key, mapInstance, proxy, entity
                     boolean isEntity=false
 
-                    if (item['value']) {
+                    key = item['key']
+                    if (isSimpleAttribute(item['value'].getClass())) {
                         value = item['value']
                         clazz = value.getClass()
-                        //clazz = classForSimpleTypesLookup[ (item['type'])]
-                        value = item['value']
                     } else if (item['value']['entityData'] ) {
+                        entity = item['value']
                         isEntity = true
-                        clazzName = item['entityData']['entityType']
+                        clazzName = entity['entityData']['entityType']
                     }
 
-                    if (!isEntity && isSimpleAttribute(clazz))
-                        instance["$attName"].put (key,  decodeSimpleAttribute(clazz, value, style))
+                    if (!isEntity && isSimpleAttribute(clazz)) {
+                        def decodedSimpleValue = decodeSimpleAttribute(clazz, value, style)
+                        instance["$attName"].put(key, decodedSimpleValue )
+                    }
                     else {
                       try {
                           clazz = Class.forName(clazzName)
-                          mapInstance = toObject(clazz, item, style)
-                          instance["$attName"].add (mapInstance)
+                          def decodedMapValue = toObject(clazz, item, style)
+                          instance["$attName"].put (key, decodedMapValue)
                       } catch (RuntimeException ex) {
                           //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
                           println "class $clazzName not in current vm - build an expando proxy instead"
@@ -533,7 +603,7 @@ class JsonUtils {
                           for (jsonAtt in attributes) {
                               proxy.setProperty(jsonAtt['key'], jsonAtt['value'])
                           }
-                          instance["$attName"].add (proxy)
+                          instance["$attName"].put (key, proxy)
 
                       }
                     }

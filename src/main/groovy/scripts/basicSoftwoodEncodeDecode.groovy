@@ -53,19 +53,19 @@ tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
 
-/*
+
 JsonObject enc
-enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
+/*enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
 println "encoded Date as \n" + enc.encodePrettily()
 
 enc = jsonGenerator.toSoftwoodJson(LocalDateTime.now())
-println "encoded LDT as \n" + enc.encodePrettily()
+println "encoded LDT as \n" + enc.encodePrettily()*/
 
-*/
+
 def lenc = jsonGenerator.toSoftwoodJson([1, true, sc1])
 println "encoded List as : " + lenc.encodePrettily()
 
-def menc = jsonGenerator.toSoftwoodJson([a:1, b:true])
+def menc = jsonGenerator.toSoftwoodJson([a:1, b:true, c:sc1])
 println "encoded map as : " + menc.encodePrettily()
 
 
@@ -76,7 +76,7 @@ println lres
 def mres = jsonGenerator.toObject(HashMap, menc)
 println mres
 
-System.exit(0)
+//System.exit(0)
 
 enc = jsonGenerator.toSoftwoodJson(tc)
 println "encoded test class as : " + enc.encodePrettily()
