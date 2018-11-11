@@ -15,7 +15,7 @@ class JsonUtilsTestsSpecification extends Specification {
 
     def setupSpec () {
         JsonUtils.Options sumOptions = new JsonUtils.Options()
-        sumOptions.registerConverter(LocalDateTime) {it.toString()}
+        sumOptions.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
         sumOptions.excludeFieldByNames("ci")
         sumOptions.excludeNulls(true)
         sumOptions.summaryClassFormEnabled(true)
@@ -24,7 +24,7 @@ class JsonUtilsTestsSpecification extends Specification {
 
         JsonUtils.Options options = new JsonUtils.Options()
         options.setExpandLevels (2)
-        options.registerConverter(LocalDateTime) {it.toString()}
+        options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
         options.excludeFieldByNames("ci")
         options.excludeNulls(true)
         options.summaryClassFormEnabled(false)

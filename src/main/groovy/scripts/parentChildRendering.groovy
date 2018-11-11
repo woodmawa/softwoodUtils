@@ -49,7 +49,7 @@ child1.children << sub1
 child1.children << sub2
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)

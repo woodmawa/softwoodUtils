@@ -1,7 +1,6 @@
 package com.softwood.utils
 
 import com.sun.xml.internal.fastinfoset.util.CharArray
-import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
@@ -15,6 +14,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -74,7 +74,10 @@ class JsonUtils {
         int expandLevels = 1
         JsonEncodingStyle jsonStyle = JsonEncodingStyle.softwood  // default full encoding
 
-        Map converters = new HashMap<Class, Closure>()
+        //encoders and decoders for 'normal types'
+        Map typeEncodingConverters = new HashMap<Class, Closure>()
+        Map typeDecodingConverters = new HashMap<Class, Closure>()
+
         //todo too hard codes still
         Closure linkNamingStrategy = { String linkType, Class type, String attributeName, String id ->
             if (linkType == "self") {
@@ -92,11 +95,42 @@ class JsonUtils {
         //methods use method chainimg style
 
         Options () {
-            converters.put(Date, {it.toString()})
-            converters.put(Calendar, {it.toString()})
-            converters.put(Temporal, {it.toString()})
-            converters.put(URI, {it.toString()})
-            converters.put(UUID, {it.toString()})
+            //default type encoders to json text output
+            typeEncodingConverters.put(Date, {it.toString()})
+            typeEncodingConverters.put(Calendar, {it.toString()})
+            typeEncodingConverters.put(Temporal, {it.toString()})
+            typeEncodingConverters.put(URI, {it.toString()})
+            typeEncodingConverters.put(UUID, {it.toString()})
+
+            //default type decoders from text to target type
+            typeDecodingConverters.put(Date, {
+                SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
+                Date date = sdf.parse (it)
+                date}
+            )
+            typeDecodingConverters.put(Calendar, {
+                SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
+                Date date = sdf.parse (it)
+                Calendar cal = Calendar.getInstance()
+                cal.setTime (date)
+                cal}
+            )
+            typeDecodingConverters.put(LocalDate, {
+                //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
+                LocalDate.parse(it)
+            })
+            typeDecodingConverters.put(LocalDateTime, {
+                //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
+                LocalDateTime.parse(it)
+            })
+            typeDecodingConverters.put(LocalTime, {
+                //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
+                LocalTime.parse(it)
+            })
+            typeDecodingConverters.put(URL, {new URL(it)})
+            typeDecodingConverters.put(URI, {new URI(it)})
+            typeDecodingConverters.put(UUID, {UUID.fromString(it)})
+
             this
         }
 
@@ -191,8 +225,13 @@ class JsonUtils {
             this
         }
 
-        Options registerConverter (Class clazz, Closure converter){
-            converters.put (clazz, converter)
+        Options registerTypeEncodingConverter(Class clazz, Closure converter){
+            typeEncodingConverters.put (clazz, converter)
+            this
+        }
+
+        Options registerTypeDecodingConverter(Class clazz, Closure converter){
+            typeDecodingConverters.put (clazz, converter)
             this
         }
 
@@ -248,9 +287,28 @@ class JsonUtils {
         props
     }
 
+    //lookup through hierarchy for field with right name
+    private getField (pogo, String attName) {
+        Class clazz
+        if (! pogo instanceof Class)
+            clazz = pogo.getClass()
+        else
+            clazz = pogo
+
+        Field field
+        while (clazz) {
+            field = clazz.getField(attName)
+            if (field)
+                break
+            else clazz.getSuperclass()
+        }
+        return field
+
+    }
+
 
     //using softwood encoding at mo
-    def toObject (Class<?> clazz, JsonObject json, JsonEncodingStyle style = options.jsonStyle) {
+    def toObject (Class<?> clazz, json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
         def  instance
 
@@ -271,6 +329,16 @@ class JsonUtils {
         //Map result = json.getMap()
 
         if (json instanceof JsonArray) {
+            switch (style) {
+                case JsonEncodingStyle.softwood:  //should get this as jsonArrays encoded as value in an 'iterable' json object
+                    break
+                case JsonEncodingStyle.tmf:
+                    //def itemList = (json as JsonArray).asList()
+                    for (item in (json as Iterable))
+                        decodeCollectionAttribute(instance, item, style)
+                    break
+
+            }
             //convert to List of
         } else if (json instanceof JsonObject)  {
             switch (style) {
@@ -314,6 +382,13 @@ class JsonUtils {
                         //todo : what about is sumarised??
                         if (entity['isPreviouslyEncoded'] == null)
                             previouslyDecodedClassInstance.add (instance)
+                    }
+                    break
+
+                case JsonEncodingStyle.tmf:
+                    //def listOfAttributes = (json as JsonObject).asList()
+                    for (attribute in (json as Iterable)) {
+                        decodeFieldAttribute(instance, attribute, style)
                     }
                     break
             }
@@ -414,6 +489,47 @@ class JsonUtils {
                 break  //end softwood encoded field
 
             case JsonEncodingStyle.tmf:
+
+                def attName = jsonAtt.getKey()
+                if (attName == "@type")
+                    return   //skip this attribute when decoding
+
+                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                def attValue = jsonAtt.getValue()
+                def simpleAttType = classForSimpleTypesLookup[ attValue.getClass().simpleName ]
+
+                //if simple test for setter and use if present
+                Field field = getField (instance, attName)
+                if (simpleAttType != null && isSimpleAttribute(attValue)) {
+                    boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
+
+                    if (supports) {
+                        instance["$jsonAtt.key"] = attValue
+                    } else {
+                        //try and find decoder for value to class
+                        Closure decoder = classImplementsDecoderType(field.type)
+                        if (decoder) {
+                            def decodedJsonValueToType = decoder(attValue)
+                            if (decodedJsonValueToType)
+                                instance["$jsonAtt.key"] = decodedJsonValueToType
+                        }
+                    }
+                } else {
+                    Class fieldType = field.type
+                    /*if (fieldType.isInterface()) {
+                        if (Collection.isAssignableFrom(fieldType)) {
+                            instance['attName'] = new ConcurrentLinkedQueue<>()
+                        } else if (Map.isAssignableFrom(fieldType)) {
+                            instance['attName'] = new ConcurrentHashMap<>()
+                        }
+                    }*/
+
+                    def decodedJsonFieldAttribute = toObject(fieldType, attValue, style)
+                    if (decodedJsonFieldAttribute) {
+                        instance['attName'] = decodedJsonFieldAttribute
+                    }
+
+                }
                 break //end tmf encoded field
 
         }
@@ -525,6 +641,31 @@ class JsonUtils {
                 }
                 break
             case JsonEncodingStyle.tmf:
+                if (Collection.isAssignableFrom(instance.getClass()) ) {
+                    if (isSimpleAttribute(collectionAtt)) {
+                        //we are building a list of items, decode the collectionAtt and add to 'instance' collection
+                        instance.add collectionAtt
+                        return instance
+                    } else if (collectionAtt['@type']) {
+                        //json attribute is an complex entity expression so decode and object and add to instance
+                        String clazzName = collectionAtt['@type']
+                        try {
+                            Class clazz = Class.forName (clazzName)
+                            def decodedEntity = toObject(clazz, collectionAtt, style)
+                            if (decodedEntity)
+                                instance.add (decodedEntity)
+                        } catch (Throwable t) {
+                            //class not in local vm - build using a proxy
+                            def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
+                            if (decodedProxy)
+                                instance.add (decodedProxy)
+                        }
+                        return instance
+
+                    }
+
+                }
+
                 break
 
         }
@@ -1192,7 +1333,7 @@ class JsonUtils {
             def result
             if ((prop.value as Optional).isPresent()) {
                 value = (prop.value as Optional).get()
-                Closure valueConverter = options.converters.get (prop.value.getClass())
+                Closure valueConverter = options.typeEncodingConverters.get (prop.value.getClass())
                 if (valueConverter)
                     result = valueConverter (value)  //will break for unsupported types
                 else
@@ -1591,7 +1732,19 @@ class JsonUtils {
 
         //eg. is Temporal assignable from LocalDateTime
 
-        def entry = options.converters.find {Map.Entry rec ->
+        def entry = options.typeEncodingConverters.find { Map.Entry rec ->
+            Class key = rec.key
+            key.isAssignableFrom(clazz)
+        }
+        entry?.value
+    }
+
+    @CompileStatic
+    private Closure classImplementsDecoderType (Class<?> clazz ) {
+
+        //eg. is Temporal assignable from LocalDateTime
+
+        def entry = options.typeDecodingConverters.find { Map.Entry rec ->
             Class key = rec.key
             key.isAssignableFrom(clazz)
         }

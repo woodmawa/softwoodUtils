@@ -45,7 +45,7 @@ bom.myCi = ci
 bom.basket.put (site, ["hello", ci])  //one entry with site as key and a list
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
 options.excludeFieldByNames("myCi")
 options.excludeNulls(true)
 //options.setExpandLevels(1)
