@@ -62,19 +62,18 @@ enc = jsonGenerator.toTmfJson(LocalDateTime.now())
 println "encoded LDT as \n" + enc.encodePrettily()*/
 
 
-def lenc = jsonGenerator.toTmfJson([1, true, sc1])
+/*def lenc = jsonGenerator.toTmfJson([1, true, sc1])
 println "encoded List as : " + lenc.encodePrettily()
 
-def menc = jsonGenerator.toTmfJson([a:1, b:true, c:sc1])
+def lres = jsonGenerator.toObject(LinkedList, lenc, JsonEncodingStyle.tmf)
+println "basic decoded list is :" + lres
+*/
+
+def menc = jsonGenerator.toTmfJson([a:1, b:true, c:sc1, d:sc1])
 println "encoded map as : " + menc.encodePrettily()
 
-
- def lres = jsonGenerator.toObject(LinkedList, lenc, JsonEncodingStyle.tmf)
-println lres
-System.exit(0)
-
 def mres = jsonGenerator.toObject(HashMap, menc, JsonEncodingStyle.tmf)
-println mres
+println "basic decoded map is :" + mres
 
 System.exit(0)
 

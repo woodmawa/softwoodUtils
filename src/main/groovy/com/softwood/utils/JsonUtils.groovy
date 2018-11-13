@@ -288,19 +288,24 @@ class JsonUtils {
     }
 
     //lookup through hierarchy for field with right name
-    private getField (pogo, String attName) {
+    private Field getField (pogo, String attName) {
         Class clazz
-        if (! pogo instanceof Class)
-            clazz = pogo.getClass()
-        else
+        if (pogo == Class)
             clazz = pogo
+        else
+            clazz = pogo.getClass()
 
         Field field
         while (clazz) {
-            field = clazz.getField(attName)
-            if (field)
-                break
-            else clazz.getSuperclass()
+            try {
+                field = clazz.getDeclaredField(attName)
+
+                if (field)
+                    break
+            } catch (NoSuchFieldException) {
+                clazz = clazz.getSuperclass()
+                continue
+            }
         }
         return field
 
@@ -330,7 +335,7 @@ class JsonUtils {
 
         if (json instanceof JsonArray) {
             switch (style) {
-                case JsonEncodingStyle.softwood:  //should get this as jsonArrays encoded as value in an 'iterable' json object
+                case JsonEncodingStyle.softwood:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
                     break
                 case JsonEncodingStyle.tmf:
                     //def itemList = (json as JsonArray).asList()
@@ -386,9 +391,26 @@ class JsonUtils {
                     break
 
                 case JsonEncodingStyle.tmf:
-                    //def listOfAttributes = (json as JsonObject).asList()
-                    for (attribute in (json as Iterable)) {
-                        decodeFieldAttribute(instance, attribute, style)
+                    //found jsonObject - test to see if its encoded entity
+                    if (json['@type']) {
+                        //top level entity object to decode, decode its fields
+                        def entity = json
+                        if (entity['isPreviouslyEncoded']) {
+                            //lookup and return it
+
+
+                            return
+                        }
+
+                        for (fieldAttribute in json) {
+                            decodeFieldAttribute(instance, fieldAttribute, style)
+                        }
+                        if (entity['isPreviouslyEncoded'] == null)  //not yet been encoded - then save a ref
+                            previouslyDecodedClassInstance.add (instance)
+                    } else {
+                        //inst an array, and not an entity must a jsonMap to decode
+                        for (mapAttribute in json)
+                            decodeMapAttribute(instance, mapAttribute, style)
                     }
                     break
             }
@@ -515,19 +537,12 @@ class JsonUtils {
                         }
                     }
                 } else {
-                    Class fieldType = field.type
-                    /*if (fieldType.isInterface()) {
-                        if (Collection.isAssignableFrom(fieldType)) {
-                            instance['attName'] = new ConcurrentLinkedQueue<>()
-                        } else if (Map.isAssignableFrom(fieldType)) {
-                            instance['attName'] = new ConcurrentHashMap<>()
-                        }
-                    }*/
-
+                    //attribute is itself a complex object
                     def decodedJsonFieldAttribute = toObject(fieldType, attValue, style)
                     if (decodedJsonFieldAttribute) {
                         instance['attName'] = decodedJsonFieldAttribute
                     }
+
 
                 }
                 break //end tmf encoded field
@@ -651,9 +666,11 @@ class JsonUtils {
                         String clazzName = collectionAtt['@type']
                         try {
                             Class clazz = Class.forName (clazzName)
-                            def decodedEntity = toObject(clazz, collectionAtt, style)
-                            if (decodedEntity)
-                                instance.add (decodedEntity)
+                            def entity = clazz.newInstance()
+                            for (field in collectionAtt)
+                                decodeFieldAttribute(entity, field, style)
+
+                            instance.add (entity)
                         } catch (Throwable t) {
                             //class not in local vm - build using a proxy
                             def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
@@ -744,11 +761,7 @@ class JsonUtils {
                     }
                     else {
                         if (isPreviouslyEncoded) {
-                            previouslyDecodedEntity = previouslyDecodedClassInstance.find {
-                                def runtimeClazzName = (it instanceof Expando && it?.isProxy) ? it.proxiedClassName : it.getClass().canonicalName
-                                def test = runtimeClazzName == clazzName && it?.id?.toString() == entityId.toString()
-                                test
-                            }
+                            previouslyDecodedEntity = getPreviouslyDecodedClassInstance(clazzName, entityId)
                             if (previouslyDecodedEntity) {
                                 instance["$attName"].put(key, previouslyDecodedEntity )
                             }
@@ -768,6 +781,51 @@ class JsonUtils {
                 }
                 break
             case JsonEncodingStyle.tmf:
+                boolean isPreviouslyEncoded = false, isSummarised = false
+                def entityId, entityName, previouslyDecodedEntity
+
+                String attName = mapAtt['key']
+                def attValue = mapAtt['value']
+
+                if (isSimpleAttribute(attValue)) {
+                    instance.put (attName, attValue)
+                } else if (attValue['@type']) {
+                    //value is itself a complex entity, decode entity value and store as value in map
+                    def entity = attValue
+                    def clazz
+                    def clazzName = attValue['@type']
+                    if (entity['isPreviouslyEncoded'])
+                        isPreviouslyEncoded = true
+                    if (entity['isSummarised'])
+                        isSummarised = true
+                    entityId = entity['id']
+                    entityName = entity['name']
+                    if (isSummarised) {
+                        def summarisedProxyEntity = decodeToProxyInstance(clazzName, attValue, style)
+                        if (summarisedProxyEntity)
+                            instance.put(attName,summarisedProxyEntity)
+                    }
+                    else if (isPreviouslyEncoded) {
+                        previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
+                        if (previouslyDecodedEntity) {
+                            instance.put(attName, previouslyDecodedEntity )
+                        }
+
+                    } else {
+                        //its entity in encoded json - try and decode it, else build a proxy
+                        try {
+                            clazz = Class.forName (clazzName)
+                            def decodedEntity = toObject(clazz, attValue, style)
+                            if (decodedEntity)
+                                instance.put(attName, decodedEntity)
+                        } catch (Throwable t) {
+                            println "tried to decode object ${attValue.toString()} caught exception $t.message,  try and build a proxy "
+                            def decodedProxyEntity = decodeToProxyInstance(clazzName, attValue, style)
+                            if (decodedProxyEntity)
+                                instance.put(attName, decodedProxyEntity)
+                        }
+                    }
+                }
                 break
 
         }
@@ -836,7 +894,7 @@ class JsonUtils {
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 //println "already encoded pogo $pogo so just put toString summary and stop recursing"
 
-                JsonObject wrapper = new JsonObject()
+                //JsonObject wrapper = new JsonObject()
                 JsonObject jsonObj = new JsonObject()
 
                 jsonObj.put ("isPreviouslyEncoded", true)
@@ -844,9 +902,9 @@ class JsonUtils {
                 if (pogo.hasProperty ("id"))
                     jsonObj.put ("id", (pogo as GroovyObject).getProperty ("id").toString())
                 jsonObj.put ("shortForm", pogo.toString())
-                wrapper.put ("entity", jsonObj)
+                //wrapper.put ("entity", jsonObj)
                 iterLevel.set (--level)
-                return wrapper // pogo.toString()
+                return jsonObj // pogo.toString()
             }
 
             if (!classInstanceHasBeenEncodedOnce.containsKey((pogo))) {
@@ -1725,6 +1783,29 @@ class JsonUtils {
             return encMapEntries
 
         }
+    }
+
+    /*
+     * looks for first match in previouslyDecodeClassInstance List, uses class name as string, and entity id
+     * as match fields.  in case of proxy looks matches on proxiedClassName and id
+     */
+    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId) {
+
+        //first check for concrete classes and check if they have been decoded
+        def previouslyDecodedEntity = previouslyDecodedClassInstance.find {
+            def test = (it.getClass().canonicalName && it?.id?.toString() == entityId.toString())
+            test
+        }
+        if (previouslyDecodedEntity == null) {
+            //search for proxies that match the class and id and return that instead
+            def previouslyDecodedProxyEntity = previouslyDecodedClassInstance.find {
+                def test = (it.class == Expando && it?.proxyClassName == clazzName && it?.id?.toString() == entityId.toString())
+                test
+            }
+            if (previouslyDecodedProxyEntity)
+                previouslyDecodedEntity =  previouslyDecodedProxyEntity
+        }
+        previouslyDecodedEntity
     }
 
     @CompileStatic
