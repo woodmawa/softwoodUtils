@@ -68,17 +68,17 @@ println "encoded List as : " + lenc.encodePrettily()
 def lres = jsonGenerator.toObject(LinkedList, lenc, JsonEncodingStyle.tmf)
 println "basic decoded list is :" + lres
 */
-
+/*
 def menc = jsonGenerator.toTmfJson([a:1, b:true, c:sc1, d:sc1])
 println "encoded map as : " + menc.encodePrettily()
 
 def mres = jsonGenerator.toObject(HashMap, menc, JsonEncodingStyle.tmf)
 println "basic decoded map is :" + mres
 
-System.exit(0)
-
+//System.exit(0)
+*/
 enc = jsonGenerator.toTmfJson(tc)
-println "encoded test class as : " + enc.encodePrettily()
+println "\nencoded test class as : " + enc.encodePrettily()
 
 TestClass dec = jsonGenerator.toObject(TestClass, enc, JsonEncodingStyle.tmf)
 println "decoded json as object : " + dec.dump()

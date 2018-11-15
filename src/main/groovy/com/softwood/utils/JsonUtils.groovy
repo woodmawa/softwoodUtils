@@ -302,7 +302,7 @@ class JsonUtils {
 
                 if (field)
                     break
-            } catch (NoSuchFieldException) {
+            } catch (NoSuchFieldException nsf) {
                 clazz = clazz.getSuperclass()
                 continue
             }
@@ -359,7 +359,7 @@ class JsonUtils {
                         def mapAttributes = json['map']['withMapEntries']
                         for (jsonAtt in mapAttributes) {
                             def entry = decodeMapAttribute (instance, jsonAtt, style)
-                            instance.putAll (entry)
+                            //instance.putAll (entry)
 
                         }
                     }
@@ -384,7 +384,7 @@ class JsonUtils {
 
                         }
 
-                        //todo : what about is sumarised??
+                        //todo : what about is summarised??
                         if (entity['isPreviouslyEncoded'] == null)
                             previouslyDecodedClassInstance.add (instance)
                     }
@@ -396,19 +396,19 @@ class JsonUtils {
                         //top level entity object to decode, decode its fields
                         def entity = json
                         if (entity['isPreviouslyEncoded']) {
-                            //lookup and return it
-
-
-                            return
-                        }
-
-                        for (fieldAttribute in json) {
-                            decodeFieldAttribute(instance, fieldAttribute, style)
-                        }
-                        if (entity['isPreviouslyEncoded'] == null)  //not yet been encoded - then save a ref
+                            instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                        } else {
+                            //build the instance from each of its fields
+                            //instance not yet been encoded - so save a ref
+                            for (fieldAttribute in json) {
+                                decodeFieldAttribute(instance, fieldAttribute, style)
+                            }
                             previouslyDecodedClassInstance.add (instance)
+
+                        }
+
                     } else {
-                        //inst an array, and not an entity must a jsonMap to decode
+                        //json is not typed as an entity, so  must a jsonMap to decode
                         for (mapAttribute in json)
                             decodeMapAttribute(instance, mapAttribute, style)
                     }
@@ -451,8 +451,24 @@ class JsonUtils {
                     }
                 }
 
+            case JsonEncodingStyle.tmf:
+                if (jsonEntity['id'])
+                    proxy.setProperty('id', jsonEntity['id'])
+                if (jsonEntity.name)
+                    proxy.setProperty('name', jsonEntity['name'])
+                def attributes = (jsonEntity['entityData']['attributes'] ?: [])
+                for (jsonAtt in attributes) {
+                    if (isSimpleAttribute(jsonAtt['value']?.getClass()))
+                        proxy.setProperty(jsonAtt['key'], jsonAtt['value'])
+                    else if (jsonAtt['entityData']) {
+                        def decodedEntity  = toObject (jsonAtt['entityData']['entityType'])
+                        proxy.setProperty (jsonAtt['key'], decodedEntity)
+                    }
+                }
+
                 break
         }
+        proxy.toString = {"Proxy$proxiedClassName (name:${this.name}) [id:${this.id}) "}
         proxy
 
     }
@@ -1382,7 +1398,7 @@ class JsonUtils {
             return
         else if (options.excludedFieldNames.contains (prop.key) )
             return
-        else if ( (converter = classImplementsConverterType (prop.value.getClass())) ) {
+        else if ( (converter = classImplementsEncoderType (prop.value.getClass())) ) {
             converter.delegate = prop.value
             return converter(prop.value)
         }
@@ -1799,7 +1815,7 @@ class JsonUtils {
         if (previouslyDecodedEntity == null) {
             //search for proxies that match the class and id and return that instead
             def previouslyDecodedProxyEntity = previouslyDecodedClassInstance.find {
-                def test = (it.class == Expando && it?.proxyClassName == clazzName && it?.id?.toString() == entityId.toString())
+                def test = (it.class == Expando && it.isProxy && it?.proxiedClassName == clazzName && it?.id?.toString() == entityId.toString())
                 test
             }
             if (previouslyDecodedProxyEntity)
@@ -1809,7 +1825,7 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private Closure classImplementsConverterType (Class<?> clazz ) {
+    private Closure classImplementsEncoderType (Class<?> clazz ) {
 
         //eg. is Temporal assignable from LocalDateTime
 
