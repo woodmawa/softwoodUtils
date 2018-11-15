@@ -777,7 +777,7 @@ class JsonUtils {
                     }
                     else {
                         if (isPreviouslyEncoded) {
-                            previouslyDecodedEntity = getPreviouslyDecodedClassInstance(clazzName, entityId)
+                            previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
                             if (previouslyDecodedEntity) {
                                 instance["$attName"].put(key, previouslyDecodedEntity )
                             }
