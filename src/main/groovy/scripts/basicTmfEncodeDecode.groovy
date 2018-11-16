@@ -38,14 +38,25 @@ class TmfTestClass {
 class TmfSubClass {
     long id
     String name
+    TmfSub2Class s2c
 
     String toString () {
         "TmfSubClass (name:$name) [id:$id]"
     }
+}
 
+class TmfSub2Class {
+    long id
+    String name
+
+    String toString () {
+        "TmfSub2Class (name:$name) [id:$id]"
+    }
 }
 
 TmfSubClass sc1 = new TmfSubClass (id:1, name:"subclass 1")
+TmfSub2Class s2c = new TmfSub2Class (id:10, name:"2nd level subclass")
+sc1.s2c = s2c
 
 TmfTestClass tc = new TmfTestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
 tc.simpleList = [LocalDateTime.now(),true, "test string", 3]

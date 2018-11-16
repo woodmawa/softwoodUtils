@@ -319,7 +319,12 @@ class JsonUtils {
 
         iterLevel.set (++level)
         if (clazz.isInterface()) {
-            if (Collection.isAssignableFrom(clazz)) {
+            if (List.isAssignableFrom(clazz)) {
+                // is bit older, and ConcurrentLinkedQueue doesnt implement List as an interface use ArrayList
+                instance = new ArrayList<>()
+            } else if (Deque.isAssignableFrom(clazz)) {
+                instance = new ConcurrentLinkedDeque<>() //can add/remove at front and back
+            }else if (Collection.isAssignableFrom(clazz)) { //otherwise if just a collection, queue, etc then use
                 instance = new ConcurrentLinkedQueue<>()
             } else if (Map.isAssignableFrom(clazz)) {
                 instance = new ConcurrentHashMap<>()
@@ -432,37 +437,38 @@ class JsonUtils {
         //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
         println "class $proxyClazzTypeName not in current vm - build an expando proxy instead"
         Expando proxy = new Expando()
-        proxy.setProperty('isProxy':true)
-        proxy.setProperty ('proxiedClassName', proxyClazzTypeName)
+        proxy.isProxy = true
+        proxy.proxiedClassName =  proxyClazzTypeName
 
         switch (style) {
             case JsonEncodingStyle.softwood:
                 if (jsonEntity['id'])
-                    proxy.setProperty('id', jsonEntity['id'])
-                if (jsonEntity.name)
-                    proxy.setProperty('name', jsonEntity['name'])
+                    proxy.id = jsonEntity['id']
+                if (jsonEntity['name'])
+                    proxy.name = jsonEntity['name']
                 def attributes = (jsonEntity['entityData']['attributes'] ?: [])
                 for (jsonAtt in attributes) {
                     if (isSimpleAttribute(jsonAtt['value']?.getClass()))
-                        proxy.setProperty(jsonAtt['key'], jsonAtt['value'])
+                        proxy."${jsonAtt['key']}" =  jsonAtt['value']
                     else if (jsonAtt['entityData']) {
                         def decodedEntity  = toObject (jsonAtt['entityData']['entityType'])
-                        proxy.setProperty (jsonAtt['key'], decodedEntity)
+                        proxy."${jsonAtt['key']}" =  decodedEntity
                     }
                 }
 
             case JsonEncodingStyle.tmf:
                 if (jsonEntity['id'])
-                    proxy.setProperty('id', jsonEntity['id'])
-                if (jsonEntity.name)
-                    proxy.setProperty('name', jsonEntity['name'])
-                def attributes = (jsonEntity['entityData']['attributes'] ?: [])
+                    proxy.id = jsonEntity['id']
+                if (jsonEntity['name'])
+                    proxy.name =  jsonEntity['name']
+                def attributes = (jsonEntity.asList() ?: [])
                 for (jsonAtt in attributes) {
                     if (isSimpleAttribute(jsonAtt['value']?.getClass()))
-                        proxy.setProperty(jsonAtt['key'], jsonAtt['value'])
-                    else if (jsonAtt['entityData']) {
-                        def decodedEntity  = toObject (jsonAtt['entityData']['entityType'])
-                        proxy.setProperty (jsonAtt['key'], decodedEntity)
+                        proxy."${jsonAtt['key']}" = jsonAtt['value']
+                    else if (jsonAtt['value']['@type']) {
+                        def decodedEntity  = decodeToProxyInstance (jsonAtt['value']['@type'], jsonAtt['value'], style)
+                        if (decodedEntity)
+                            proxy."${jsonAtt['key']}" =  decodedEntity
                     }
                 }
 
@@ -554,9 +560,9 @@ class JsonUtils {
                     }
                 } else {
                     //attribute is itself a complex object
-                    def decodedJsonFieldAttribute = toObject(fieldType, attValue, style)
+                    def decodedJsonFieldAttribute = toObject(field.type, attValue, style)
                     if (decodedJsonFieldAttribute) {
-                        instance['attName'] = decodedJsonFieldAttribute
+                        instance["$attName"] = decodedJsonFieldAttribute
                     }
 
 
