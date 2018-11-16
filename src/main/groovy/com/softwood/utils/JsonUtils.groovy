@@ -243,7 +243,12 @@ class JsonUtils {
 
     //only want the real fields, and not getXXX property access methods
     private Map getDeclaredFields (pogo) {
-        Class clazz = pogo.getClass()
+        Class clazz
+        if (pogo == Class)
+            clazz = pogo
+        else
+            clazz = pogo.getClass()
+
         List thisFields = []
 
         //get all the fields all way up hiererachy
