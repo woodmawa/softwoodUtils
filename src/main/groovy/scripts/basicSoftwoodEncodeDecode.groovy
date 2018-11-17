@@ -39,13 +39,27 @@ class SubClass {
     long id
     String name
 
+    SubSubClass ssc
+
     String toString () {
         "SubClass (name:$name) [id:$id]"
     }
 
 }
 
+class SubSubClass {
+    long id
+    String name
+
+    String toString () {
+        "SubSubClass (name:$name) [id:$id]"
+    }
+
+}
 SubClass sc1 = new SubClass (id:1, name:"subclass 1")
+SubSubClass ssc1 = new SubSubClass (id:10, name:"subSubClass 1")
+sc1.ssc = ssc1
+
 
 TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
 tc.simpleList = [LocalDateTime.now(),true, "test string", 3]

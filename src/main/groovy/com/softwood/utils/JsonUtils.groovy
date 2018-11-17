@@ -557,6 +557,28 @@ class JsonUtils {
                     }
                 } else {
                     //todo have to decode complex attribute
+                    def clazzName = attValue['entityType']    //type toBuild
+                    def entityId = attValue['id']
+                    if (attValue['isPreviouslyEncoded']) {
+                        //find and use this
+                        def decodedInstance = findPreviouslyDecodedObjectMatch(clazzName, entityId)
+                        if (decodedInstance)
+                            instance["$jsonAtt.key"] = decodedInstance
+
+                    } else {
+                        try {
+                            Class clazz = Class.forName(clazzName)  //instance of subclass to build
+                            def decodedInstance = toObject(clazz, attValue, style)
+                            if (decodedInstance) {
+                                instance["$jsonAtt.key"] = decodedInstance
+                            }
+                        } catch (Throwable t) {
+                            def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
+                            if (proxyInstance)
+                                instance["$jsonAtt.key"] = proxyInstance
+
+                        }
+                    }
                 }
                 break  //end softwood encoded field
 
