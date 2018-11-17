@@ -92,4 +92,5 @@ enc = jsonGenerator.toTmfJson(tc)
 println "\nencoded test class as : " + enc.encodePrettily()
 
 TestClass dec = jsonGenerator.toObject(TestClass, enc, JsonEncodingStyle.tmf)
+
 println "decoded json as object : " + dec.dump()
