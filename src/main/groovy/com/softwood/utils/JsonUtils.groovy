@@ -639,15 +639,15 @@ class JsonUtils {
                     case List:
                         instance["$attName"] = new ArrayList()
                         break
+                    case ConcurrentLinkedDeque:
+                    case Deque:
+                        instance["$attName"] = new ConcurrentLinkedDeque<>()
+                        break
                     case Collection:
                     case Iterable:
                     case ConcurrentLinkedQueue:
                     case Queue:
                         instance["$attName"] = new ConcurrentLinkedQueue<>()
-                        break
-                    case ConcurrentLinkedDeque:
-                    case Deque:
-                        instance["$attName"] = new ConcurrentLinkedDeque<>()
                         break
                     case HashSet:
                     case Set:
@@ -728,18 +728,38 @@ class JsonUtils {
                     } else if (collectionAtt['@type']) {
                         //json attribute is an complex entity expression so decode and object and add to instance
                         String clazzName = collectionAtt['@type']
-                        try {
-                            Class clazz = Class.forName (clazzName)
-                            def entity = clazz.newInstance()
-                            for (field in collectionAtt)
-                                decodeFieldAttribute(entity, field, style)
+                        def entityId = collectionAtt['id']
+                        boolean isPreviouslyEncoded = collectionAtt['isPreviouslyEncoded']
+                        if (isPreviouslyEncoded) {
+                            previouslyDecodedEntity = previouslyDecodedClassInstance.find {
+                                def runtimeClazzName = (it instanceof Expando && it?.isProxy) ? it.proxiedClassName : it.getClass().canonicalName
+                                def test = runtimeClazzName == clazzName && it?.id?.toString() == entityId.toString()
+                                test
+                            }
+                            if (previouslyDecodedEntity)
+                                instance["$attName"].add (previouslyDecodedEntity)
+                        } else {
+                            try {
+                                Class clazz = Class.forName(clazzName)
+                                def entity
+                                entity = toObject (clazz, collectionAtt, style)
 
-                            instance.add (entity)
-                        } catch (Throwable t) {
-                            //class not in local vm - build using a proxy
-                            def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
-                            if (decodedProxy)
-                                instance.add (decodedProxy)
+                                /*entity = clazz.newInstance()
+                                for (field in collectionAtt)
+                                    decodeFieldAttribute(entity, field, style)
+
+                                previouslyDecodedClassInstance.add (entity) //add newly decoded entity */
+                                if (entity)
+                                    instance.add(entity)
+                            } catch (Throwable t) {
+                                //class not in local vm - build using a proxy
+                                def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
+                                if (decodedProxy) {
+                                    previouslyDecodedClassInstance.add (decodedProxy) //add newly decoded entity
+
+                                    instance.add(decodedProxy)
+                                }
+                            }
                         }
                         return instance
 
@@ -879,6 +899,7 @@ class JsonUtils {
                         //its entity in encoded json - try and decode it, else build a proxy
                         try {
                             clazz = Class.forName (clazzName)
+                            //toObject will add new instance to decoded class list - dont do it twice here
                             def decodedEntity = toObject(clazz, attValue, style)
                             if (decodedEntity)
                                 instance.put(attName, decodedEntity)
