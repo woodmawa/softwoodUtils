@@ -338,7 +338,10 @@ class JsonUtils {
                 return
             }
         } else {
-            instance = clazz.newInstance()
+            if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate )
+                instance = clazz.now()
+            else
+                instance = clazz.newInstance()
         }
 
         //Map result = json.getMap()
@@ -372,6 +375,16 @@ class JsonUtils {
                             //instance.putAll (entry)
 
                         }
+                    }
+                    else if (json['type']) {
+                        //just a basic java type
+                        def typeName = json['type']
+                        Class clazzType = classForSimpleTypesLookup["$typeName"]
+                        def typeValue = json['value']
+                        def decoder = classImplementsDecoderType(clazzType)
+                        def value = decoder (typeValue)
+                        if (value)
+                            instance = value
                     }
                     else if (json['entityData']){
                         //json is just a entity jsonObject - so decode

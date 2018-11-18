@@ -21,12 +21,12 @@ jsonGenerator = options.build()
 
 class TestClass {
     UUID id
-    //float fl
+    float fl
     String name
-    //Date today
-    //LocalDateTime ldt
-    //List simpleList  //works for List, Collection
-    //Map simpleMap
+    Date today
+    LocalDateTime ldt
+    List simpleList  //works for List, Collection
+    Map simpleMap
     List subClassList
     Map complexMap
 
@@ -61,38 +61,39 @@ SubSubClass ssc1 = new SubSubClass (id:10, name:"subSubClass 1")
 sc1.ssc = ssc1
 
 
-TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass")
-//TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
-//tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
-//tc.simpleMap = [a:1, b:true]
+//TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass")
+TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
+tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
+tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
 
 
 JsonObject enc
-/*enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
+def decoded
+enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
 println "encoded Date as \n" + enc.encodePrettily()
+decoded = jsonGenerator.toObject(Date, enc)
+println "date decoded " + decoded + " with type " + decoded.getClass().simpleName + "\n"
 
 enc = jsonGenerator.toSoftwoodJson(LocalDateTime.now())
-println "encoded LDT as \n" + enc.encodePrettily()*/
+println "encoded LDT as \n" + enc.encodePrettily()
+decoded = jsonGenerator.toObject(LocalDateTime, enc)
+println "LDT decoded " + decoded + " with type " + decoded.getClass().simpleName + "\n"
 
-/*
+
 def lenc = jsonGenerator.toSoftwoodJson([1, true, sc1])
-println "encoded List as : " + lenc.encodePrettily()
+println "encoded List as : \n" + lenc.encodePrettily()
+decoded = jsonGenerator.toObject(ArrayList, lenc)
+println "List decoded " + decoded + " with type " + decoded.getClass().simpleName + "\n"
+
 
 def menc = jsonGenerator.toSoftwoodJson([a:1, b:true, c:sc1])
-println "encoded map as : " + menc.encodePrettily()
+println "encoded map as : \n" + menc.encodePrettily()
+decoded = jsonGenerator.toObject(HashMap, menc)
+println "Map decoded " + decoded + " with type " + decoded.getClass().simpleName + "\n"
 
-
- def lres = jsonGenerator.toObject(LinkedList, lenc)
-println lres
-//System.exit(0)
-
-def mres = jsonGenerator.toObject(HashMap, menc)
-println mres*/
-
-//System.exit(0)
-
+println "----"
 enc = jsonGenerator.toSoftwoodJson(tc)
 println "encoded test class as : " + enc.encodePrettily()
 
