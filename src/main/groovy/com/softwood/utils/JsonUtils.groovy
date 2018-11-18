@@ -553,11 +553,13 @@ class JsonUtils {
                         instance["$jsonAtt.key"] = attValue
                     else {
                         /*check to see if Class offers a converter */
-                        instance["$jsonAtt.key"] = decodeSimpleAttribute(attType, attValue, style)
+                        Field field = getField(instance, attName)
+                        if (field)
+                            instance["$jsonAtt.key"] = decodeSimpleAttribute(field.type, attValue, style)
                     }
                 } else {
                     //todo have to decode complex attribute
-                    def clazzName = attValue['entityType']    //type toBuild
+                    def clazzName = attValue['entityData']['entityType']    //type toBuild
                     def entityId = attValue['id']
                     if (attValue['isPreviouslyEncoded']) {
                         //find and use this
@@ -705,11 +707,7 @@ class JsonUtils {
                         instance["$attName"].add (decodeSimpleAttribute(clazz, value, style) )
                     else {
                         if (isPreviouslyEncoded) {
-                            previouslyDecodedEntity = previouslyDecodedClassInstance.find {
-                                def runtimeClazzName = (it instanceof Expando && it?.isProxy) ? it.proxiedClassName : it.getClass().canonicalName
-                                def test = runtimeClazzName == clazzName && it?.id?.toString() == entityId.toString()
-                                test
-                            }
+                            previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
                             if (previouslyDecodedEntity)
                                 instance["$attName"].add (previouslyDecodedEntity)
                         } else {
@@ -957,6 +955,9 @@ class JsonUtils {
         encodedResult
     }
 
+    /*
+     * take a pogo and encode to softwood json format, defaults to one layer of expansion of an object graph
+     */
     @CompileStatic
     def toTmfJson (def pogo, String named= null) {
         def json = new JsonObject()
@@ -1057,7 +1058,6 @@ class JsonUtils {
                     //must be an ordinary field
                     def field = encodeFieldType(prop, JsonEncodingStyle.tmf)
                     if (field ) {
-                        def wrapper = new JsonObject()
                         jsonFields.put (prop.key.toString(), field )
                    } else {
                         if (!options.excludeNulls)
@@ -1172,8 +1172,6 @@ class JsonUtils {
             }
             def nonIterableFields = props - iterableFields - mapFields
 
-            //println "toSoftwoodJson: pogo ($pogo) has nonIterableFields $nonIterableFields at  iterLev ($iterLevel) "
-
             def jsonFields = new JsonObject()
             def jsonAttributes = new JsonObject()
             def jsonEntityReferences = new JsonObject()
@@ -1185,17 +1183,19 @@ class JsonUtils {
                 def field = encodeFieldType(prop, JsonEncodingStyle.softwood)
                 if (field ) {
                     def wrapper = new JsonObject()
-                    wrapper.put ("type", prop.value.getClass().simpleName)
-                    if (!isSimpleAttribute(prop.value.getClass())) {
-                        def id = (prop.value.hasProperty("id")) ? (prop.value as GroovyObject).getProperty("id").toString() : "<not defined>"
-                        def name = (prop.value.hasProperty("name")) ? (prop.value as GroovyObject).getProperty("name") : "<not defined>"
-                        if (id != "<not defined>")
-                            wrapper.put("id", id)
-                        if (name != "<not defined>")
-                            wrapper.put("name", name)
+                    if (field instanceof JsonObject) {
+                        //complex entity - generate full entity value returned from encodeField type
+                        wrapper.put ('type', prop?.value.getClass().simpleName ?: "null")
+                        wrapper.put ('value', field)
+                        jsonAttributes.put (prop.key.toString(), wrapper )
                     }
-                    wrapper.put ("value", field )
-                    jsonAttributes.put (prop.key.toString(), wrapper )
+                    else {
+                        //simple things just generate the type and value
+                        wrapper.put ('type', field.getClass().simpleName)
+                        wrapper.put ('value', field)
+                        jsonAttributes.put(prop.key.toString(), wrapper)
+                    }
+
                 }
             }
             for (prop in iterableFields){
@@ -1556,6 +1556,7 @@ class JsonUtils {
                                 //println "iter level $iterLevel exeeded default $options.expandLevels, just provide summary encoding for object   "
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
+                                    JsonObject previouslyEncodedObject  = new JsonObject()
                                     wrapper.put("entityType", prop.value.getClass().simpleName)
                                     wrapper.put ("isPreviouslyEncoded", true)
                                     if (prop?.value.hasProperty ("id")) {
@@ -1573,28 +1574,31 @@ class JsonUtils {
                                     }
 
                                     wrapper.put ("shortForm", prop.value.toString())
+                                    previouslyEncodedObject.put ('entityData', wrapper)
+                                    return previouslyEncodedObject
 
                                 } else {
                                     //not seen before but too many levels in - just summarise
+                                    JsonObject summarisedObject = new JsonObject()
                                     wrapper.put("entityType", prop.value.getClass().canonicalName)
                                     wrapper.put("isSummarised", true)
                                     if (prop?.value.hasProperty ("id")) {
-                                        if (prop.hasProperty("id")) {
-                                            def id = (prop as GroovyObject).getProperty("id")
-                                            if (isSimpleAttribute(id.getClass()))
-                                                wrapper.put("id", id)
-                                            else
-                                                wrapper.put("id", id.toString().toString())
-                                        }
+                                        def id = (prop.value as GroovyObject).getProperty("id")
+                                        if (isSimpleAttribute(id.getClass()))
+                                            wrapper.put("id", id)
+                                        else
+                                            wrapper.put("id", id.toString().toString())
+
                                     }
-                                    if (prop.hasProperty ("name")) {
-                                        def name = (prop as GroovyObject).getProperty("name")
+                                    if (prop?.value.hasProperty ("name")) {
+                                        def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
 
                                     wrapper.put("shortForm", prop.value.toString())
+                                    summarisedObject.put ('entityData', wrapper)
+                                    return summarisedObject
                                 }
-                                return wrapper
                             }
                             break
                         case JsonEncodingStyle.jsonApi:
@@ -1618,7 +1622,7 @@ class JsonUtils {
                                             wrapper.put("id", id.toString().toString())
 
                                     }
-                                    if (prop.hasProperty ("name")) {
+                                    if (prop?.value.hasProperty ("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
@@ -1636,7 +1640,7 @@ class JsonUtils {
                                             wrapper.put("id", id.toString().toString())
 
                                     }
-                                    if (prop.value.hasProperty ("name")) {
+                                    if (prop?.value.hasProperty ("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
@@ -1655,6 +1659,7 @@ class JsonUtils {
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             if (options.excludeClass == false) {
+                                JsonObject previouslyEncodedObject  = new JsonObject()
                                 def wrapper = new JsonObject ()
                                 wrapper.put("entityType", prop.value.getClass().canonicalName)
                                 wrapper.put ("isSummarised" , true )
@@ -1672,7 +1677,8 @@ class JsonUtils {
                                 }
 
                                 wrapper.put ("shortForm", prop.value.toString())
-                                return wrapper
+                                previouslyEncodedObject.put ('entityData', wrapper )
+                                return previouslyEncodedObject
                             } else
                                 return prop.value.toString()
 

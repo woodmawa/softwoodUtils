@@ -21,12 +21,12 @@ jsonGenerator = options.build()
 
 class TestClass {
     UUID id
-    float fl
+    //float fl
     String name
-    Date today
-    LocalDateTime ldt
-    List simpleList  //works for List, Collection
-    Map simpleMap
+    //Date today
+    //LocalDateTime ldt
+    //List simpleList  //works for List, Collection
+    //Map simpleMap
     List subClassList
     Map complexMap
 
@@ -61,9 +61,10 @@ SubSubClass ssc1 = new SubSubClass (id:10, name:"subSubClass 1")
 sc1.ssc = ssc1
 
 
-TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
-tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
-tc.simpleMap = [a:1, b:true]
+TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass")
+//TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
+//tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
+//tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
 
