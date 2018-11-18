@@ -377,11 +377,25 @@ class JsonUtils {
                         //json is just a entity jsonObject - so decode
 
                         def entity = json['entityData']
-
+                        def entityType = entity['entityType']
+                        def entityId = entity['id']
                         if (entity['isPreviouslyEncoded']) {
                             //if previously encode - find decode version and use it
-                            instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
-                        } else {
+                            instance = findPreviouslyDecodedObjectMatch(entityType, entityId)
+                        } else if (entity['isSummarised']) {
+                            //just check if summarised object was previously decoded - in which case just use that
+                            def previouslyDecoded = findPreviouslyDecodedObjectMatch(entityType, entityId)
+                            if (previouslyDecoded)
+                                instance = previouslyDecoded
+                            else {
+                                //all we have is a summarised encoded json object - so just build minimal object
+                                instance.metaClass.isSummarised = true
+                                if (instance.hasProperty ('id'))
+                                    instance.id = entity['id']
+                                if (instance.hasProperty('name'))
+                                    instance.name = entity['name']
+                            }
+                        }else {
                             //else just decode the entity
                             def jsonAttributes = entity["attributes"]
                             for (jsonAtt in jsonAttributes) {
@@ -560,7 +574,7 @@ class JsonUtils {
                 } else {
                     //todo have to decode complex attribute
                     def clazzName = attValue['entityData']['entityType']    //type toBuild
-                    def entityId = attValue['id']
+                    def entityId = attValue['entityData']['id']
                     if (attValue['isPreviouslyEncoded']) {
                         //find and use this
                         def decodedInstance = findPreviouslyDecodedObjectMatch(clazzName, entityId)
