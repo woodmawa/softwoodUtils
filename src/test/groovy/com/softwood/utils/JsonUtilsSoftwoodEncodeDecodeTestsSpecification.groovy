@@ -79,7 +79,7 @@ class JsonUtilsTestsSpecification extends Specification {
         json.encode() == /{"softwoodEncoded":{"version":"1.0"},"entityData":{"entityType":"com.softwood.utils.Simple","name":"will","attributes":{"name":{"type":"String","value":"will"},"age":{"type":"Integer","value":55}}}}/
     }
 
-    def "parent -> child encode " (){
+    def "encode from parent -> child encode " (){
         given : "parent with two children "
         Parent p = new Parent (name:"Dad", children : [])
         Child c1 = new Child (name:"Jack", parent: p)
@@ -89,7 +89,7 @@ class JsonUtilsTestsSpecification extends Specification {
 
         when: "we encode parent as json "
         JsonObject json = jsonGenerator.toSoftwoodJson ( p)
-        Parent decObj = jsonGenerator.toObject (Parent, json, JsonEncodingStyle.softwood)
+        Parent decodedObject = jsonGenerator.toObject (Parent, json, JsonEncodingStyle.softwood)
 
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
@@ -106,16 +106,16 @@ class JsonUtilsTestsSpecification extends Specification {
         children[1].entityData.name == 'Jill'
         secondLevelChildRefToParent.entityData.isPreviouslyEncoded == true
         secondLevelChildRefToParent.entityData.shortForm == "Parent (name:Dad) "
-        decObj.name == p.name
-        decObj.children.size() == p.children.size()
-        decObj.children[0].parent.name == p.name
-        decObj.children[0].name == p.children[0].name
-        decObj.children[1].name == p.children[1].name
-        decObj.children[0].parent == decObj.children[1].parent
+        decodedObject.name == p.name
+        decodedObject.children.size() == p.children.size()
+        decodedObject.children[0].parent.name == p.name
+        decodedObject.children[0].name == p.children[0].name
+        decodedObject.children[1].name == p.children[1].name
+        decodedObject.children[0].parent == decodedObject.children[1].parent
 
     }
 
-    def "second child of parent  encoded " (){
+    def "encode from second child of parent  encoded " (){
         given : "parent with two children "
         Parent p = new Parent (name:"Dad", children : [])
         Child c1 = new Child (name:"Jack", parent: p)
@@ -131,6 +131,8 @@ class JsonUtilsTestsSpecification extends Specification {
         //def children = result.entityData.collectionAttributes.children
         println "encoded child of parent: "+ json.encodePrettily()
         def secondLevelParentRefToSecondChild = parent.entityData.collectionAttributes.children[1]
+        Parent decodedObject = jsonGenerator.toObject (Child, json, JsonEncodingStyle.softwood)
+
 
         then : "we expect "
         result.softwoodEncoded.version == "1.0"

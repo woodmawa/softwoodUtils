@@ -1050,9 +1050,12 @@ class JsonUtils {
         if (pogo == null){
             iterLevel.set (--level)
             return pogo
+        } else if (level > options.expandLevels) {
+            println "toTmfJson : exceeded encode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
+            json = null     //too many levels drop out with null json
         } else if (isSimpleAttribute(pogo.getClass())) {
             if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
-                json.put("$named", pogo)
+                (json as JsonObject).put("$named".toString(), pogo)
             } else {
                 iterLevel.set (--level)
                 return encodeSimpleType(pogo, JsonEncodingStyle.tmf)
@@ -1178,20 +1181,23 @@ class JsonUtils {
         if (pogo == null){
             iterLevel.set (--level)
             return pogo
+        } else if (level > options.expandLevels) {
+            println "toSoftwoodJson : exceeded decode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
+            json = null     //too many levels drop out with null json
         }
         else if (Iterable.isAssignableFrom(pogo.getClass()) )
             if (named) {
-                json.put ("$named".toString(),  encodeIterableType(pogo as Iterable))
+                (json as JsonObject).put ("$named".toString(),  encodeIterableType(pogo as Iterable))
             } else
-                json.put ("iterable",  encodeIterableType(pogo as Iterable))
+                (json as JsonObject).put ("iterable",  encodeIterableType(pogo as Iterable))
         else if (Map.isAssignableFrom(pogo.getClass()))
             if (named)
-                json.put ("$named".toString(),  encodeMapType(pogo as Map))
+                (json as JsonObject).put ("$named".toString(),  encodeMapType(pogo as Map))
             else
-                json.put ("map",  encodeMapType(pogo ))
+                (json as JsonObject).put ("map",  encodeMapType(pogo ))
         else if ( isSimpleAttribute(pogo.getClass()) ){
             if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
-                json.put("$named", pogo)
+                (json as JsonObject).put("$named", pogo)
             } else {
                 iterLevel.set (--level)
                 return encodeSimpleType(pogo, JsonEncodingStyle.softwood)
@@ -1254,19 +1260,19 @@ class JsonUtils {
 
             for (prop in nonIterableFields) {
 
-                def field = encodeFieldType(prop, JsonEncodingStyle.softwood)
-                if (field ) {
+                def encodedField = encodeFieldType(prop, JsonEncodingStyle.softwood)
+                if (encodedField ) {
                     def wrapper = new JsonObject()
-                    if (field instanceof JsonObject) {
+                    if (encodedField instanceof JsonObject && encodedField['entityData']) {
                         //complex entity - generate full entity value returned from encodeField type
-                        wrapper.put ('type', prop?.value.getClass().simpleName ?: "null")
-                        wrapper.put ('value', field)
+                        wrapper.put ('type', prop?.value.getClass().canonicalName ?: "null")
+                        wrapper.put ('value', encodedField)
                         jsonAttributes.put (prop.key.toString(), wrapper )
                     }
                     else {
                         //simple things just generate the type and value
-                        wrapper.put ('type', field.getClass().simpleName)
-                        wrapper.put ('value', field)
+                        wrapper.put ('type', encodedField.getClass().simpleName)
+                        wrapper.put ('value', encodedField)
                         jsonAttributes.put(prop.key.toString(), wrapper)
                     }
 
@@ -1309,7 +1315,7 @@ class JsonUtils {
 
             }
 
-            json.put ("entityData", jsonFields)
+            (json as JsonObject).put ("entityData", jsonFields)
         }
         iterLevel.set (--level)
         if (iterLevel.get() == 0) {
@@ -1631,19 +1637,17 @@ class JsonUtils {
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
                                     JsonObject previouslyEncodedObject  = new JsonObject()
-                                    wrapper.put("entityType", prop.value.getClass().simpleName)
+                                    wrapper.put("entityType", prop.value.getClass().canonicalName)
                                     wrapper.put ("isPreviouslyEncoded", true)
                                     if (prop?.value.hasProperty ("id")) {
-                                        if (prop.hasProperty("id")) {
-                                            def id = (prop as GroovyObject).getProperty("id")
-                                            if (isSimpleAttribute(id.getClass()))
-                                                wrapper.put("id", id)
-                                            else
-                                                wrapper.put("id", id.toString().toString())
-                                        }
+                                        def id = (prop.value as GroovyObject).getProperty("id")
+                                        if (isSimpleAttribute(id.getClass()))
+                                            wrapper.put("id", id)
+                                        else
+                                            wrapper.put("id", id.toString().toString())
                                     }
-                                    if (prop.hasProperty ("name")) {
-                                        def name = (prop as GroovyObject).getProperty("name")
+                                    if (prop?.value?.hasProperty ("name")) {
+                                        def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
 
@@ -1687,7 +1691,7 @@ class JsonUtils {
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
                                     wrapper.put ("isPreviouslyEncoded", true)
-                                    wrapper.put("@type", prop.value.getClass().simpleName)
+                                    wrapper.put("@type", prop.value.getClass().canonicalName)
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
@@ -1705,7 +1709,7 @@ class JsonUtils {
                                 } else {
                                     //else just report we are now summarising at this level and beyond
                                     wrapper.put("isSummarised", true)
-                                    wrapper.put("@type", prop.value.getClass().simpleName)
+                                    wrapper.put("@type", prop.value.getClass().canonicalName)
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
@@ -1923,7 +1927,7 @@ class JsonUtils {
                             case JsonEncodingStyle.tmf:
                                 keyWrapper.put ("isPreviouslyEncoded", true)
                                 if (entityRef.hasProperty ("id")) {
-                                    keyWrapper.put("@type", entityRef.getClass().simpleName)
+                                    keyWrapper.put("@type", entityRef.getClass().canonicalName)
                                     keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
                                 }
                                 keyWrapper.put ("shortForm", entityRef.toString())
