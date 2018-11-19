@@ -6,8 +6,10 @@ import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 
 import javax.inject.Inject
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
+import java.lang.reflect.Parameter
 import java.security.InvalidParameterException
 import java.text.SimpleDateFormat
 import java.time.Instant
@@ -242,6 +244,7 @@ class JsonUtils {
     }
 
     //only want the real fields, and not getXXX property access methods
+    @CompileStatic
     private Map getDeclaredFields (pogo) {
         Class clazz
         if (pogo == Class)
@@ -249,7 +252,7 @@ class JsonUtils {
         else
             clazz = pogo.getClass()
 
-        List thisFields = []
+        List<Field> thisFields = []
 
         //get all the fields all way up hiererachy
         while (clazz) {
@@ -292,7 +295,8 @@ class JsonUtils {
         props
     }
 
-    //lookup through hierarchy for field with right name
+    //lookup through hierarchy for field with right name and return it
+    @CompileStatic
     private Field getField (pogo, String attName) {
         Class clazz
         if (pogo == Class)
@@ -317,7 +321,14 @@ class JsonUtils {
     }
 
 
-    //using softwood encoding at mo
+    /*
+     * takes a JsonObject or JsonArray and tries to rebuild this as a graph of groovy objects.
+     * where an json entry has been summarised then partially filled object (where an isSummarised variable
+     * is set to true in the metaClass) or a proxy can be returned.
+     * if the indicated type of the json object cant be found in the receiving VM then the code tries to
+     * build a proxy using an Expando, where the proxiedClassName will hold the string name of the remote class
+     * as encoded into the json
+     */
     def toObject (Class<?> clazz, json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
         def  instance
@@ -340,13 +351,31 @@ class JsonUtils {
         } else {
             if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate )
                 instance = clazz.now()
-            else
-                instance = clazz.newInstance()
+            else if (Number.isAssignableFrom(json.getClass()))
+                instance = clazz.newInstance(json)
+            else {
+                def defaultConstructor
+                Constructor<?>[] constructors = clazz.getConstructors()//clazz.getDeclaredConstructor()
+                for (constructor in constructors ) {
+                    if (constructor.parameterCount == 0)
+                        defaultConstructor = constructor
+                }
+                if (defaultConstructor) {
+                    instance = clazz.newInstance()  //try default constructor
+                } else {
+                    instance = clazz.newInstance()  //try default constructor any way
+                }
+            }
         }
 
-        //Map result = json.getMap()
-
-        if (json instanceof JsonArray) {
+        if (isSimpleAttribute(json)) {
+            if (clazz == json.getClass())
+                instance = json
+            else {
+                instance = clazz.newInstance(json)
+            }
+        } else if (json instanceof JsonArray) {
+            // json passed represents an array of objects+JsonObjects
             switch (style) {
                 case JsonEncodingStyle.softwood:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
                     break
@@ -357,12 +386,11 @@ class JsonUtils {
                     break
 
             }
-            //convert to List of
         } else if (json instanceof JsonObject)  {
             switch (style) {
                 case JsonEncodingStyle.softwood:
                     if (json['iterable']) {
-                        //just sent a simple Iterable to decode
+                        //just sent a simple softwood Iterable (like a list)  to decode
                         def collectionAttributes = json['iterable']
                         for (jsonAtt in collectionAttributes)
                             decodeCollectionAttribute (instance, jsonAtt, style)
@@ -377,7 +405,7 @@ class JsonUtils {
                         }
                     }
                     else if (json['type']) {
-                        //just a basic java type
+                        //just a basic java type has been encoded with key and value entries in JsonObject
                         def typeName = json['type']
                         Class clazzType = classForSimpleTypesLookup["$typeName"]
                         def typeValue = json['value']
@@ -387,21 +415,37 @@ class JsonUtils {
                             instance = value
                     }
                     else if (json['entityData']){
-                        //json is just a entity jsonObject - so decode
+                        //json is an entity jsonObject - so decode it
 
                         def entity = json['entityData']
                         def entityType = entity['entityType']
                         def entityId = entity['id']
+                        def entityName = entity['name']
+                        if (entity['isPreviouslyEncoded'] == null) {
+                            //need to add the instance early in case child refers to parent
+                            if (instance.respondsTo ('setId', entityId))
+                                instance.setId (entityId)
+                            else {
+                                Field idField = getField(instance, 'id')
+                                if (idField)
+                                    instance.id = decodeSimpleAttribute(idField.type, entityId, style)
+                            }
+                            if (instance.hasProperty('name'))
+                                instance.setName (entityName)
+                            //todo : what about is summarised??
+                            previouslyDecodedClassInstance.add(instance)  //add to decoded entity list
+                        }
                         if (entity['isPreviouslyEncoded']) {
                             //if previously encode - find decode version and use it
-                            instance = findPreviouslyDecodedObjectMatch(entityType, entityId)
+                            instance = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
                         } else if (entity['isSummarised']) {
                             //just check if summarised object was previously decoded - in which case just use that
-                            def previouslyDecoded = findPreviouslyDecodedObjectMatch(entityType, entityId)
+                            def previouslyDecoded = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
                             if (previouslyDecoded)
                                 instance = previouslyDecoded
                             else {
                                 //all we have is a summarised encoded json object - so just build minimal object
+                                // dont save as decoded instance
                                 instance.metaClass.isSummarised = true
                                 if (instance.hasProperty ('id'))
                                     instance.id = entity['id']
@@ -426,8 +470,6 @@ class JsonUtils {
 
                             }
 
-                            //todo : what about is summarised??
-                            previouslyDecodedClassInstance.add(instance)  //add to decoded entity list
                         }
                     }
                     break
@@ -440,25 +482,30 @@ class JsonUtils {
                         if (entity['isPreviouslyEncoded']) {
                             instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
                         } else if (entity['isSummarised']) {
-                            instance.metaClass.isSummarised = true  //mark as summarised on metaClass
-                            if (entity['id']) {
-                                if (instance.respondsTo('setId', entity['id']))
-                                    instance.setId(entity['id'])
-                                else {
-                                    Field field = getField (instance, 'id')
-                                    Closure decoder = classImplementsDecoderType(field.type)
-                                    def decodedId = decoder (entity['id'])
-                                    if (decodedId) {
-                                        instance.setId (decodedId)
+                            def previouslyDecoded  = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                            if (previouslyDecoded)
+                                instance = previouslyDecoded
+                            else {
+                                instance.metaClass.isSummarised = true  //mark as summarised on metaClass
+                                if (entity['id']) {
+                                    if (instance.respondsTo('setId', entity['id']))
+                                        instance.setId(entity['id'])
+                                    else {
+                                        Field field = getField(instance, 'id')
+                                        Closure decoder = classImplementsDecoderType(field.type)
+                                        def decodedId = decoder(entity['id'])
+                                        if (decodedId) {
+                                            instance.setId(decodedId)
+                                        }
                                     }
                                 }
-                            }
-                            if (entity['name']) {
-                                instance.name = entity['name']
-                            }
-
-                            if (!findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])) {
-                                previouslyDecodedClassInstance.add(instance)  //add summarised partially filled entity
+                                if (entity['name']) {
+                                    String name = entity['name']
+                                    if (instance.respondsTo('setName', name) ) {
+                                        instance.name = entity['name']
+                                    }
+                                }
+                                //Don't add partially completed instance to decoded object list
                             }
                         } else {
                             //build the instance from each of its fields
@@ -471,7 +518,7 @@ class JsonUtils {
                         }
 
                     } else {
-                        //json is not typed as an entity, so  must a jsonMap to decode
+                        //json is not typed as an entity, it  must a jsonMap to decode
                         for (mapAttribute in json)
                             decodeMapAttribute(instance, mapAttribute, style)
                     }
@@ -937,7 +984,7 @@ class JsonUtils {
                             instance.put(attName,summarisedProxyEntity)
                     }
                     else if (isPreviouslyEncoded) {
-                        previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
+                        previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId, entityName)
                         if (previouslyDecodedEntity) {
                             instance.put(attName, previouslyDecodedEntity )
                         }
@@ -2017,11 +2064,20 @@ class JsonUtils {
      * looks for first match in previouslyDecodeClassInstance List, uses class name as string, and entity id
      * as match fields.  in case of proxy looks matches on proxiedClassName and id
      */
-    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId) {
+    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId, entityName = null) {
 
         //first check for concrete classes and check if they have been decoded
         def previouslyDecodedEntity = previouslyDecodedClassInstance.find {
-            def test = (it.getClass().canonicalName && it?.id?.toString() == entityId.toString())
+            def test
+            if (entityId == null && entityName != null ) {
+                //weak test, type and name only
+                test = (it.getClass().canonicalName == clazzName && it?.name?.toString() == entityName.toString())
+            }
+            else {
+                //strong test using id
+                test = (it.getClass().canonicalName =- clazzName && it?.id?.toString() == entityId.toString())
+                //test = (it.getClass().canonicalName && it?.id?.toString() == entityId.toString())
+            }
             test
         }
         if (previouslyDecodedEntity == null) {

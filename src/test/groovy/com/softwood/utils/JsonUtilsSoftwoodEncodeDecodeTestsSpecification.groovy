@@ -47,6 +47,27 @@ class JsonUtilsTestsSpecification extends Specification {
             [a:2]      || /{"softwoodEncoded":{"version":"1.0"},"map":{"withMapEntries":[{"key":"a","value":2}]}}/
     }
 
+
+    def "encodeThenDecodeListAndMapTypes" () {
+        when : "we set encode a list and a map "
+        def numjson = jsonGenerator.toSoftwoodJson (1 )
+        def numdec = jsonGenerator.toObject (Integer, numjson, JsonEncodingStyle.softwood)
+
+        def strjson = jsonGenerator.toSoftwoodJson ("hello" )
+        def strdec = jsonGenerator.toObject (String, strjson, JsonEncodingStyle.softwood)
+
+        def ljson = jsonGenerator.toSoftwoodJson ([1,2] )
+        def ldec = jsonGenerator.toObject (List, ljson, JsonEncodingStyle.softwood)
+        def mjson = jsonGenerator.toSoftwoodJson ([a:2, b:true, c:"name"] )
+        def mdec = jsonGenerator.toObject (Map, mjson, JsonEncodingStyle.softwood)
+
+        then   : "decoded object should contain same values "
+        ldec == [1,2]
+        mdec == [a:2, b:true, c:"name"]
+        numdec == 1
+        strdec == "hello"
+    }
+
     def "simple class with fields" (){
         given : "simple class"
         Simple s = new Simple (name: "will", age:55)
@@ -68,6 +89,8 @@ class JsonUtilsTestsSpecification extends Specification {
 
         when: "we encode parent as json "
         JsonObject json = jsonGenerator.toSoftwoodJson ( p)
+        Parent decObj = jsonGenerator.toObject (Parent, json, JsonEncodingStyle.softwood)
+
         JsonSlurper slurper = new JsonSlurper()
         Map result = slurper.parseText(json.encode())
         def children = result.entityData.collectionAttributes.children
@@ -83,6 +106,13 @@ class JsonUtilsTestsSpecification extends Specification {
         children[1].entityData.name == 'Jill'
         secondLevelChildRefToParent.entityData.isPreviouslyEncoded == true
         secondLevelChildRefToParent.entityData.shortForm == "Parent (name:Dad) "
+        decObj.name == p.name
+        decObj.children.size() == p.children.size()
+        decObj.children[0].parent.name == p.name
+        decObj.children[0].name == p.children[0].name
+        decObj.children[1].name == p.children[1].name
+        decObj.children[0].parent == decObj.children[1].parent
+
     }
 
     def "second child of parent  encoded " (){
