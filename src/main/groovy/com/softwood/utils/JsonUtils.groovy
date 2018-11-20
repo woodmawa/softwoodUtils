@@ -1261,19 +1261,22 @@ class JsonUtils {
             for (prop in nonIterableFields) {
 
                 def encodedField = encodeFieldType(prop, JsonEncodingStyle.softwood)
-                if (encodedField ) {
+                if (isSimpleAttribute(encodedField)) {
+                    //simple things just generate the type and value
                     def wrapper = new JsonObject()
-                    if (encodedField instanceof JsonObject && encodedField['entityData']) {
+                    wrapper.put ('type', encodedField.getClass().simpleName)
+                    wrapper.put ('value', encodedField)
+                    jsonAttributes.put(prop.key.toString(), wrapper)
+
+                } else {
+                    def wrapper = new JsonObject()
+                    def entity = (encodedField as JsonObject).getValue('entityData')
+                    if (entity) {
+                        def entityType = (entity as JsonObject).getValue ('entityType')
                         //complex entity - generate full entity value returned from encodeField type
-                        wrapper.put ('type', prop?.value.getClass().canonicalName ?: "null")
+                        wrapper.put ('type', entityType ?: "null")
                         wrapper.put ('value', encodedField)
                         jsonAttributes.put (prop.key.toString(), wrapper )
-                    }
-                    else {
-                        //simple things just generate the type and value
-                        wrapper.put ('type', encodedField.getClass().simpleName)
-                        wrapper.put ('value', encodedField)
-                        jsonAttributes.put(prop.key.toString(), wrapper)
                     }
 
                 }
