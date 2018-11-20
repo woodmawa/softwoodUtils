@@ -368,6 +368,8 @@ class JsonUtils {
             }
         }
 
+        println "new instance $instance created in toObject with class loader : " + instance.class.getClassLoader()
+
         if (isSimpleAttribute(json)) {
             if (clazz == json.getClass())
                 instance = json
@@ -557,7 +559,7 @@ class JsonUtils {
                     def jsonValueObject = jsonAtt['value']['value']
                     if (isSimpleAttribute(jsonValueObject?.getClass()))
                         proxy."${jsonAtt['key']}" =  jsonValueObject
-                    else if (jsonValueObject['value']['entityData']) {
+                    else if (jsonValueObject['entityData']) {
                         def entity = jsonValueObject['value']['entityData']
                         def entityType = entity['entityType']
                         if (entityType) {
@@ -641,26 +643,36 @@ class JsonUtils {
                     }
                 } else {
                     //todo have to decode complex attribute
-                    def clazzName = attValue['entityData']['entityType']    //type toBuild
-                    def entityId = attValue['entityData']['id']
-                    if (attValue['entityData']['isPreviouslyEncoded']) {
+                    def entity = attValue['entityData']
+                    def clazzName = entity['entityType']    //type toBuild
+                    def entityId = entity['id']
+                    def entityName = entity['name']
+                    if (entity['isPreviouslyEncoded']) {
                         //find and use this
-                        def decodedInstance = findPreviouslyDecodedObjectMatch(clazzName, entityId)
-                        if (decodedInstance)
-                            instance["$jsonAtt.key"] = decodedInstance
+                        def decodedInstance = findPreviouslyDecodedObjectMatch(clazzName, entityId, entityName)
+                        if (decodedInstance) {
+                            //instance["$jsonAtt.key"] = decodedInstance
+                            //call the setter
+                            instance."set${camelCasedAttName}" ( decodedInstance )
+                            instance
+                        }
 
                     } else {
                         try {
                             Class clazz = Class.forName(clazzName.trim())  //instance of subclass to build
                             def decodedInstance = toObject(clazz, attValue, style)
                             if (decodedInstance) {
-                                instance["$jsonAtt.key"] = decodedInstance
+                                instance."set${camelCasedAttName}" ( decodedInstance)
+                                instance
                             }
                         } catch (Throwable t) {
                             println "exception in class.forName ([$clazzName]): " + t.message
                             def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
-                            if (proxyInstance)
-                                instance["$jsonAtt.key"] = proxyInstance
+                            if (proxyInstance){
+                                instance."set${camelCasedAttName}" ( proxyInstance)
+                                instance
+                            }
+
 
                         }
                     }
@@ -790,9 +802,10 @@ class JsonUtils {
                         instance["$attName"].add (decodeSimpleAttribute(clazz, value, style) )
                     else {
                         if (isPreviouslyEncoded) {
-                            previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
-                            if (previouslyDecodedEntity)
-                                instance["$attName"].add (previouslyDecodedEntity)
+                            previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId, entityName)
+                            if (previouslyDecodedEntity) {
+                                instance["$attName"].add(previouslyDecodedEntity)
+                            }
                         } else {
                             try {
                                 clazz = Class.forName(clazzName.trim())
@@ -1308,7 +1321,7 @@ class JsonUtils {
 
             def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "<not defined>"
             def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
-            def type = pogo.getClass().name
+            def type = pogo.getClass().canonicalName
             jsonFields.put ("entityType", type)
             if (!isSimpleAttribute(pogo.getClass())) {
                 if (id != "<not defined>")
@@ -1406,7 +1419,7 @@ class JsonUtils {
                         def altId = (prop.value.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "unknown"
                         if (id == "unknown" && altId != "unknown")
                             id = altId
-                        def type = prop.value.getClass().simpleName
+                        def type = prop.value.getClass().canonicalName
                         JsonObject container = new JsonObject()
                         JsonObject data = new JsonObject()
                         data.put("type", type)
@@ -1518,7 +1531,7 @@ class JsonUtils {
             version.put ("version", "1.0")
             if (options.includeVersion)
                 container.put ("jsonapi", version)
-            String type = pogo.getClass().simpleName
+            String type = pogo.getClass().canonicalName
             def  id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id").toString() : "unknown"
             def  altId = pogo.hasProperty("name") ? (pogo as GroovyObject)?.getProperty("name") : "unknown"
             if (id == "unknown && altid != unknown")
@@ -1857,7 +1870,7 @@ class JsonUtils {
                             altId = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
                             if (id == "<not defined>" && altId != "<not defined>")
                                 id = altId
-                            type = it.getClass().simpleName
+                            type = it.getClass().canonicalName
 
                             jItem = new JsonObject()
                             jItem.put ("type", type)
@@ -2037,7 +2050,7 @@ class JsonUtils {
 
                             //in json api the entries in array get encoded as rows of 'data':
                             id = (it.value.hasProperty ("id")) ? (it.value as GroovyObject).getProperty("id") : "tba"
-                            type = it.value.getClass().simpleName
+                            type = it.value.getClass().canonicalName
                             jItem = new JsonObject()
                             jItem.put ("type", type)
                             jItem.put ("id", id)
@@ -2082,7 +2095,7 @@ class JsonUtils {
      * looks for first match in previouslyDecodeClassInstance List, uses class name as string, and entity id
      * as match fields.  in case of proxy looks matches on proxiedClassName and id
      */
-    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId, entityName = null) {
+    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId, String entityName = null) {
 
         //first check for concrete classes and check if they have been decoded
         def previouslyDecodedEntity = previouslyDecodedClassInstance.find {
@@ -2101,7 +2114,7 @@ class JsonUtils {
         if (previouslyDecodedEntity == null) {
             //search for proxies that match the class and id and return that instead
             def previouslyDecodedProxyEntity = previouslyDecodedClassInstance.find {
-                def test = (it.class == Expando && it.isProxy && it?.proxiedClassName == clazzName && it?.id?.toString() == entityId.toString())
+                def test = (it.getClass() == Expando && it.isProxy && it?.proxiedClassName == clazzName && it?.id?.toString() == entityId.toString())
                 test
             }
             if (previouslyDecodedProxyEntity)
