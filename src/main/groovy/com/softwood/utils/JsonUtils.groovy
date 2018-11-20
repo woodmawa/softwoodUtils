@@ -553,12 +553,20 @@ class JsonUtils {
                     proxy.name = jsonEntity['name']
                 def attributes = (jsonEntity['entityData']['attributes'] ?: [])
                 for (jsonAtt in attributes) {
-                    if (isSimpleAttribute(jsonAtt['value']?.getClass()))
-                        proxy."${jsonAtt['key']}" =  jsonAtt['value']
-                    else if (jsonAtt['entityData']) {
-                        def decodedEntity  = toObject (jsonAtt['entityData']['entityType'], jsonEntity, style)
-                        if (decodedEntity)
-                            proxy."${jsonAtt['key']}" =  decodedEntity
+                    //only encode basic attributes - ignore lists and maps for proxy
+                    def jsonValueObject = jsonAtt['value']['value']
+                    if (isSimpleAttribute(jsonValueObject?.getClass()))
+                        proxy."${jsonAtt['key']}" =  jsonValueObject
+                    else if (jsonValueObject['value']['entityData']) {
+                        def entity = jsonValueObject['value']['entityData']
+                        def entityType = entity['entityType']
+                        if (entityType) {
+                            def decodedEntity = toObject(entityType, jsonEntity, style)
+                            if (decodedEntity)
+                                proxy."${jsonAtt['key']}" = decodedEntity
+                            else
+                                proxy."${jsonAtt['key']}" = "cant decode $entityType for proxy "
+                        }
                     }
                 }
 
@@ -635,7 +643,7 @@ class JsonUtils {
                     //todo have to decode complex attribute
                     def clazzName = attValue['entityData']['entityType']    //type toBuild
                     def entityId = attValue['entityData']['id']
-                    if (attValue['isPreviouslyEncoded']) {
+                    if (attValue['entityData']['isPreviouslyEncoded']) {
                         //find and use this
                         def decodedInstance = findPreviouslyDecodedObjectMatch(clazzName, entityId)
                         if (decodedInstance)
@@ -643,12 +651,13 @@ class JsonUtils {
 
                     } else {
                         try {
-                            Class clazz = Class.forName(clazzName)  //instance of subclass to build
+                            Class clazz = Class.forName(clazzName.trim())  //instance of subclass to build
                             def decodedInstance = toObject(clazz, attValue, style)
                             if (decodedInstance) {
                                 instance["$jsonAtt.key"] = decodedInstance
                             }
                         } catch (Throwable t) {
+                            println "exception in class.forName ([$clazzName]): " + t.message
                             def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
                             if (proxyInstance)
                                 instance["$jsonAtt.key"] = proxyInstance
@@ -786,11 +795,13 @@ class JsonUtils {
                                 instance["$attName"].add (previouslyDecodedEntity)
                         } else {
                             try {
-                                clazz = Class.forName(clazzName)
+                                clazz = Class.forName(clazzName.trim())
                                 iterableInstance = toObject(clazz, item, style)
-                                instance["$attName"].add(iterableInstance)
+                                if (iterableInstance)
+                                    instance["$attName"].add(iterableInstance)
                             } catch (RuntimeException ex) {
                                 //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
+                                println "error in class.forName('$clazzName'] with error:  " + ex.message
                                 def decodedProxy = decodeToProxyInstance(clazzName, item, style)
                                 instance["$attName"].add(decodedProxy)
 
@@ -1050,7 +1061,7 @@ class JsonUtils {
         if (pogo == null){
             iterLevel.set (--level)
             return pogo
-        } else if (level > options.expandLevels) {
+        } else if (level > (options.expandLevels+1)) {
             println "toTmfJson : exceeded encode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
             json = null     //too many levels drop out with null json
         } else if (isSimpleAttribute(pogo.getClass())) {
@@ -1181,7 +1192,7 @@ class JsonUtils {
         if (pogo == null){
             iterLevel.set (--level)
             return pogo
-        } else if (level > options.expandLevels) {
+        } else if (level > (options.expandLevels+1)) {
             println "toSoftwoodJson : exceeded decode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
             json = null     //too many levels drop out with null json
         }
