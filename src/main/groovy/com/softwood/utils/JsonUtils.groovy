@@ -611,7 +611,7 @@ class JsonUtils {
                     if (isSimpleAttribute(jsonValueObject?.getClass()))
                         proxy."${jsonAtt['key']}" =  jsonValueObject
                     else if (jsonValueObject['entityData']) {
-                        def entity = jsonValueObject['value']['entityData']
+                        def entity = jsonValueObject['entityData']
                         def entityType = entity['entityType']
                         if (entityType) {
                             def decodedEntity = toObject(entityType, jsonEntity, style)
@@ -1366,7 +1366,8 @@ class JsonUtils {
                 }
             }
 
-            def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "<not defined>"
+
+            def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "<not defined>"
             def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
             def type = pogo.getClass().canonicalName
             jsonFields.put ("entityType", type)
