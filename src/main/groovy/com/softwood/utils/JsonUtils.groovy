@@ -138,6 +138,10 @@ class JsonUtils {
             this
         }
 
+        Options setDefaultClassLoader (ClassLoader cl) {
+            defaultClassLoader = cl
+        }
+
         Options setJsonEncodingStyle (JsonEncodingStyle style){
             jsonStyle = style
             this
