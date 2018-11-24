@@ -7,14 +7,16 @@ import java.time.LocalDateTime
 ClassLoader threadContextLoader = Thread.currentThread().getContextClassLoader()
 
 
-class ScriptTest {
+class ScriptNewClassTest {
     String name
 }
 
-ScriptTest st = new ScriptTest()
+ScriptNewClassTest st = new ScriptNewClassTest()
 ClassLoader stLoader = st.getClass().getClassLoader()
+ClassLoader rootLoader = stLoader.getRootLoader()
 
-ClassLoader scriptLoader = this.getClass().getClassLoader()
+//Class clazz = scripts.classloaderMalarky
+//ClassLoader scriptLoader = scripts.classloaderMalarky.getClass().getClassLoader()
 
 
 JsonUtils.Options options = new JsonUtils.Options()
@@ -27,19 +29,22 @@ options.includeVersion(true)
 
 jsonGenerator = options.build()
 
-println "thread loader hierarchy"
+println "root loader is  $rootLoader "
+
+println "\nthread loader hierarchy"
 ClassLoader loader = threadContextLoader
 while (loader) {
     println "\t$loader"
     loader = loader.getParent()
 }
 
-println "\nscript loader hierarchy"
+
+/*println "\nscript loader hierarchy"
  loader = scriptLoader
 while (loader) {
     println "\t$loader"
     loader = loader.getParent()
-}
+}*/
 
 ClassLoader genLoader = jsonGenerator.getClass().getClassLoader()
 
@@ -50,8 +55,25 @@ while (loader) {
     loader = loader.getParent()
 }
 
-println "\nnew ScriptTest in script stLoader hierarchy"
+ClassLoader jgo = jsonGenerator.options.defaultClassLoader
+println "\njsonGenerator loader defaultClassLoder hierarchy"
+loader = jgo
+while (loader) {
+    println "\t$loader"
+    loader = loader.getParent()
+}
+
+
+println "\nnew ScriptNewClassTest in script stLoader hierarchy"
 loader = stLoader
+while (loader) {
+    println "\t$loader"
+    loader = loader.getParent()
+}
+
+def newInstance = jsonGenerator.getNewInstanceFromClass(ScriptNewClassTest)
+println "\nnew ScriptNewClassTest created by jsonGenerator  class loader  hierarchy"
+loader = newInstance.class.getClassLoader()
 while (loader) {
     println "\t$loader"
     loader = loader.getParent()

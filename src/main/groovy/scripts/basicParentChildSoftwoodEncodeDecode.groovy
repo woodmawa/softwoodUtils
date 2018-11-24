@@ -48,38 +48,44 @@ println "script classloader is " + this.class.getClassLoader() + " whilst jsonGe
 
 
 
-Class grBasicParentClass = groovyCL.loadClass(BasicParent.class.canonicalName)
+/*Class grBasicParentClass = groovyCL.loadClass(BasicParent.class.canonicalName)
 Class grBasicChildClass = groovyCL.loadClass(BasicChild.class.canonicalName)
 def inst = grBasicParentClass.newInstance()
 
-println "inst classloader is " + inst.class.getClassLoader()
+println "inst classloader is " + inst.class.getClassLoader()*/
+
 
 
 //one parent two children who have same parent - 2 level deep
-def p =grBasicParentClass.newInstance()  //= new BasicParent(name: "Dad", children: [])
-p.name = "Dad"
-p.children = []
+def p = new BasicParent(name: "Dad", children: [])
 
-println "BasicParent p classloader is " + p.class.getClassLoader() + " whilst jsonGenerator loader is " + jsonGenerator.class.getClassLoader()
+println "BasicParent p classloader is " + p.class.getClassLoader() + " whilst jsonGenerator default loader is " + jsonGenerator.options.defaultClassLoader
+
+JsonObject p2ljson = jsonGenerator.toSoftwoodJson(p)
+println "encoded parent root with no children as : " + p2ljson.encodePrettily()
+
+def decodedObject = jsonGenerator.toObject(BasicParent, p2ljson, JsonEncodingStyle.softwood)
 
 
-def c1 = grBasicChildClass.newInstance()//new BasicChild(name: "Jack", parent: p)
-def c2 = grBasicChildClass.newInstance() //new BasicChild(name: "Jill", parent: p)
-c1.name = "Jack"
-c2.name = "Jill"
-c1.parent = p
-c2.parent = p
+def c1 = new BasicChild(name: "Jack", parent: p)
+def c2 = new BasicChild(name: "Jill", parent: p)
 
 p.children << c1
 p.children << c2
 
 
-    JsonObject p2ljson = jsonGenerator.toSoftwoodJson(p)
+p2ljson = jsonGenerator.toSoftwoodJson(p)
 
-    println "encoded parent root of graph as : " + p2ljson.encodePrettily()
+println "encoded parent root of graph as : " + p2ljson.encodePrettily()
 
-//JsonObject l2pjson = jsonGenerator.toSoftwoodJson ( c1)
 
-//println "\nencoded first child as root of graph as : " + l2pjson.encodePrettily()
+decodedObject = jsonGenerator.toObject(BasicParent, p2ljson, JsonEncodingStyle.softwood)
+assert decodedObject.children[0].parent == decodedObject
 
-    BasicParent decodedObject = jsonGenerator.toObject(BasicParent, p2ljson, JsonEncodingStyle.softwood)
+//encode first child of parent
+JsonObject l2pjson = jsonGenerator.toSoftwoodJson ( c1)
+
+println "\nencoded first child as root of graph as : " + l2pjson.encodePrettily()
+decodedObject = jsonGenerator.toObject(BasicChild, l2pjson, JsonEncodingStyle.softwood)
+assert decodedObject.parent.children[0] == decodedObject
+

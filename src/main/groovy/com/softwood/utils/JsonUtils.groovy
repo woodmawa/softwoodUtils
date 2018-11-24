@@ -61,6 +61,8 @@ class JsonUtils {
      */
     class Options {
 
+        ClassLoader defaultClassLoader = Thread.currentThread().getContextClassLoader()
+
         @Inject String host = "localhost" //assumed default
         @Inject int port = 8080 //assumed default
         boolean optionalLinks = false
@@ -243,6 +245,62 @@ class JsonUtils {
         }
     }
 
+    /*
+     * use options.defaultClassLoader to load class and return new instance
+     * if throws an execption returns a proxy Expando class
+     */
+    private def getNewInstanceFromClass (clazz, args=null) {
+        def clazzName, instance
+
+        try {
+            if (clazz instanceof Class) {
+                clazzName = (clazz as Class).getCanonicalName()
+ /*               def defaultConstructor
+                Constructor<?>[] constructors = clazz.getConstructors()//clazz.getDeclaredConstructor()
+                for (constructor in constructors ) {
+                    if (constructor.parameterCount == 0)
+                        defaultConstructor = constructor
+                }
+                if (defaultConstructor) {
+                    instance = clazz.newInstance()  //try default constructor
+                } else {
+                    instance = clazz.newInstance()  //try default constructor any way
+                }
+*/
+            }
+            else
+                clazzName = clazz.toString()
+
+            if (!args)
+                instance = options.defaultClassLoader.loadClass(clazzName, true).newInstance()
+            else
+                instance = options.defaultClassLoader.loadClass(clazzName, true).newInstance(args)
+            instance
+        } catch (Throwable t) {
+            println "getInstanceFromClass : cant resolve class $clazzName, returning an Expando proxy instead"
+            def proxy = options.defaultClassLoader.loadClass (Expando.canonicalName).newInstance() //new Expando ()
+            proxy.isProxy = true
+            proxy.proxiedClassName =  clazzName
+            proxy
+
+        }
+
+    }
+
+    /*
+     * use options.defaultClassLoader to load class and return the class
+     * can throw an exception - todo should i catch it ?
+     */
+    private Class<?> getClassForName (String clazzName) {
+        def clazz
+        try {
+            clazz = options.defaultClassLoader.loadClass(clazzName, true)
+        } catch (Throwable t) {
+            println "getClassForName: can't load class $clazzName, message " + t.message
+        }
+
+    }
+
     //only want the real fields, and not getXXX property access methods
     @CompileStatic
     private Map getDeclaredFields (pogo) {
@@ -352,29 +410,18 @@ class JsonUtils {
             if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate )
                 instance = clazz.now()
             else if (Number.isAssignableFrom(json.getClass()))
-                instance = clazz.newInstance(json)
+                instance = getNewInstanceFromClass(clazz, json)
             else {
-                def defaultConstructor
-                Constructor<?>[] constructors = clazz.getConstructors()//clazz.getDeclaredConstructor()
-                for (constructor in constructors ) {
-                    if (constructor.parameterCount == 0)
-                        defaultConstructor = constructor
-                }
-                if (defaultConstructor) {
-                    instance = clazz.newInstance()  //try default constructor
-                } else {
-                    instance = clazz.newInstance()  //try default constructor any way
-                }
+                instance = getNewInstanceFromClass(clazz)
             }
         }
-
-        println "new instance $instance created in toObject with class loader : " + instance.class.getClassLoader()
 
         if (isSimpleAttribute(json)) {
             if (clazz == json.getClass())
                 instance = json
             else {
-                instance = clazz.newInstance(json)
+                //instance = clazz.newInstance(json)
+                instance = getNewInstanceFromClass(clazz, json)
             }
         } else if (json instanceof JsonArray) {
             // json passed represents an array of objects+JsonObjects
@@ -586,7 +633,7 @@ class JsonUtils {
 
                 break
         }
-        proxy.toString = {"Proxy$proxiedClassName (name:${this.name}) [id:${this.id}) "}
+        proxy.toString = {"Proxy'$proxiedClassName' (name:${this.name}) [id:${this.id}) "}
         proxy
 
     }
@@ -659,15 +706,16 @@ class JsonUtils {
 
                     } else {
                         try {
-                            Class clazz = Class.forName(clazzName.trim())  //instance of subclass to build
+                            Class clazz = getClassForName(clazzName)  //instance of subclass to build
                             def decodedInstance = toObject(clazz, attValue, style)
                             if (decodedInstance) {
                                 instance."set${camelCasedAttName}" ( decodedInstance)
                                 instance
                             }
                         } catch (Throwable t) {
-                            println "exception in class.forName ([$clazzName]): " + t.message
+                            println "exception in getClassForName([$clazzName]): " + t.message
                             def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
+                            //todo - this will fail if variable is explicit type coded  - proxy is essentially an expando
                             if (proxyInstance){
                                 instance."set${camelCasedAttName}" ( proxyInstance)
                                 instance
@@ -733,7 +781,7 @@ class JsonUtils {
                         //json attribute is an complex entity expression so decode and all to instance
                         String clazzName = collectionAtt['entityData']['entityType']
                         try {
-                            Class clazz = Class.forName (clazzName)
+                            Class clazz = getClassForName (clazzName)
                             def decodedEntity = toObject(clazz, collectionAtt, style)
                             instance.add (decodedEntity)
                         } catch (Throwable t) {
@@ -774,7 +822,7 @@ class JsonUtils {
                         break
 
                 }
-                def instCollAtt = instance["$attName"]
+                //def instCollAtt = instance["$attName"]
                 for (item in iterableAttValue ) {
                     def clazz, value, proxy, iterableInstance, entity, previouslyDecodedEntity, entityId, entityName
                     boolean isEntity = false, isPreviouslyEncoded = false
@@ -808,13 +856,13 @@ class JsonUtils {
                             }
                         } else {
                             try {
-                                clazz = Class.forName(clazzName.trim())
+                                clazz = getClassForName(clazzName) //might get an expando
                                 iterableInstance = toObject(clazz, item, style)
                                 if (iterableInstance)
                                     instance["$attName"].add(iterableInstance)
                             } catch (RuntimeException ex) {
                                 //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
-                                println "error in class.forName('$clazzName'] with error:  " + ex.message
+                                println "error in getClassFromName('$clazzName'] with error:  " + ex.message
                                 def decodedProxy = decodeToProxyInstance(clazzName, item, style)
                                 instance["$attName"].add(decodedProxy)
 
@@ -858,16 +906,11 @@ class JsonUtils {
                                 instance["$attName"].add (previouslyDecodedEntity)
                         } else {
                             try {
-                                Class clazz = Class.forName(clazzName)
+                                Class clazz = getClassForName(clazzName)
                                 def entity
                                 entity = toObject (clazz, collectionAtt, style)
 
-                                /*entity = clazz.newInstance()
-                                for (field in collectionAtt)
-                                    decodeFieldAttribute(entity, field, style)
-
-                                previouslyDecodedClassInstance.add (entity) //add newly decoded entity */
-                                if (entity)
+                                 if (entity)
                                     instance.add(entity)
                             } catch (Throwable t) {
                                 //class not in local vm - build using a proxy
@@ -910,7 +953,7 @@ class JsonUtils {
                         if (attValue.getClass() == JsonObject && attValue['entityData']) {
                             String clazzName = attValue['entityData']['entityType']
                             try {
-                                Class clazz = Class.forName(clazzName)
+                                Class clazz = getClassForName(clazzName)
                                 if (clazz) {
                                     def decodedAttValue = toObject(clazz, attValue, style)
                                     instance.put(attName, decodedAttValue)
@@ -969,7 +1012,7 @@ class JsonUtils {
                             }
                         } else {
                             try {
-                                clazz = Class.forName(clazzName)
+                                clazz = getClassForName(clazzName)
                                 decodedMapValue = toObject(clazz, item, style)
                                 instance["$attName"].put(key, decodedMapValue)
                             } catch (Throwable t) {
@@ -1016,7 +1059,7 @@ class JsonUtils {
                     } else {
                         //its entity in encoded json - try and decode it, else build a proxy
                         try {
-                            clazz = Class.forName (clazzName)
+                            clazz = getClassForName(clazzName)
                             //toObject will add new instance to decoded class list - dont do it twice here
                             def decodedEntity = toObject(clazz, attValue, style)
                             if (decodedEntity)
