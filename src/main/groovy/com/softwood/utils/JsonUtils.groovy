@@ -1147,15 +1147,23 @@ class JsonUtils {
                      JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
                      (json as JsonObject).put("$named".toString(), encIterable)
                  }
-                 else
-                     json = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
+                 else {
+                     //if array just ignore any metadata if present and return the encoded array values
+                     JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
+                     json = encIterable
+
+                 }
         else if (Map.isAssignableFrom(pogo.getClass()))
                  if (named) {
                      JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
                      (json as JsonObject).put("$named".toString(), encMap )
                  }
-                 else
-                     json = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
+                 else {
+                     //if map just ignore any metadata if present and return the encoded map values
+                     JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
+                     if (encMap)
+                         json = encMap
+                 }
         else {
             //json = new JsonObject()
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
@@ -1224,7 +1232,7 @@ class JsonUtils {
 
                     }
                 }
-                json = jsonFields
+                (json as JsonObject).mergeIn (jsonFields as JsonObject, true)
             }
         }
 

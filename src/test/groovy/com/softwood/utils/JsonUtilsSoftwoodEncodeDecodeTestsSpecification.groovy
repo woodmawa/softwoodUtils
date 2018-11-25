@@ -165,39 +165,5 @@ class JsonUtilsTestsSpecification extends Specification {
     }
 
 
-    }
-
-class Simple {
-    String name
-    int age
 }
 
-class Parent {
-    String name
-    List<Child> children = new LinkedList<Child>()
-
-    String toString () {
-        "Parent (name:$name) "
-    }
-}
-
-class Child {
-    String name
-    Parent parent
-
-    //List<Subchild> children = new LinkedList<Subchild>()
-
-    String toString() {
-        "Child (name:$name) "
-    }
-}
-
-class Demo {
-    transient transientInt
-    int realIntField
-    public int publicIntField
-    private int privateIntField
-    int getImaginaryFieldAccessor () { 1}
-
-
-}
