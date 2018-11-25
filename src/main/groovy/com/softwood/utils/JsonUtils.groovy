@@ -473,12 +473,16 @@ class JsonUtils {
                         def entity = json['entityData']
                         def entityType = entity['entityType']
                         def entityId = entity['id']
+                        //if id was encoded as jsonObject with type/value - use the value for the id
+                        if (entityId instanceof JsonObject)
+                            entityId = entity['id']['value']
                         def entityName = entity['name']
                         if (entity['isPreviouslyEncoded'] == null) {
                             //need to add the instance early in case child refers to parent
                             if (instance.respondsTo ('setId', entityId))
                                 instance.setId (entityId)
                             else {
+                                //if id field got encoded as jsonObject with type/value - use the value
                                 Field idField = getField(instance, 'id')
                                 if (idField)
                                     instance.id = decodeSimpleAttribute(idField.type, entityId, style)
@@ -500,8 +504,15 @@ class JsonUtils {
                                 //all we have is a summarised encoded json object - so just build minimal object
                                 // dont save as decoded instance
                                 instance.metaClass.isSummarised = true
-                                if (instance.hasProperty ('id'))
-                                    instance.id = entity['id']
+                                if (instance.hasProperty ('id')) {
+                                    if (instance.respondsTo ('setId', entityId))
+                                        instance.setId (entityId)
+                                    else {
+                                        Field idField = getField(instance, 'id')
+                                        if (idField)
+                                            instance.id = decodeSimpleAttribute(idField.type, entityId, style)
+                                    }
+                                }
                                 if (instance.hasProperty('name'))
                                     instance.name = entity['name']
                             }
@@ -676,8 +687,8 @@ class JsonUtils {
             case JsonEncodingStyle.softwood:
                 String attName = jsonAtt['key']
                 String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
-                //def typeStr = jsonAtt['value']['type']
-                def attType = classForSimpleTypesLookup[ jsonAtt['value']['type'] ]
+                def attTypeName = jsonAtt['value']['type']
+                def attType = classForSimpleTypesLookup[ attTypeName ]
                 def attValue = jsonAtt['value']['value']
                 if (attType !=null && isSimpleAttribute(attType)) {
                     //just set prop value in corresponding field in the instance
@@ -1335,7 +1346,7 @@ class JsonUtils {
                 if (isSimpleAttribute(encodedField)) {
                     //simple things just generate the type and value
                     def wrapper = new JsonObject()
-                    wrapper.put ('type', encodedField.getClass().simpleName)
+                    wrapper.put ('type', prop['value'].getClass().simpleName)
                     wrapper.put ('value', encodedField)
                     jsonAttributes.put(prop.key.toString(), wrapper)
 
@@ -1373,7 +1384,7 @@ class JsonUtils {
             jsonFields.put ("entityType", type)
             if (!isSimpleAttribute(pogo.getClass())) {
                 if (id != "<not defined>")
-                    jsonFields.put("id", id)
+                    jsonFields.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood))
                 if (name != "<not defined>" )
                     jsonFields.put("name", name)
             }
@@ -1738,7 +1749,7 @@ class JsonUtils {
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
-                                            wrapper.put("id", id)
+                                            wrapper.put("id", encodeSimpleType(id, style))
                                         else
                                             wrapper.put("id", id.toString().toString())
 
@@ -2154,7 +2165,7 @@ class JsonUtils {
             }
             else {
                 //strong test using id
-                test = (it.getClass().canonicalName =- clazzName && it?.id?.toString() == entityId.toString())
+                test = (it.getClass().canonicalName == clazzName && it?.id?.toString() == entityId.toString())
                 //test = (it.getClass().canonicalName && it?.id?.toString() == entityId.toString())
             }
             test

@@ -48,7 +48,7 @@ class SubClass {
 }
 
 class SubSubClass {
-    long id
+    UUID id
     String name
 
     String toString () {
@@ -57,12 +57,12 @@ class SubSubClass {
 
 }
 SubClass sc1 = new SubClass (id:1, name:"subclass 1")
-SubSubClass ssc1 = new SubSubClass (id:10, name:"subSubClass 1")
+SubSubClass ssc1 = new SubSubClass (id:UuidUtil.getTimeBasedUuid(), name:"subSubClass 1")
 sc1.ssc = ssc1
 
 
 //TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass")
-TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
+TestClass tc = new TestClass(id: UuidUtil.getTimeBasedUuid(), name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
 tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
 tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
@@ -70,6 +70,8 @@ tc.complexMap = ['a': sc1]
 
 
 JsonObject enc
+
+/*
 def decoded
 enc = jsonGenerator.toSoftwoodJson(Date.newInstance())
 println "encoded Date as \n" + enc.encodePrettily()
@@ -92,6 +94,8 @@ def menc = jsonGenerator.toSoftwoodJson([a:1, b:true, c:sc1])
 println "encoded map as : \n" + menc.encodePrettily()
 decoded = jsonGenerator.toObject(HashMap, menc)
 println "Map decoded " + decoded + " with type " + decoded.getClass().simpleName + "\n"
+
+*/
 
 println "----"
 enc = jsonGenerator.toSoftwoodJson(tc)
