@@ -2045,7 +2045,10 @@ class JsonUtils {
 
                             jItem = new JsonObject()
                             jItem.put ("type", type)
-                            jItem.put ("id", id.toString())
+                            if (isSimpleAttribute(id))
+                                jItem.put ("id", id)
+                            else
+                                jItem.put ("id", id.toString())
 
                             if (options.compoundDocument) {
                                 //encode each iterable object, which will add and compoundDoc 'included' entries

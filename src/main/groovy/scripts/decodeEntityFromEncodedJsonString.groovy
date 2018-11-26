@@ -19,7 +19,10 @@ class SimpleOriginal {
     long id
     String name
     SimpleChild child
-
+    List simpleList
+    List complexList
+    Map simpleMap
+    Map complexMap
     String toString() {
         "SimpleOriginal (name:$name)"
     }
@@ -34,8 +37,10 @@ class SimpleChild {
     }
 }
 
-SimpleOriginal so = new SimpleOriginal(id:1, name:"ok")
+
 SimpleChild sc = new SimpleChild(id:10, name:"child")
+//SimpleOriginal so = new SimpleOriginal(id:1, name:"ok", simpleList:[1,2], complexList:[true, sc], simpleMap: [a:1, b:true], complexMap:[a:sc])
+SimpleOriginal so = new SimpleOriginal(id:1, name:"ok", simpleList:[1,2])
 so.child = sc
 
 //println jsonGenerator.toJsonApi(so).encodePrettily()
@@ -105,8 +110,11 @@ jsonApiText = """{
       "child" : {
         "data" : {
           "type" : "scripts.SimpleChild",
-          "id" : "1"
+          "id" : 1
         }
+      },
+      "simpleList" : {
+        "data" : [ 1, 2 ]
       }
     }
   }
