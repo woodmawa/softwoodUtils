@@ -38,9 +38,11 @@ SimpleOriginal so = new SimpleOriginal(id:1, name:"ok")
 SimpleChild sc = new SimpleChild(id:10, name:"child")
 so.child = sc
 
-//println jsonGenerator.toSoftwoodJson(so).encodePrettily()
+//println jsonGenerator.toJsonApi(so).encodePrettily()
 
-jsonText = """{
+//System.exit(0)
+
+jsonSoftwoodText = """{
   "entityData" : {
     "entityType" : "scripts.SimpleOriginal",
     "id" : 1,
@@ -79,7 +81,48 @@ jsonText = """{
 }
 """
 
+jsonTmfText = """{
+  "@type" : "scripts.SimpleOriginal",
+  "id" : 1,
+  "name" : "ok",
+  "child" : {
+    "@type" : "scripts.SimpleChild",
+    "id" : 10,
+    "name" : "child"
+  }
+}
+"""
+
+jsonApiText = """{
+  "data" : {
+    "type" : "scripts.SimpleOriginal",
+    "id" : 1,
+    "attributes" : {
+      "id" : 1,
+      "name" : "ok"
+    },
+    "relationships" : {
+      "child" : {
+        "data" : {
+          "type" : "scripts.SimpleChild",
+          "id" : "1"
+        }
+      }
+    }
+  }
+}"""
+
 
 //um wont accept a null class -
-def result = jsonGenerator.toObject (SimpleOriginal, jsonText, JsonEncodingStyle.softwood)
-println result
+def result
+/*result = jsonGenerator.toObject (SimpleOriginal, jsonSoftwoodText, JsonEncodingStyle.softwood)
+println "decoded from softwood formatted json : " + result
+assert result.child.name == "child"
+
+result = jsonGenerator.toObject (SimpleOriginal, jsonTmfText, JsonEncodingStyle.tmf)
+println "decoded from tmf formatted json : " + result
+assert result.child.name == "child"*/
+
+result = jsonGenerator.toObject (SimpleOriginal, jsonApiText, JsonEncodingStyle.jsonApi)
+println "decoded from jsonApi formatted  json : " + result
+assert result.child.name == "child"

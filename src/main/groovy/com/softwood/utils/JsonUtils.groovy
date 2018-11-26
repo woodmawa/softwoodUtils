@@ -384,6 +384,22 @@ class JsonUtils {
 
     }
 
+    /*
+     * determine if the string is either softwood/tmf/jsonApi encoded
+     */
+    private boolean isJsonEncodedString (String json) {
+        //check for metadata first - if there its encoded json string
+        if (json.contains ('"softwoodEncoded"') || json.contains ('"tmfEncoded"') || json.contains ('"jsonApiEncoded"'))
+            return true
+        //look for entity definition string in format - bit weaker and could go wrong
+        else if (json.contains ('"entityData"') ||
+                json.contains ('"@type"') ||
+                json.contains ('"data"'))
+            return true
+        else
+            false
+
+    }
 
     /*
      * takes a JsonObject or JsonArray and tries to rebuild this as a graph of groovy objects.
@@ -423,11 +439,8 @@ class JsonUtils {
         }
 
         if (isSimpleAttribute(json)) {
-            // if strong contains an encoded json string - then try and parse it
-            if (json instanceof String &&
-                    (json.contains ('"entityData"') ||
-                            json.contains ('"@type"') ||
-                            json.contains ('"data":')) ) {
+            // if strong contains an encoded json string - then try and parse it - bit of a weak test
+            if (json instanceof String && isJsonEncodedString(json)) {
 
                 if (instance == null)
                     instance = getNewInstanceFromClass(clazz)
@@ -480,28 +493,25 @@ class JsonUtils {
                     //just sent a simple softwood Iterable (like a list)  to decode
                     def collectionAttributes = jsonEntity['iterable']
                     for (jsonAtt in collectionAttributes)
-                        decodeCollectionAttribute (instance, jsonAtt, style)
-                }
-                else if (jsonEntity.getAt('map')?.getAt ('withMapEntries') ) {
+                        decodeCollectionAttribute(instance, jsonAtt, style)
+                } else if (jsonEntity.getAt('map')?.getAt('withMapEntries')) {
                     //json is just a single jsonObject of map.entries
                     def mapAttributes = jsonEntity['map']['withMapEntries']
                     for (jsonAtt in mapAttributes) {
-                        def entry = decodeMapAttribute (instance, jsonAtt, style)
+                        def entry = decodeMapAttribute(instance, jsonAtt, style)
                         //instance.putAll (entry)
 
                     }
-                }
-                else if (jsonEntity['type']) {
+                } else if (jsonEntity['type']) {
                     //just a basic java type has been encoded with key and value entries in JsonObject
                     def typeName = jsonEntity['type']
                     Class clazzType = classForSimpleTypesLookup["$typeName"]
                     def typeValue = jsonEntity['value']
                     def decoder = classImplementsDecoderType(clazzType)
-                    def value = decoder (typeValue)
+                    def value = decoder(typeValue)
                     if (value)
                         instance = value
-                }
-                else if (jsonEntity['entityData']){
+                } else if (jsonEntity['entityData']) {
                     //json is an entity jsonObject - so decode it
 
                     def entity = jsonEntity['entityData']
@@ -513,8 +523,8 @@ class JsonUtils {
                     def entityName = entity['name']
                     if (entity['isPreviouslyEncoded'] == null) {
                         //need to add the instance early in case child refers to parent
-                        if (instance.respondsTo ('setId', entityId))
-                            instance.setId (entityId)
+                        if (instance.respondsTo('setId', entityId))
+                            instance.setId(entityId)
                         else {
                             //if id field got encoded as jsonObject with type/value - use the value
                             Field idField = getField(instance, 'id')
@@ -522,7 +532,7 @@ class JsonUtils {
                                 instance.id = decodeSimpleAttribute(idField.type, entityId, style)
                         }
                         if (instance.hasProperty('name'))
-                            instance.setName (entityName)
+                            instance.setName(entityName)
                         //todo : what about is summarised??
                         previouslyDecodedClassInstance.add(instance)  //add to decoded entity list
                     }
@@ -538,9 +548,9 @@ class JsonUtils {
                             //all we have is a summarised encoded json object - so just build minimal object
                             // dont save as decoded instance
                             instance.metaClass.isSummarised = true
-                            if (instance.hasProperty ('id')) {
-                                if (instance.respondsTo ('setId', entityId))
-                                    instance.setId (entityId)
+                            if (instance.hasProperty('id')) {
+                                if (instance.respondsTo('setId', entityId))
+                                    instance.setId(entityId)
                                 else {
                                     Field idField = getField(instance, 'id')
                                     if (idField)
@@ -550,7 +560,7 @@ class JsonUtils {
                             if (instance.hasProperty('name'))
                                 instance.name = entity['name']
                         }
-                    }else {
+                    } else {
                         //else just decode the entity
                         def jsonAttributes = entity["attributes"]
                         for (jsonAtt in jsonAttributes) {
@@ -577,10 +587,12 @@ class JsonUtils {
                 if (jsonEntity['@type']) {
                     //top level entity object to decode, decode its fields
                     def entity = jsonEntity
+                    def entityType = entity['@type']
+                    def entityId = entity['id']
                     if (entity['isPreviouslyEncoded']) {
-                        instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                        instance = findPreviouslyDecodedObjectMatch(entityType, entityId)
                     } else if (entity['isSummarised']) {
-                        def previouslyDecoded  = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                        def previouslyDecoded = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
                         if (previouslyDecoded)
                             instance = previouslyDecoded
                         else {
@@ -599,7 +611,7 @@ class JsonUtils {
                             }
                             if (entity['name']) {
                                 String name = entity['name']
-                                if (instance.respondsTo('setName', name) ) {
+                                if (instance.respondsTo('setName', name)) {
                                     instance.name = entity['name']
                                 }
                             }
@@ -611,7 +623,7 @@ class JsonUtils {
                         for (fieldAttribute in jsonEntity) {
                             decodeFieldAttribute(instance, fieldAttribute, style)
                         }
-                        previouslyDecodedClassInstance.add (instance)
+                        previouslyDecodedClassInstance.add(instance)
 
                     }
 
@@ -620,7 +632,34 @@ class JsonUtils {
                     for (mapAttribute in jsonEntity)
                         decodeMapAttribute(instance, mapAttribute, style)
                 }
-                break
+                break  //end tmf json decode
+
+            case JsonEncodingStyle.jsonApi:
+                //found jsonObject - test to see if its encoded entity
+                if (jsonEntity['data']) {
+                    //top level entity object to decode, decode its fields
+                    def entity = jsonEntity['data']
+                    def entityType = entity['type']
+                    def entityId = entity['id']
+
+                    //todo this behaves very differently - recode
+                    if (entity['isPreviouslyEncoded']) {
+                        instance = findPreviouslyDecodedObjectMatch(entityType, entityId)
+                    } else {
+                        //json is not typed as an entity, it  must a jsonMap to decode
+
+                        def jsonAttributes = entity['attributes']
+                        for (jsonAttribute in jsonAttributes)
+                            decodeFieldAttribute(instance, jsonAttribute, style)
+
+                        def relationshipAttributes = entity['relationships']
+                        for (relAttribute in relationshipAttributes) {
+                            decodeFieldAttribute(instance, relAttribute, style)
+                        }
+                    }
+
+                }
+                break //end jsonAPi decode
         }
         instance
     }
@@ -801,6 +840,41 @@ class JsonUtils {
 
                 }
                 break //end tmf encoded field
+
+            case JsonEncodingStyle.jsonApi:
+                def attName = jsonAtt.getKey()
+                if (attName == "type")
+                    return   //skip this attribute when decoding
+
+                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                def attValue = jsonAtt.getValue()
+                def simpleAttType = classForSimpleTypesLookup[ attValue.getClass().simpleName ]
+
+                //if simple test for setter and use if present
+                Field field = getField (instance, attName)
+                if (simpleAttType != null && isSimpleAttribute(attValue)) {
+                    boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
+
+                    if (supports) {
+                        instance["$jsonAtt.key"] = attValue
+                    } else {
+                        //try and find decoder for value to class
+                        Closure decoder = classImplementsDecoderType(field.type)
+                        if (decoder) {
+                            def decodedJsonValueToType = decoder(attValue)
+                            if (decodedJsonValueToType)
+                                instance["$jsonAtt.key"] = decodedJsonValueToType
+                        }
+                    }
+                } else {
+                    //todo - what else will we see if not basic attribute?
+                    // attribute which is a type - shows as relationships array item encoded as complex object
+                    /*def decodedJsonFieldAttribute = toObject(field.type, attValue, style)
+                    if (decodedJsonFieldAttribute) {
+                        instance["$attName"] = decodedJsonFieldAttribute
+                    }*/
+                }
+                break
 
         }
 
@@ -1481,7 +1555,6 @@ class JsonUtils {
 
             if (!classInstanceHasBeenEncodedOnce.containsKey((pogo))) {
                 classInstanceHasBeenEncodedOnce.putAll([(pogo): new Boolean(true)])
-                //println "iterLev $iterLevel: adding pogo $pogo encoded once list"
             }
 
             Map props = pogo.properties
@@ -1507,7 +1580,7 @@ class JsonUtils {
                 if (field ) {
                     //if field is itself a JsonObject add to relationhips
                     if (field instanceof JsonObject) {
-                        def id = (prop.value.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "unknown"
+                        def id = (prop.value.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "unknown"
                         def altId = (prop.value.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "unknown"
                         if (id == "unknown" && altId != "unknown")
                             id = altId
@@ -1515,7 +1588,10 @@ class JsonUtils {
                         JsonObject container = new JsonObject()
                         JsonObject data = new JsonObject()
                         data.put("type", type)
-                        data.put("id", id)
+                        if (isSimpleAttribute(id))
+                            data.put("id", id)
+                        else
+                            data.put("id", id.toString())
                         if (options.optionalLinks) {
                             JsonObject links = new JsonObject()
                             Closure linkNames = this.getLinkNamingStrategy()
@@ -1624,12 +1700,15 @@ class JsonUtils {
             if (options.includeVersion)
                 container.put ("jsonapi", version)
             String type = pogo.getClass().canonicalName
-            def  id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id").toString() : "unknown"
+            def  id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id") : "unknown"
             def  altId = pogo.hasProperty("name") ? (pogo as GroovyObject)?.getProperty("name") : "unknown"
             if (id == "unknown && altid != unknown")
                 id = altId
             container.put("type", type)
-            container.put("id", id )
+            if (isSimpleAttribute(id))
+                container.put("id", id )
+            else
+                container.put("id", id.toString())
             if (jsonAttributes && jsonAttributes.size() != 0)
                 container.put("attributes", jsonAttributes)
             if (options.optionalLinks) {
