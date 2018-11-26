@@ -37,8 +37,10 @@ class JsonUtils {
                                      'LocalDateTime': LocalDateTime, 'LocalDate': LocalDate, 'LocalTime': LocalTime,
                                      'UUID':UUID, 'URI':URI, 'URL':URL,
                                      'String': String, 'GString':GString,
-                                     'byte[]': Byte[], 'Byte': Byte, 'CharSequence': CharSequence, 'Character': Character,
-                                     'Boolean':Boolean, 'Integer':Integer, 'Long':Long, 'Float':Float, 'Double':Double,
+                                     'byte[]': Byte[], 'Byte': Byte,
+                                     'CharSequence': CharSequence, 'Character': Character,
+                                     'Boolean':Boolean, 'Integer':Integer, 'Long':Long,
+                                     'Float':Float, 'Double':Double,
                                      'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
 
     //todo note these may need to be thread local ??
@@ -281,7 +283,7 @@ class JsonUtils {
                 instance = options.defaultClassLoader.loadClass(clazzName, true).newInstance(args)
             instance
         } catch (Throwable t) {
-            println "getInstanceFromClass : cant resolve class $clazzName, returning an Expando proxy instead"
+            println "getNewInstanceFromClass : cant resolve class $clazzName, returning an Expando proxy instead"
             def proxy = options.defaultClassLoader.loadClass (Expando.canonicalName).newInstance() //new Expando ()
             proxy.isProxy = true
             proxy.proxiedClassName =  clazzName
@@ -298,7 +300,7 @@ class JsonUtils {
     private Class<?> getClassForName (String clazzName) {
         def clazz
         try {
-            clazz = options.defaultClassLoader.loadClass(clazzName, true)
+            clazz = options.getDefaultClassLoader().loadClass(clazzName, true)
         } catch (Throwable t) {
             println "getClassForName: can't load class $clazzName, message " + t.message
         }
@@ -798,11 +800,13 @@ class JsonUtils {
                         try {
                             Class clazz = getClassForName (clazzName)
                             def decodedEntity = toObject(clazz, collectionAtt, style)
-                            instance.add (decodedEntity)
+                            if (decodedEntity)
+                                instance.add (decodedEntity)
                         } catch (Throwable t) {
                             //class not in local vm - build using a proxy
                             def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
-                            instance.add (decodedProxy)
+                            if (decodedProxy)
+                                instance.add (decodedProxy)
                         }
                         return instance
 
