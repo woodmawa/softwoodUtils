@@ -423,13 +423,26 @@ class JsonUtils {
         }
 
         if (isSimpleAttribute(json)) {
-            if (clazz == json.getClass())
-                instance = json
-            else {
-                //instance = clazz.newInstance(json)
-                instance = getNewInstanceFromClass(clazz, json)
+            // if strong contains an encoded json string - then try and parse it
+            if (json instanceof String &&
+                    (json.contains ('"entityData"') ||
+                            json.contains ('"@type"') ||
+                            json.contains ('"data":')) ) {
+
+                if (instance == null)
+                    instance = getNewInstanceFromClass(clazz)
+
+                //parse the json string back to json
+                JsonObject parsedJson = new JsonObject(json)
+                if (parsedJson) {
+                    decodeEntityToInstance(instance, parsedJson, style)
+                }
+
             }
-        } else if (json instanceof JsonArray) {
+            else (clazz == json.getClass()) {
+                instance = json
+            }
+         } else if (json instanceof JsonArray) {
             // json passed represents an array of objects+JsonObjects
             switch (style) {
                 case JsonEncodingStyle.softwood:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
@@ -441,155 +454,9 @@ class JsonUtils {
                     break
 
             }
-        } else if (json instanceof JsonObject)  {
-            switch (style) {
-                case JsonEncodingStyle.softwood:
-                    if (json['iterable']) {
-                        //just sent a simple softwood Iterable (like a list)  to decode
-                        def collectionAttributes = json['iterable']
-                        for (jsonAtt in collectionAttributes)
-                            decodeCollectionAttribute (instance, jsonAtt, style)
-                    }
-                    else if (json.getAt('map')?.getAt ('withMapEntries') ) {
-                        //json is just a single jsonObject of map.entries
-                        def mapAttributes = json['map']['withMapEntries']
-                        for (jsonAtt in mapAttributes) {
-                            def entry = decodeMapAttribute (instance, jsonAtt, style)
-                            //instance.putAll (entry)
-
-                        }
-                    }
-                    else if (json['type']) {
-                        //just a basic java type has been encoded with key and value entries in JsonObject
-                        def typeName = json['type']
-                        Class clazzType = classForSimpleTypesLookup["$typeName"]
-                        def typeValue = json['value']
-                        def decoder = classImplementsDecoderType(clazzType)
-                        def value = decoder (typeValue)
-                        if (value)
-                            instance = value
-                    }
-                    else if (json['entityData']){
-                        //json is an entity jsonObject - so decode it
-
-                        def entity = json['entityData']
-                        def entityType = entity['entityType']
-                        def entityId = entity['id']
-                        //if id was encoded as jsonObject with type/value - use the value for the id
-                        if (entityId instanceof JsonObject)
-                            entityId = entity['id']['value']
-                        def entityName = entity['name']
-                        if (entity['isPreviouslyEncoded'] == null) {
-                            //need to add the instance early in case child refers to parent
-                            if (instance.respondsTo ('setId', entityId))
-                                instance.setId (entityId)
-                            else {
-                                //if id field got encoded as jsonObject with type/value - use the value
-                                Field idField = getField(instance, 'id')
-                                if (idField)
-                                    instance.id = decodeSimpleAttribute(idField.type, entityId, style)
-                            }
-                            if (instance.hasProperty('name'))
-                                instance.setName (entityName)
-                            //todo : what about is summarised??
-                            previouslyDecodedClassInstance.add(instance)  //add to decoded entity list
-                        }
-                        if (entity['isPreviouslyEncoded']) {
-                            //if previously encode - find decode version and use it
-                            instance = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
-                        } else if (entity['isSummarised']) {
-                            //just check if summarised object was previously decoded - in which case just use that
-                            def previouslyDecoded = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
-                            if (previouslyDecoded)
-                                instance = previouslyDecoded
-                            else {
-                                //all we have is a summarised encoded json object - so just build minimal object
-                                // dont save as decoded instance
-                                instance.metaClass.isSummarised = true
-                                if (instance.hasProperty ('id')) {
-                                    if (instance.respondsTo ('setId', entityId))
-                                        instance.setId (entityId)
-                                    else {
-                                        Field idField = getField(instance, 'id')
-                                        if (idField)
-                                            instance.id = decodeSimpleAttribute(idField.type, entityId, style)
-                                    }
-                                }
-                                if (instance.hasProperty('name'))
-                                    instance.name = entity['name']
-                            }
-                        }else {
-                            //else just decode the entity
-                            def jsonAttributes = entity["attributes"]
-                            for (jsonAtt in jsonAttributes) {
-                                decodeFieldAttribute(instance, jsonAtt, style)
-                            }
-                            //process any collections attributes
-                            def collectionAttributes = entity['collectionAttributes']
-                            for (jsonAtt in collectionAttributes) {
-                                decodeCollectionAttribute(instance, jsonAtt, style)
-                            }
-
-                            def mapAttributes = entity['mapAttributes']
-                            for (jsonAtt in mapAttributes) {
-                                decodeMapAttribute(instance, jsonAtt, style)
-
-                            }
-
-                        }
-                    }
-                    break
-
-                case JsonEncodingStyle.tmf:
-                    //found jsonObject - test to see if its encoded entity
-                    if (json['@type']) {
-                        //top level entity object to decode, decode its fields
-                        def entity = json
-                        if (entity['isPreviouslyEncoded']) {
-                            instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
-                        } else if (entity['isSummarised']) {
-                            def previouslyDecoded  = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
-                            if (previouslyDecoded)
-                                instance = previouslyDecoded
-                            else {
-                                instance.metaClass.isSummarised = true  //mark as summarised on metaClass
-                                if (entity['id']) {
-                                    if (instance.respondsTo('setId', entity['id']))
-                                        instance.setId(entity['id'])
-                                    else {
-                                        Field field = getField(instance, 'id')
-                                        Closure decoder = classImplementsDecoderType(field.type)
-                                        def decodedId = decoder(entity['id'])
-                                        if (decodedId) {
-                                            instance.setId(decodedId)
-                                        }
-                                    }
-                                }
-                                if (entity['name']) {
-                                    String name = entity['name']
-                                    if (instance.respondsTo('setName', name) ) {
-                                        instance.name = entity['name']
-                                    }
-                                }
-                                //Don't add partially completed instance to decoded object list
-                            }
-                        } else {
-                            //build the instance from each of its fields
-                            //instance not yet been encoded - so save a ref
-                            for (fieldAttribute in json) {
-                                decodeFieldAttribute(instance, fieldAttribute, style)
-                            }
-                            previouslyDecodedClassInstance.add (instance)
-
-                        }
-
-                    } else {
-                        //json is not typed as an entity, it  must a jsonMap to decode
-                        for (mapAttribute in json)
-                            decodeMapAttribute(instance, mapAttribute, style)
-                    }
-                    break
-            }
+        }
+        else if (json instanceof JsonObject)  {
+            decodeEntityToInstance(instance, json, style)
         }
         else  {
             iterLevel.set (--level)
@@ -603,6 +470,160 @@ class JsonUtils {
 
     }
 
+    /*
+     * refactored this to own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
+     */
+    private def decodeEntityToInstance (instance, jsonEntity, JsonEncodingStyle style) {
+        switch (style) {
+            case JsonEncodingStyle.softwood:
+                if (jsonEntity['iterable']) {
+                    //just sent a simple softwood Iterable (like a list)  to decode
+                    def collectionAttributes = jsonEntity['iterable']
+                    for (jsonAtt in collectionAttributes)
+                        decodeCollectionAttribute (instance, jsonAtt, style)
+                }
+                else if (jsonEntity.getAt('map')?.getAt ('withMapEntries') ) {
+                    //json is just a single jsonObject of map.entries
+                    def mapAttributes = jsonEntity['map']['withMapEntries']
+                    for (jsonAtt in mapAttributes) {
+                        def entry = decodeMapAttribute (instance, jsonAtt, style)
+                        //instance.putAll (entry)
+
+                    }
+                }
+                else if (jsonEntity['type']) {
+                    //just a basic java type has been encoded with key and value entries in JsonObject
+                    def typeName = jsonEntity['type']
+                    Class clazzType = classForSimpleTypesLookup["$typeName"]
+                    def typeValue = jsonEntity['value']
+                    def decoder = classImplementsDecoderType(clazzType)
+                    def value = decoder (typeValue)
+                    if (value)
+                        instance = value
+                }
+                else if (jsonEntity['entityData']){
+                    //json is an entity jsonObject - so decode it
+
+                    def entity = jsonEntity['entityData']
+                    def entityType = entity['entityType']
+                    def entityId = entity['id']
+                    //if id was encoded as jsonObject with type/value - use the value for the id
+                    if (entityId instanceof JsonObject)
+                        entityId = entity['id']['value']
+                    def entityName = entity['name']
+                    if (entity['isPreviouslyEncoded'] == null) {
+                        //need to add the instance early in case child refers to parent
+                        if (instance.respondsTo ('setId', entityId))
+                            instance.setId (entityId)
+                        else {
+                            //if id field got encoded as jsonObject with type/value - use the value
+                            Field idField = getField(instance, 'id')
+                            if (idField)
+                                instance.id = decodeSimpleAttribute(idField.type, entityId, style)
+                        }
+                        if (instance.hasProperty('name'))
+                            instance.setName (entityName)
+                        //todo : what about is summarised??
+                        previouslyDecodedClassInstance.add(instance)  //add to decoded entity list
+                    }
+                    if (entity['isPreviouslyEncoded']) {
+                        //if previously encode - find decode version and use it
+                        instance = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
+                    } else if (entity['isSummarised']) {
+                        //just check if summarised object was previously decoded - in which case just use that
+                        def previouslyDecoded = findPreviouslyDecodedObjectMatch(entityType, entityId, entityName)
+                        if (previouslyDecoded)
+                            instance = previouslyDecoded
+                        else {
+                            //all we have is a summarised encoded json object - so just build minimal object
+                            // dont save as decoded instance
+                            instance.metaClass.isSummarised = true
+                            if (instance.hasProperty ('id')) {
+                                if (instance.respondsTo ('setId', entityId))
+                                    instance.setId (entityId)
+                                else {
+                                    Field idField = getField(instance, 'id')
+                                    if (idField)
+                                        instance.id = decodeSimpleAttribute(idField.type, entityId, style)
+                                }
+                            }
+                            if (instance.hasProperty('name'))
+                                instance.name = entity['name']
+                        }
+                    }else {
+                        //else just decode the entity
+                        def jsonAttributes = entity["attributes"]
+                        for (jsonAtt in jsonAttributes) {
+                            decodeFieldAttribute(instance, jsonAtt, style)
+                        }
+                        //process any collections attributes
+                        def collectionAttributes = entity['collectionAttributes']
+                        for (jsonAtt in collectionAttributes) {
+                            decodeCollectionAttribute(instance, jsonAtt, style)
+                        }
+
+                        def mapAttributes = entity['mapAttributes']
+                        for (jsonAtt in mapAttributes) {
+                            decodeMapAttribute(instance, jsonAtt, style)
+
+                        }
+
+                    }
+                }
+                break
+
+            case JsonEncodingStyle.tmf:
+                //found jsonObject - test to see if its encoded entity
+                if (jsonEntity['@type']) {
+                    //top level entity object to decode, decode its fields
+                    def entity = jsonEntity
+                    if (entity['isPreviouslyEncoded']) {
+                        instance = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                    } else if (entity['isSummarised']) {
+                        def previouslyDecoded  = findPreviouslyDecodedObjectMatch(entity['@type'], entity['id'])
+                        if (previouslyDecoded)
+                            instance = previouslyDecoded
+                        else {
+                            instance.metaClass.isSummarised = true  //mark as summarised on metaClass
+                            if (entity['id']) {
+                                if (instance.respondsTo('setId', entity['id']))
+                                    instance.setId(entity['id'])
+                                else {
+                                    Field field = getField(instance, 'id')
+                                    Closure decoder = classImplementsDecoderType(field.type)
+                                    def decodedId = decoder(entity['id'])
+                                    if (decodedId) {
+                                        instance.setId(decodedId)
+                                    }
+                                }
+                            }
+                            if (entity['name']) {
+                                String name = entity['name']
+                                if (instance.respondsTo('setName', name) ) {
+                                    instance.name = entity['name']
+                                }
+                            }
+                            //Don't add partially completed instance to decoded object list
+                        }
+                    } else {
+                        //build the instance from each of its fields
+                        //instance not yet been encoded - so save a ref
+                        for (fieldAttribute in jsonEntity) {
+                            decodeFieldAttribute(instance, fieldAttribute, style)
+                        }
+                        previouslyDecodedClassInstance.add (instance)
+
+                    }
+
+                } else {
+                    //json is not typed as an entity, it  must a jsonMap to decode
+                    for (mapAttribute in jsonEntity)
+                        decodeMapAttribute(instance, mapAttribute, style)
+                }
+                break
+        }
+        instance
+    }
 
     private def decodeToProxyInstance (proxyClazzTypeName, jsonEntity, JsonEncodingStyle style) {
         //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
