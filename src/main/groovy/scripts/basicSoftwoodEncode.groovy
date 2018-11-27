@@ -2,6 +2,7 @@ package scripts
 
 import com.softwood.utils.JsonEncodingStyle
 import com.softwood.utils.JsonUtils
+import com.softwood.utils.UuidUtil
 
 import java.time.LocalDateTime
 
@@ -23,19 +24,21 @@ println "encode list int [2] : " + jsonGenerator.toSoftwoodJson([2])
 println "encode map [a:2] : " + jsonGenerator.toSoftwoodJson([a:2])
 
 class SimpleSoftwood {
+    UUID id
     String name
     List sList = []
     Map sMap =[:]
 }
 
 class SoftwoodChild {
+    long id
     String name
     SimpleSoftwood parent
 }
 
 
-SimpleSoftwood s1 = new SimpleSoftwood()
-SoftwoodChild sc1 = new SoftwoodChild(name: "myChild", parent:s1)
+SimpleSoftwood s1 = new SimpleSoftwood(id: UuidUtil.getTimeBasedUuid(), name:"root")
+SoftwoodChild sc1 = new SoftwoodChild(id:10, name: "myChild", parent:s1)
 
 s1.sMap << [a:s1, b:sc1]
 println "encode simple s1 : " + jsonGenerator.toSoftwoodJson(s1).encodePrettily()

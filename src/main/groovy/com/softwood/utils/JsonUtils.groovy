@@ -328,6 +328,8 @@ class JsonUtils {
 
         //only collect non synthetic and non private
         thisFields.each { Field f ->
+            if (f.name == "id")         //exclude id from normal field listing
+                return
             def synthetic = f.isSynthetic()
             def privateField = Modifier.isPrivate(f.modifiers)  //test to see if private is set
             if (options.excludePrivateFields)   //will encode private fields by default
@@ -392,9 +394,9 @@ class JsonUtils {
         if (json.contains ('"softwoodEncoded"') || json.contains ('"tmfEncoded"') || json.contains ('"jsonApiEncoded"'))
             return true
         //look for entity definition string in format - bit weaker and could go wrong
-        else if (json.contains ('"entityData"') ||
-                json.contains ('"@type"') ||
-                json.contains ('"data"'))
+        else if (json.contains ('"entityData"') ||  //softwood
+                json.contains ('"@type"') ||        //tmf
+                json.contains ('"data"'))           //jsonApi
             return true
         else
             false
@@ -1275,10 +1277,15 @@ class JsonUtils {
                 jsonObj.put ("@type", pogo.getClass().canonicalName)
                 if (pogo.hasProperty ("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
-                    if (isSimpleAttribute(id.getClass()))
-                        jsonObj.put("id", id)
+                    if (isSimpleAttribute(id.getClass())) {
+                        Closure encoder = classImplementsEncoderType(id.getClass())
+                        if (encoder)
+                            jsonObj.put("id", encoder (id))
+                        else
+                            jsonObj.put ("id", id)
+                    }
                     else
-                        jsonObj.put("id", id.toString().toString())
+                        jsonObj.put("id", id.toString())
                 }
                 if (pogo.hasProperty ("name")) {
                     def name = (pogo as GroovyObject).getProperty("name")
@@ -1288,21 +1295,42 @@ class JsonUtils {
                 //wrapper.put ("entity", jsonObj)
                 iterLevel.set (--level)
                 return jsonObj // pogo.toString()
+            } else {
+                //first time object to encode - process type, id, & name  first ...
+                JsonObject jsonObj = (json as JsonObject)
+                jsonObj.put ("@type", pogo.getClass().canonicalName)
+                if (pogo.hasProperty ("id")) {
+                    def id = (pogo as GroovyObject).getProperty("id")
+                    if (isSimpleAttribute(id.getClass())) {
+                        Closure encoder = classImplementsEncoderType(id.getClass())
+                        if (encoder)
+                            jsonObj.put("id", encoder (id))
+                        else
+                            jsonObj.put ("id", id)
+                    }
+                    else
+                        jsonObj.put("id", id.toString())
+                }
+                if (pogo.hasProperty ("name")) {
+                    def name = (pogo as GroovyObject).getProperty("name")
+                    jsonObj.put("name", name)
+                }
             }
 
             if (!classInstanceHasBeenEncodedOnce.containsKey((pogo))) {
                 classInstanceHasBeenEncodedOnce.putAll([(pogo): new Boolean(true)])
             }
 
+            //now process the object fields
             Map props = getDeclaredFields (pogo)
 
-             def jsonFields = new JsonObject()
+            def jsonFields = new JsonObject()
             def jsonEntityReferences = new JsonObject()
 
-           def type = pogo.getClass().canonicalName
-            jsonFields.put ("@type", type)
-
             for ( prop in props) {
+
+                if (prop.value == null )    //skip if value is null
+                    continue
 
                 if (Iterable.isAssignableFrom(prop.value.getClass())) {
                     def arrayResult = encodeIterableType ( prop.value as Iterable , JsonEncodingStyle.tmf)
@@ -1340,7 +1368,6 @@ class JsonUtils {
             classInstanceHasBeenEncodedOnce.clear()
         }
         json
-
 
     }
 
@@ -1405,7 +1432,7 @@ class JsonUtils {
                 if (pogo.hasProperty ("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass()))
-                        jsonObj.put("id", id)
+                        jsonObj.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood))
                     else
                         jsonObj.put("id", id.toString().toString())
                 }
@@ -1448,6 +1475,8 @@ class JsonUtils {
             def jsonMaps = new JsonObject()
 
             for (prop in nonIterableFields) {
+                if (prop.value == null )
+                    continue
 
                 def encodedField = encodeFieldType(prop, JsonEncodingStyle.softwood)
                 if (isSimpleAttribute(encodedField)) {
@@ -1471,6 +1500,9 @@ class JsonUtils {
                 }
             }
             for (prop in iterableFields){
+                if (prop.value == null )
+                    continue
+
                 def arrayResult = encodeIterableType ( prop.value as Iterable, JsonEncodingStyle.softwood)
                 if (arrayResult) {
                     //jsonFields.put(prop.key, arrayResult)
@@ -1478,6 +1510,9 @@ class JsonUtils {
                 }
             }
             for (prop in mapFields){
+                if (prop.value == null )
+                    continue
+
                 def result = encodeMapType ( prop.value as Map, JsonEncodingStyle.softwood)
                 if (result) {
                     jsonMaps.put(prop.key.toString(), result)
@@ -1840,7 +1875,7 @@ class JsonUtils {
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
-                                            wrapper.put("id", id)
+                                            wrapper.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood) )
                                         else
                                             wrapper.put("id", id.toString().toString())
                                     }
