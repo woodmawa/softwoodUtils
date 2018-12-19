@@ -60,7 +60,7 @@ SumSWSubClass sc3 = new SumSWSubClass (id:3, name:"sum-subclass 3")
 
 SumSWSub2Class ss2c = new SumSWSub2Class (id:10, name:"2nd level sum-subclass")
 
-sc1.s2c = ss2c
+sc1.sw2c = ss2c
 
 arrayOfTmfSubClass = [sc1, sc2, sc3]
 
