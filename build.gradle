@@ -22,6 +22,8 @@ dependencies {
     compile group: 'javax.inject', name: 'javax.inject', version: '1'
     testCompile group: 'org.spockframework', name: 'spock-core', version: '1.2-groovy-2.5'
 
+    //
+    compile 'com.github.seancfoley:ipaddress:5.0.0'  //ipv4 & v6 handling library, better options than JDK
 
 }
 
