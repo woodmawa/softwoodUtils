@@ -179,7 +179,7 @@ RfcWorkOrder wo2 = new RfcWorkOrder(
         organisationName:  "ACME",
         serviceName: "mySecondEthernet",
         bssOrderType: BssOrderType.NewProvide,
-        rfcOrderStatus: "Issued"    //sent from cramer
+        rfcOrderStatus: "Issued"     //sent from cramer
 )
 
 OrderLine oline = new OrderLine(orderLineNumber: 1, orderLineStatus: "initial")
