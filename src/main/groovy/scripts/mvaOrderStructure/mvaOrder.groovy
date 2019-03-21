@@ -80,9 +80,18 @@ class RfcWorkOrder {
 
 }
 
+//need to figure out the action types
+enum OrderLineActionType {
+    Provide,
+    Add,
+    Delete,
+    Amend
+}
+
 class OrderLine {
     Long orderLineNumber  //implicit as its in a queue?
     String orderLineStatus
+    OrderLineActionType orderLineAction
     ResourceFacingService woRfs
 }
 
@@ -105,6 +114,7 @@ class ResourceFacingService {
     Collection<ResourceFacingService> relatedRfs = new ConcurrentLinkedQueue<>()
     Collection<Resource> resources =  new ConcurrentLinkedQueue<>()
     Collection<Property> rfsProperties = new ConcurrentLinkedQueue<>()
+    Device device
 }
 
 enum AdminstrativeStateType {
@@ -151,6 +161,25 @@ class Resource {
 
 }
 
+enum ResourceRoleType {
+    Router,
+    Switch,
+    Firewall,
+    Other
+}
+
+class Device {
+    UUID deviceId = UUID.randomUUID()
+    ResourceRoleType roleType  //should really be list but we are using one of roles for order
+    String deviceName
+    String managedHostname
+    String managementIpAddress
+    String deviceOpStatus = OperationalStateType.Up
+    String deviceAdminStatus = AdminstrativeStateType.Unlocked
+    Collection<Property> properties = new ConcurrentLinkedQueue<>()
+
+}
+
 //generic property type
 class Property {
     String groupName = "<default>"
@@ -182,13 +211,21 @@ RfcWorkOrder wo2 = new RfcWorkOrder(
         rfcOrderStatus: "Issued"     //sent from cramer
 )
 
-OrderLine oline = new OrderLine(orderLineNumber: 1, orderLineStatus: "initial")
+OrderLine oline = new OrderLine(orderLineNumber: 1, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Provide)
 oline.woRfs = new ResourceFacingService(type: ResourceFacingServiceType.PseudoWire,
         rfsName: "pw#1",
         rfsOpStatus: OperationalStateType.Up,
         rfsAdminStatus: AdminstrativeStateType.Unlocked)
 oline.woRfs.rfsProperties << new Property(name:"bandwidth", value:"10GB", valueClassType: String)
 wo1.orderLines << oline
+
+//associate the RFS to configure for the order line with the managed device
+//query can same RFS span multiple devices on same order line?  - e.g for a cross connect?
+//actual xconnect details must be matched with similar to remote end however
+//so suspecting xconnect services requires two matched config on dev A and Dev B - hence two orderlines
+Device cisco903 = new Device (deviceName: 'fred',  managedHostname: 'NBYB12-AGN-A1', managementIpAddress : '172.12.45.37')
+oline.woRfs.device = cisco903
+
 
 res  = jsonGenerator.toTmfJson([wo1, wo2]).encodePrettily()
 println "tmfjson work order group  : $res"
