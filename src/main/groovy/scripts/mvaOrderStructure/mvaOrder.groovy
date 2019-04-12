@@ -91,6 +91,7 @@ enum OrderLineActionType {
 class OrderLine {
     Long orderLineNumber  //implicit as its in a queue?
     String orderLineStatus
+    List<Long> dependsOnOrderLines //optional - if a sequence dependency for task - put list there
     OrderLineActionType orderLineAction
     ResourceFacingService woRfs
 }
