@@ -10,7 +10,7 @@ JsonUtils.Options options = new JsonUtils.Options()
 options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
-options.setExpandLevels(4)
+options.setExpandLevels(5)
 options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
