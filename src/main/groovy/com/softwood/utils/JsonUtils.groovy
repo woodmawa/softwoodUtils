@@ -351,7 +351,7 @@ class JsonUtils {
                         return
                     }
 
-                    props << ["$f.name": f.get(pogo)]
+                    props.putAll( ["$f.name": f.get(pogo)])
                     if (!accessible)
                         f.setAccessible(accessible)  //reset to orig
 
