@@ -80,6 +80,7 @@ class ConfigurationOrder {
     String orderStatus  //enum later
     //has array of order lines
     Collection<OrderLine> orderLines = new ConcurrentLinkedQueue<OrderLine>()
+    List<ConfigurationOrder> dependsOnOrders        //if there is an orders dependency express this here 
 
 }
 
