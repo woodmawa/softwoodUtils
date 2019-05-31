@@ -57,8 +57,9 @@ class CustomerFacingService {
     Site remoteSite
 }
 
-class RfcRequestGroup {
+class OrderGroup {
     String name
+    String projectName
     LocalDateTime createdDateTime = LocalDateTime.now()
     Collection configurationOrders = []
 }
@@ -97,7 +98,7 @@ class OrderLine {
     String orderLineStatus
     List<Long> dependsOnOrderLines //optional - if a sequence dependency for task - put list there
     OrderLineActionType orderLineAction
-    ResourceFacingService olRfs
+    ResourceFacingService orderLineRfs
 }
 
 enum ResourceFacingServiceType {
@@ -130,15 +131,24 @@ class ResourceFacingService {
 
 enum AdminstrativeStateType {
     Locked,
-    Unlocked
+    LockedEnabled,
+    LockedDiasabled,
+    LockedMaintenance,
+    Unlocked,
+    UnlockedEnabled,
+    UnlockedDisabled,
+    UnlockedAutomaticInService
+
 }
 enum OperationalStateType {
     Up,
     Down,
+    AdministrativelyDown,
     Suspended,
     Active,
     Open,
-    Closed
+    Closed,
+    Disabled
 }
 
 enum ResourceType {
@@ -218,12 +228,12 @@ Site custSite = new Site (siteName: "LSE campus (Janet)  ", city:"london", count
 Site remoteSite = new Site (siteName: "Imperial campus (Janet) ", city:"london", country:"UK", postalCode: "SW7 2BX")
 
 CustomerFacingService ethcfs = new CustomerFacingService(cfsName:"2C03636667", productServiceName: "Ethernet Wire-Line", cfsStatus: "new provide",
-owningSite: custSite)
+owningSite: custSite, remoteSite: remoteSite)
 
 CustomerFacingService cfs2 = new CustomerFacingService(cfsName:"XXX", productServiceName: "ip vpn", cfsStatus: "new provide",
         owningSite: custSite)
 
-RfcRequestGroup ordGroup = new RfcRequestGroup(name:"group #1")
+OrderGroup ordGroup = new OrderGroup(name:"group #1", projectName: "JANET project" )
 
 ConfigurationOrder wo1 = new ConfigurationOrder(
         organisationName:  "JANET UK",
@@ -242,91 +252,94 @@ ConfigurationOrder wo2 = new ConfigurationOrder(
 )
 
 OrderLine oline1 = new OrderLine(jobRef: 704851143, orderLineNumber: 1, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline1.olRfs = new ResourceFacingService(type: ResourceFacingServiceType.ETHERNET_CROSS_CONNECT,
+oline1.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.ETHERNET_CROSS_CONNECT,
         rfsName: "eth-xconnect-#1",
         rfsDescription: "vf=EWL:cn=JANET:tl=2C03636667",
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
         relatedCfs: [ethcfs],
         configuredDevice:cisco903a)
-oline1.olRfs.rfsProperties << new Property(name:"interface", value:"GigabitEthernet0/2/0", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"description", value:"vf=EWL:cn=JANET:tl=2C03636667", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"matched_vlans", value:12, valueClassType: Integer.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"matched_type", value:"dot1q", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"operational_state", value:"down", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"rewrite", value:"pop 1", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"iosxe_efp_type", value:"serviceinstance", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"iosxe_efp_instance_id", value:1213, valueClassType: Integer.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"l2cp_params", value:"forward", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"ingress_qos", value:"Ethernet-IngressQoS-Template1-Standard", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(name:"egress_qos", value:"Ethernet-Parent-EgressQoS-Template2", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"interface", value:"GigabitEthernet0/2/0", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"description", value:"vf=EWL:cn=JANET:tl=2C03636667", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"matched_vlans", value:12, valueClassType: Integer.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"matched_type", value:"dot1q", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"operational_state", value:"down", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"rewrite", value:"pop 1", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"iosxe_efp_type", value:"serviceinstance", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"iosxe_efp_instance_id", value:1213, valueClassType: Integer.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"l2cp_params", value:"forward", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"ingress_qos", value:"Ethernet-IngressQoS-Template1-Standard", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(name:"egress_qos", value:"Ethernet-Parent-EgressQoS-Template2", valueClassType: String.typeName)
 
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cbs", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"eir", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cbs", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"eir", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cbs", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"eir", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egressQoS class:STANDARD-QG", name:"ebs", value:"", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cbs", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"eir", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egressQoS class:STANDARD-QG", name:"ebs", value:"", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"12500000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"1000000000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.olRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"12500000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"1000000000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
 wo1.orderLines << oline1
 
 OrderLine oline2 = new OrderLine(jobRef: 704851143, orderLineNumber: 2, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline2.olRfs = new ResourceFacingService(type: ResourceFacingServiceType.ETHERNET_PSEUDOWIRE_ENDPOINT,
+oline2.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.ETHERNET_PSEUDOWIRE_ENDPOINT,
         rfsName: "eth-pw-ep#1",
         rfsDescription: "vf=EWL:cn=JANET:tl=2C03636667",
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
         configuredDevice:cisco903a)
 
-oline2.olRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
+oline2.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
 
 OrderLine oline3 = new OrderLine(jobRef: 704851143, orderLineNumber: 2, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline3.olRfs = new ResourceFacingService(type: ResourceFacingServiceType.PSEUDOWIRE_ENDPOINT,
+oline3.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.PSEUDOWIRE_ENDPOINT,
         rfsName: "pw-ep#2",
         rfsDescription: "--- missing in example---",
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
         configuredDevice:cisco903a)
 
-oline3.olRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
-oline3.olRfs.rfsProperties << new Property(name:"pw_id", value:"3007297536", valueClassType: String)
-oline3.olRfs.rfsProperties << new Property(name:"priority", value:0, valueClassType: Integer)
-oline3.olRfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
-oline3.olRfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
+oline3.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
+oline3.orderLineRfs.rfsProperties << new Property(name:"pw_id", value:"3007297536", valueClassType: String)
+oline3.orderLineRfs.rfsProperties << new Property(name:"priority", value:0, valueClassType: Integer)
+oline3.orderLineRfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
+oline3.orderLineRfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
 
 //link asr 903 configuredDevice to RFS on the order line
-oline1.olRfs.configuredDevice = cisco903a
-oline2.olRfs.configuredDevice = cisco903a
-oline3.olRfs.configuredDevice = cisco903a
+oline1.orderLineRfs.configuredDevice = cisco903a
+oline2.orderLineRfs.configuredDevice = cisco903a
+oline3.orderLineRfs.configuredDevice = cisco903a
+
+ordGroup.configurationOrders = [wo1, wo2]
 
 
+//res  = jsonGenerator.toTmfJson([wo1, wo2]).encodePrettily()
+res  = jsonGenerator.toTmfJson(ordGroup).encodePrettily()
 
-
-res  = jsonGenerator.toTmfJson([wo1, wo2]).encodePrettily()
 println "tmfjson work order group  : $res"
 
 
-res2  = jsonGenerator.toJsonApi([wo1, wo2]).encodePrettily()
-println "jsonApi work order group  : $res2"
+//res2  = jsonGenerator.toJsonApi([wo1, wo2]).encodePrettily()  - breaks with an array
+res2  = jsonGenerator.toJsonApi(ordGroup).encodePrettily()
+println "\n\njsonApi work order group  : $res2"
 
