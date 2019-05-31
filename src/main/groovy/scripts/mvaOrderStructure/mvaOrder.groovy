@@ -61,26 +61,26 @@ class OrderGroup {
     String name
     String projectName
     LocalDateTime createdDateTime = LocalDateTime.now()
-    Collection configurationOrders = []
+    Collection orders = []
 }
 
-class ConfigurationOrder {
+class Order {
     String organisationName
     String serviceName //optional
     BssOrderType bssOrderType = BssOrderType.Create
     CustomerFacingService owningCfs
-    UUID configurationOrderId = UUID.randomUUID()
+    UUID orderId = UUID.randomUUID()
     String orderName
     LocalDateTime createdDateTime = LocalDateTime.now()
     LocalDateTime issuedDateTime = LocalDateTime.now()
-    LocalDateTime rfcApprovedDateTime
+    LocalDateTime approvedDateTime
     LocalDateTime requiredByDateTime = LocalDateTime.now() + 30
-    LocalDateTime rfcStartedDateTime
-    LocalDateTime rfcCompletedDateTime
+    LocalDateTime startedDateTime
+    LocalDateTime completedDateTime
     String orderStatus  //enum later
     //has array of order lines
     Collection<OrderLine> orderLines = new ConcurrentLinkedQueue<OrderLine>()
-    List<ConfigurationOrder> dependsOnOrders        //if there is an orders dependency express this here 
+    List<Order> dependsOnOrders        //if there is an orders dependency express this here
 
 }
 
@@ -100,6 +100,7 @@ class OrderLine {
     List<Long> dependsOnOrderLines //optional - if a sequence dependency for task - put list there
     OrderLineActionType orderLineAction
     ResourceFacingService orderLineRfs
+    List<String> configSnippits = []        //can be passed back as result detail back to cramer
 }
 
 enum ResourceFacingServiceType {
@@ -122,12 +123,13 @@ class ResourceFacingService {
     String rfsAdminStatus
     //optional list of related CFS that rely on this rfs
     Collection<CustomerFacingService> relatedCfs = new ConcurrentLinkedQueue<>()
-    //related rfs for this rfs
+    //optional related/dependent on rfs for this rfs
     Collection<ResourceFacingService> relatedRfs = new ConcurrentLinkedQueue<>()
-    Collection<Resource> resources =  new ConcurrentLinkedQueue<>()
+    Collection<Resource> aEndResources =  new ConcurrentLinkedQueue<>()
+    Collection<Resource> zEndResources =  new ConcurrentLinkedQueue<>()
     Collection<Property> rfsProperties = new ConcurrentLinkedQueue<>()
-    Device configuredDevice
-    Device remoteDevice
+    Device aEndDevice
+    Device zEndDevice
 }
 
 enum AdminstrativeStateType {
@@ -163,14 +165,16 @@ enum ResourceType {
     BridgeDomain,
     LinkAggregationGroup,
     ServiceDistributionPoint,
-    QoS,
+    PolicyMap,
 
     //physical types
     EquipmentHolder,
     Node,
     Card,
     Module,
-    PhysicalPort
+    PhysicalPort,
+    PhysicalInterface,
+
 }
 
 class Resource {
@@ -179,11 +183,12 @@ class Resource {
     String resourceName
     String resourceOpStatus = OperationalStateType.Up
     String resourceAdminStatus = AdminstrativeStateType.Unlocked
+    String resourceDescription
     Collection<Property> resourceProperties = new ConcurrentLinkedQueue<>()
 
 }
 
-enum ResourceRoleType {
+enum DeviceRoleType {
     Router,
     Switch,
     Firewall,
@@ -192,7 +197,7 @@ enum ResourceRoleType {
 
 class Device {
     UUID deviceId = UUID.randomUUID()
-    ResourceRoleType roleType  //should really be list but we are using one of roles for order
+    DeviceRoleType roleType  //should really be list but we are using one of roles for order
     String deviceName
     String managedHostname
     String managementIpAddress
@@ -206,18 +211,20 @@ class Device {
 class Property {
     String groupName = "<default>"
     String name
+    def originalValue        //optional
+    Collection<Object> originalValueList  //optional
     def value
-    Collection<Object> valueList //= new ConcurrentLinkedQueue<>()
+    Collection<Object> valueList = new ConcurrentLinkedQueue<>()
     String valueClassType
     //set to true if must be there in originating request
-    Boolean required
+    Boolean required = false
 }
 
 /**
  * build an order
  */
 
-//associate the RFS to configure for the order line with the managed configuredDevice
+//associate the RFS to configure for the order line with the managed aEndDevice
 //query can same RFS span multiple devices on same order line?  - e.g for a cross connect?
 //actual xconnect details must be matched with similar to remote end however
 //so suspecting xconnect services requires two matched config on dev A and Dev B - hence two orderlines
@@ -236,7 +243,7 @@ CustomerFacingService cfs2 = new CustomerFacingService(cfsName:"XXX", productSer
 
 OrderGroup ordGroup = new OrderGroup(name:"group #1", projectName: "JANET project" )
 
-ConfigurationOrder wo1 = new ConfigurationOrder(
+Order wo1 = new Order(
         organisationName:  "JANET UK",
         owningCfs: ethcfs,
         serviceName: "2C03636667",
@@ -244,7 +251,7 @@ ConfigurationOrder wo1 = new ConfigurationOrder(
         orderStatus: "Issued"    //sent from cramer
 )
 
-ConfigurationOrder wo2 = new ConfigurationOrder(
+Order wo2 = new Order(
         organisationName:  "JANET UK",
         owningCfs: cfs2,
         serviceName: "mySecondEthernet",
@@ -259,7 +266,8 @@ oline1.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
         relatedCfs: [ethcfs],
-        configuredDevice:cisco903a)
+        aEndDevice:cisco903a,
+        zEndDevice: cisco903z)
 oline1.orderLineRfs.rfsProperties << new Property(name:"interface", value:"GigabitEthernet0/2/0", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(name:"description", value:"vf=EWL:cn=JANET:tl=2C03636667", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String.typeName)
@@ -273,6 +281,7 @@ oline1.orderLineRfs.rfsProperties << new Property(name:"l2cp_params", value:"for
 oline1.orderLineRfs.rfsProperties << new Property(name:"ingress_qos", value:"Ethernet-IngressQoS-Template1-Standard", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(name:"egress_qos", value:"Ethernet-Parent-EgressQoS-Template2", valueClassType: String.typeName)
 
+/* - now specified as a resource
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
@@ -281,7 +290,9 @@ oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:c
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+*/
 
+/* this one is specified as an attribute group */
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
@@ -291,6 +302,7 @@ oline1.orderLineRfs.rfsProperties << new Property(groupName: "egressQoS class:ST
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
+/* now specified as a resource
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
@@ -299,6 +311,41 @@ oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
 oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+*/
+
+//in phase 1 cortex wont be configuring the other end of an RFS (typcially a nokia NE or a CPE) - so thi can be treated
+//as optional for now
+Resource aEndResource = new Resource(resourceName: "GigabitEthernet0/3/1", type:ResourceType.PhysicalInterface,)
+
+//for a 903 order the zEnd of an RFS will typically refer to the AGN router - as we are most building services
+//the key resource here is the physical ingress interface on the AGN that need to be configured
+Resource zEndIf = new Resource(resourceName: "GigabitEthernet0/2/0", type:ResourceType.PhysicalInterface, resourceAdminStatus: AdminstrativeStateType.Unlocked, resourceOpStatus:OperationalStateType.Up )
+Resource zEndResource = new Resource(resourceName: "GigabitEthernet0/2/0", type:ResourceType.PhysicalInterface, resourceAdminStatus: AdminstrativeStateType.Unlocked, resourceOpStatus:OperationalStateType.Up )
+Resource zEndPolicy1 = new Resource(resourceName: "JANETUK429894-Ethernet-EgressQoS-template2", type:ResourceType.PolicyMap )
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"template", value:"Ethernet-EgressQoS-template2", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cbs", value:"", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"eir", value:"", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+zEndPolicy1.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+
+Resource zEndPolicy2 = new Resource(resourceName: "JANETUK429894-NTE-INGRESS", type:ResourceType.PolicyMap )
+zEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"template", value:"NTE-INGRESS", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"12500000", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"1000000000", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+zEndPolicy2.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+
+
+oline1.orderLineRfs.aEndResources = [aEndResource]
+oline1.orderLineRfs.zEndResources = [zEndIf, zEndPolicy1, zEndPolicy2]
 
 wo1.orderLines << oline1
 
@@ -308,7 +355,7 @@ oline2.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.
         rfsDescription: "vf=EWL:cn=JANET:tl=2C03636667",
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
-        configuredDevice:cisco903a)
+        aEndDevice:cisco903a)
 
 oline2.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
 
@@ -318,7 +365,7 @@ oline3.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.
         rfsDescription: "--- missing in example---",
         rfsOpStatus: OperationalStateType.Down,
         rfsAdminStatus: AdminstrativeStateType.Unlocked,
-        configuredDevice:cisco903a)
+        aEndDevice:cisco903a)
 
 oline3.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
 oline3.orderLineRfs.rfsProperties << new Property(name:"pw_id", value:"3007297536", valueClassType: String)
@@ -326,12 +373,12 @@ oline3.orderLineRfs.rfsProperties << new Property(name:"priority", value:0, valu
 oline3.orderLineRfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
 oline3.orderLineRfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
 
-//link asr 903 configuredDevice to RFS on the order line
-oline1.orderLineRfs.configuredDevice = cisco903a
-oline2.orderLineRfs.configuredDevice = cisco903a
-oline3.orderLineRfs.configuredDevice = cisco903a
+//link asr 903 aEndDevice to RFS on the order line
+oline1.orderLineRfs.aEndDevice = cisco903a
+oline2.orderLineRfs.aEndDevice = cisco903a
+oline3.orderLineRfs.aEndDevice = cisco903a
 
-ordGroup.configurationOrders = [wo1, wo2]
+ordGroup.orders = [wo1, wo2]
 
 
 //res  = jsonGenerator.toTmfJson([wo1, wo2]).encodePrettily()
