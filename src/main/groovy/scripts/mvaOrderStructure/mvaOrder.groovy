@@ -107,6 +107,7 @@ class OrderLine {
 enum ResourceFacingServiceType {
     PseudoWire,
     Vlan,
+    ManagementVlan,
     Vpn,
     VirtualConnection,
     ETHERNET_CROSS_CONNECT,
