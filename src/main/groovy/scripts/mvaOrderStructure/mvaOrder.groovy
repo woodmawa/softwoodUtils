@@ -50,7 +50,8 @@ class CustomerFacingService {
     String cfsName
     String cfsStatus //enum later when sorted state model
     UUID productId = UUID.randomUUID()
-    String productServiceName
+    String productType  // normally EWL, IPPVPN, DIA etc
+    String productServiceName  //name of the service
     LocalDate requireByDate = LocalDate.now()
     LocalDate contractedDeliveryDate = LocalDate.now()
     Site owningSite
@@ -190,8 +191,13 @@ class Resource {
 
 enum DeviceRoleType {
     Router,
+    AggregationRouter,
+    DistributionRouter,
+    CustomerPremiseRouter,
+    AccessEdgeRouter,
     Switch,
     Firewall,
+    ProviderEdge,
     Other
 }
 
@@ -228,9 +234,9 @@ class Property {
 //query can same RFS span multiple devices on same order line?  - e.g for a cross connect?
 //actual xconnect details must be matched with similar to remote end however
 //so suspecting xconnect services requires two matched config on dev A and Dev B - hence two orderlines
-Device cisco903a = new Device (deviceName: 'fred',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86')
+Device cisco903a = new Device (deviceName: 'fred',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86', roleType: DeviceRoleType.AggregationRouter)
 
-Device cisco903z = new Device (deviceName: 'fred',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86')
+Device cisco903z = new Device (deviceName: 'fred',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86', roleType: DeviceRoleType.AggregationRouter)
 
 Site custSite = new Site (siteName: "LSE campus (Janet)  ", city:"london", country:"UK", postalCode: "WC2A 2AE")
 Site remoteSite = new Site (siteName: "Imperial campus (Janet) ", city:"london", country:"UK", postalCode: "SW7 2BX")
@@ -359,6 +365,8 @@ oline2.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.
 
 oline2.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
 
+wo1.orderLines << oline2
+
 OrderLine oline3 = new OrderLine(jobRef: 704851143, orderLineNumber: 2, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
 oline3.orderLineRfs = new ResourceFacingService(type: ResourceFacingServiceType.PSEUDOWIRE_ENDPOINT,
         rfsName: "pw-ep#2",
@@ -373,10 +381,13 @@ oline3.orderLineRfs.rfsProperties << new Property(name:"priority", value:0, valu
 oline3.orderLineRfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
 oline3.orderLineRfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
 
+wo1.orderLines << oline3
+
 //link asr 903 aEndDevice to RFS on the order line
-oline1.orderLineRfs.aEndDevice = cisco903a
-oline2.orderLineRfs.aEndDevice = cisco903a
-oline3.orderLineRfs.aEndDevice = cisco903a
+oline1.orderLineRfs.zEndDevice = cisco903a
+oline2.orderLineRfs.zEndDevice = cisco903a
+oline3.orderLineRfs.zEndDevice = cisco903a
+
 
 ordGroup.orders = [wo1, wo2]
 
