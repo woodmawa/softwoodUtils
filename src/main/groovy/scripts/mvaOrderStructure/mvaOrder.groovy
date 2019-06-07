@@ -135,6 +135,8 @@ class ResourceFacingService {
 }
 
 enum AdminstrativeStateType {
+    Up,
+    Down,
     Locked,
     LockedEnabled,
     LockedDiasabled,
