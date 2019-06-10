@@ -240,7 +240,7 @@ class Device {
 //generic property type
 //it is possible to use simple map values - but cant pass before /required nor type info if you do this
 //this is the recommended construct as it allows type binding for code
-//parsing the json payload
+//parsing the json payload 
 //attributes are assumed to be groups - if not specific <default> group is assumed
 class Property {
     String groupName //= "<default>"
