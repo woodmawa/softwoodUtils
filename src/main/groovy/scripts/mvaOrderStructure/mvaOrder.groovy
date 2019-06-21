@@ -336,7 +336,7 @@ Order wo2 = new Order(
 OrderLine oline1 = new OrderLine(jobRef: 704851143, orderLineNumber: 1, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
 oline1.rfs = new ResourceFacingService(type: ServiceType.Vlan,
         serviceName: "ethernet-vlan-#1",
-        serviceDescription: "vf=EWL:cn=JANET:tl=2C03636667:ONEA53884160",
+        serviceDescription: "vf=EWL:cn=JANET:tl=2C03636667",
         rfsAdminStatus: AdminstrativeStateType.Down,
         relatedCfs: ethcfs.cfsName,
         aEndDevice: aend_nte,
@@ -394,6 +394,7 @@ customerVlanServiceInstance.resourceProperties << new Property (name:"l2protocol
 customerVlanServiceInstance.resourceProperties << new Property (name:"service-policy", valueList: ["input", "JANET427902-G0/2/0:12-Ethernet-IngressQoS-Template1-Standard" ], valueClassType: String.typeName)
 customerVlanServiceInstance.resourceProperties << new Property (name:"service-policy", valueList: ["output", "JANET427902-G0/2/0:12-Ethernet-EgressQoS-Template2" ], valueClassType: String.typeName)
 
+
 //new resources created on order janet ethernet  ingress policy
 Resource custZEndPolicy1 = new Resource(action: "create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-IngressQoS-Template1-Standard", type:ResourceType.Policy )
 custZEndPolicy1.deviceId = aend_agn.deviceId
@@ -407,9 +408,6 @@ custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
-//set referenced ingress policy Resource
-customerVlanServiceInstance.referencedResources << custZEndPolicy1.resourceId
-
 //janet ethernet egress service policy
 Resource custZEndPolicy2 = new Resource(action: "create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-EgressQoS-Template2", type:ResourceType.Policy )
 custZEndPolicy2.deviceId = aend_agn.deviceId
@@ -421,8 +419,6 @@ custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:
 custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cos", value:"1", valueClassType: String.typeName)
 custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"150000", valueClassType: String.typeName)
 
-//set referenced egress service policy
-customerVlanServiceInstance.referencedResources << custZEndPolicy1.resourceId << custZEndPolicy2.resourceId
 
 //parent egress
 Resource custEndPolicyParent3 = new Resource(action:"create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-Parent-EgressQoS-template2", type:ResourceType.Policy )
@@ -430,8 +426,13 @@ custEndPolicyParent3.deviceId = aend_agn.deviceId
 custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"template", value:"Ethernet-Parent-EgressQoS-template2", valueClassType: String.typeName)
 custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
 custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"shape", valueList:["average","1000000000"], valueClassType: String.typeName)
+custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"service-policy", value:"Ethernet-EgressQoS-Template2", valueClassType: String.typeName)
 custEndPolicyParent3.referencedResources = new ConcurrentLinkedQueue<>()
-custEndPolicyParent3.referencedResources << custZEndPolicy1
+custEndPolicyParent3.referencedResources << custZEndPolicy2.resourceId
+
+
+//set referenced ingress and egress  service policy
+customerVlanServiceInstance.referencedResources << custZEndPolicy1.resourceId << custEndPolicyParent3.resourceId
 
 //NTE ingress policy map
 Resource custManNteIngressPolicy = new Resource(action:"create", resourceName: "JANETUK429894-G0/2/0:10-NTE-INGRESS", type:ResourceType.Policy )
@@ -450,7 +451,7 @@ oline1.rfs.zEndDevice = aend_agn
 
 
 oline1.rfs.aEndDevice.impactedResources = [aNteEndResource]
-oline1.rfs.zEndDevice.impactedResources = [zEndAgnIfQoSPolicy, zEndPhysIf, custZEndPolicy1, custZEndPolicy2]
+oline1.rfs.zEndDevice.impactedResources = [zEndAgnIfQoSPolicy, zEndPhysIf, custZEndPolicy1, custZEndPolicy2, custEndPolicyParent3, customerVlanServiceInstance]
 //redacted: oline1.rfs.zEndDevice.impactedResources = [zEndPhysIf, zEndIfQoSPolicy, customerVlanServiceInstance, custZEndPolicy1, custZEndPolicy2, custEndPolicyParent3]
 //oline1.rfs.aEndDevice.impactedResources = [aNteEndResource]
 
