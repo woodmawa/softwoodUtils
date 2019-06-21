@@ -108,7 +108,7 @@ class OrderLine {
     String orderLineStatus
     List<Long> dependsOnOrderLines //optional - if a sequence dependency for task - put list there
     OrderLineActionType orderLineAction
-    ResourceFacingService orderLineRfs
+    ResourceFacingService rfs
     List<String> configSnippits = []        //can be passed back as result detail back to cramer
 }
 
@@ -126,7 +126,7 @@ enum ServiceType {
 
 //base service
 class Service {
-    UUID sid = UUID.randomUUID()
+    UUID sid //base type id leave unassigned if subclass defines an id
     ServiceType type
     String serviceName
     String serviceDescription
@@ -135,14 +135,15 @@ class Service {
 }
 
 class ResourceFacingService extends Service {
+    UUID rfsId = UUID.randomUUID()
     String rfsOpStatus
     String rfsAdminStatus
     //optional list of related CFS that rely on this rfs
     String relatedCfs //name of cfs this rfs is supporting
     //optional related/dependent on rfs for this rfs
     Collection<ResourceFacingService> relatedRfs = new ConcurrentLinkedQueue<>()
-    Collection<Resource> aEndResources =  new ConcurrentLinkedQueue<>()
-    Collection<Resource> zEndResources =  new ConcurrentLinkedQueue<>()
+    //now under device : Collection<Resource> aEndResources =  new ConcurrentLinkedQueue<>()
+    //Collection<Resource> zEndResources =  new ConcurrentLinkedQueue<>()
     Collection<Property> rfsProperties = new ConcurrentLinkedQueue<>()
     Device aEndDevice
     Device zEndDevice
@@ -197,12 +198,15 @@ enum ResourceType {
 
 class Resource {
     UUID resourceId = UUID.randomUUID()
+    UUID deviceId
+    UUID parentId
     String action
     ResourceType type
     String resourceName
     String resourceOpStatus
     String resourceAdminStatus
     String resourceDescription
+    Collection<Property> referencedResources
     Collection<Property> resourceProperties = new ConcurrentLinkedQueue<>()
 
 }
@@ -225,22 +229,33 @@ enum DeviceRoleType {
  Cramer is not expected to know the OperationalStatus, but cortex can pass
  this in the result if required
  */
-class Device {
+
+class Device implements Cloneable {
     UUID deviceId = UUID.randomUUID()
+    String deviceType  //should really be list but we are using one of roles for order
     DeviceRoleType roleType  //should really be list but we are using one of roles for order
     String deviceName
     String managedHostname
     String managementIpAddress
-    String deviceOpStatus = OperationalStateType.Up
+    String deviceOpStatus //= OperationalStateType.Up
     String deviceAdminStatus = AdminstrativeStateType.Unlocked
+    Collection<Resource> impactedResources =  new ConcurrentLinkedQueue<>()
     Collection<Property> properties = new ConcurrentLinkedQueue<>()
 
+    //used to avoid encoded once json encoding
+    Device clone () {
+        Device o = super.clone()
+        o.deviceId = deviceId
+        //start with new empty list
+        o.impactedResources = new ConcurrentLinkedQueue<>()
+        return o
+    }
 }
 
 //generic property type
 //it is possible to use simple map values - but cant pass before /required nor type info if you do this
 //this is the recommended construct as it allows type binding for code
-//parsing the json payload 
+//parsing the json payload
 //attributes are assumed to be groups - if not specific <default> group is assumed
 class Property {
     String groupName //= "<default>"
@@ -269,11 +284,14 @@ class Property {
  * build two distinct AGN cisco asr 903s in the ring
  * sample EWL will connect across the two agn using pseudowire rfs
  */
-Device aend_agn = new Device (deviceName: 'agn1',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86', roleType: DeviceRoleType.AggregationRouter)
-Device aend_nte = new Device (deviceName: 'nte1',  managedHostname: 'worthing1-nte-a1', managementIpAddress : '176.24.5.34', roleType: DeviceRoleType.AccessEdgeRouter)
+Device aend_nte = new Device (deviceName: 'nte1',  managedHostname: 'worthing1-nte-a1', managementIpAddress : '176.24.5.34', roleType: DeviceRoleType.AccessEdgeRouter, deviceType : "Nokia 7720")
+Device aend_agn = new Device (deviceName: 'agn1',  managedHostname: 'wesbn1-agn-a1', managementIpAddress : '194.159.100.86', roleType: DeviceRoleType.AggregationRouter, deviceType : "Cisco ASR 903")
 
 
-Device zend_agn = new Device (deviceName: 'agn2',  managedHostname: 'wesbn3-agn-b3', managementIpAddress : '194.159.100.88', roleType: DeviceRoleType.AggregationRouter)
+/*
+ * for Zend access project just define the z end Agn as target for the pseudowire
+ */
+Device zend_agn = new Device (deviceName: 'agn2',  managedHostname: 'wesbn3-agn-b3', managementIpAddress : '194.159.100.88', roleType: DeviceRoleType.AggregationRouter, deviceType : "Cisco ASR 903")
 
 //declare two customer sites - two campuses on Janet network
 Site custSite = new Site (siteName: "LSE campus (Janet)  ", city:"london", country:"UK", postalCode: "WC2A 2AE")
@@ -316,132 +334,140 @@ Order wo2 = new Order(
 )
 
 OrderLine oline1 = new OrderLine(jobRef: 704851143, orderLineNumber: 1, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline1.orderLineRfs = new ResourceFacingService(type: ServiceType.Vlan,
-        serviceName: "eth-vlan-#1",
-        serviceDescription: "vf=EWL:cn=JANET:tl=2C03636667",
-        rfsOpStatus: OperationalStateType.Down,
-        rfsAdminStatus: AdminstrativeStateType.Unlocked,
+oline1.rfs = new ResourceFacingService(type: ServiceType.Vlan,
+        serviceName: "ethernet-vlan-#1",
+        serviceDescription: "vf=EWL:cn=JANET:tl=2C03636667:ONEA53884160",
+        rfsAdminStatus: AdminstrativeStateType.Down,
         relatedCfs: ethcfs.cfsName,
-        aEndDevice:aend_nte,
-        zEndDevice: zend_agn)
-oline1.orderLineRfs.rfsProperties << new Property(name:"interface", value:"GigabitEthernet0/2/0", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"description", value:"vf=EWL:cn=JANET:tl=2C03636667", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"matched_vlans", value:12, valueClassType: Integer.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"matched_type", value:"dot1q", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"operational_state", value:"down", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"rewrite", value:"pop 1", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"iosxe_efp_type", value:"serviceinstance", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"iosxe_efp_instance_id", value:1213, valueClassType: Integer.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"l2cp_params", value:"forward", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"ingress_qos", value:"Ethernet-IngressQoS-Template1-Standard", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(name:"egress_qos", value:"Ethernet-Parent-EgressQoS-Template2", valueClassType: String.typeName)
+        aEndDevice: aend_nte,
+        zEndDevice: aend_agn)
+oline1.rfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(name:"matched_vlans", value:12, valueClassType: Integer.typeName)
+oline1.rfs.rfsProperties << new Property(name:"matched_type", value:"dot1q", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(name:"operational_state", value:"down", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(name:"iosxe_efp_type", value:"serviceinstance", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(name:"iosxe_efp_instance_id", value:1213, valueClassType: Integer.typeName)
+oline1.rfs.rfsProperties << new Property(name:"l2cp_params", value:"forward", valueClassType: String.typeName)
 
-/* - now specified as a resource
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"cbs", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"eir", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
-*/
 
-/* this one is specified as an attribute group */
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cbs", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"eir", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egressQoS class:STANDARD-QG", name:"ebs", value:"", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
-
-/* now specified as a resource
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"12500000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"1000000000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-oline1.orderLineRfs.rfsProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+/* this one is specified as an attribute group
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cbs", value:"", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"eir", value:"", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egressQoS class:STANDARD-QG", name:"ebs", value:"", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
+oline1.rfs.rfsProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 */
 
 //in phase 1 cortex wont be configuring the other end of an RFS (typcially a nokia NE or a CPE) - so thi can be treated
 //as optional for now
-Resource aNteEndResource = new Resource(resourceName: "GigabitEthernet0/3/1", type:ResourceType.PhysicalInterface,)
+Resource aNteEndResource = new Resource(resourceName: "GigabitEthernet0/3/1", type:ResourceType.PhysicalInterface)
+aNteEndResource.deviceId = aend_nte.deviceId
+
+//define general  interface policy map for interface
+Resource zEndAgnIfQoSPolicy = new Resource( action:"referenced", resourceName: "G0/2/0-InterfaceQosSPolicy-Template", type:ResourceType.Policy )
+zEndAgnIfQoSPolicy.deviceId = aend_agn.deviceId
+zEndAgnIfQoSPolicy.resourceProperties << new Property (groupName: "QoS class:class-default", name:"class", value:"class-default", valueClassType: String.typeName)
+zEndAgnIfQoSPolicy.resourceProperties << new Property (groupName: "QoS class:class-default", name:"shape", valueList: ["average", "1000000000"], valueClassType: String.typeName)
+
 
 //for a 903 order the zEnd of an RFS will typically refer to the AGN router - as we are most building services
 //the key resource here is the physical ingress interface on the AGN that need to be configured
 //pre-existing resources
-Resource zEndPhysIf = new Resource(action: "update", resourceName: "GigabitEthernet0/2/0", type:ResourceType.PhysicalInterface, resourceAdminStatus: AdminstrativeStateType.Unlocked, resourceOpStatus:OperationalStateType.Up )
-Resource zEndResource = new Resource(resourceName: "GigabitEthernet0/2/0", type:ResourceType.PhysicalInterface, resourceAdminStatus: AdminstrativeStateType.Unlocked, resourceOpStatus:OperationalStateType.Up )
-Resource zEndIfQoSPolicy = new Resource( action:"referenced", resourceName: "G0/2/0-InterfaceQosSPolicy-Template", type:ResourceType.Policy )
-zEndIfQoSPolicy.resourceProperties << new Property (name:"class", value:"class-default", valueClassType: String.typeName)
-zEndIfQoSPolicy.resourceProperties << new Property (name:"shape", valueList: ["average", "1000000000"], valueClassType: String.typeName)
+Resource zEndPhysIf = new Resource(action: "update", resourceName: "GigabitEthernet0/2/0", type:ResourceType.PhysicalInterface, resourceAdminStatus: AdminstrativeStateType.Unlocked )
+zEndPhysIf.deviceId = aend_agn.deviceId
+zEndPhysIf.referencedResources = new ConcurrentLinkedQueue<>()
+zEndPhysIf.referencedResources << zEndAgnIfQoSPolicy.resourceId
 
-//new resources created on order
+
+Resource customerVlanServiceInstance = new Resource(resourceName: "1213 ethernet", type:ResourceType.LogicalSubInterface, resourceAdminStatus: AdminstrativeStateType.Down, action: "create")
+customerVlanServiceInstance.resourceDescription = "vf:EWL;cn:JANET:t1=2C03636667"
+customerVlanServiceInstance.parentId =  zEndPhysIf.resourceId
+customerVlanServiceInstance.deviceId=  aend_agn.deviceId
+customerVlanServiceInstance.referencedResources = new ConcurrentLinkedQueue<>()
+
+customerVlanServiceInstance.resourceProperties << new Property (name:"class", value:"class-default", valueClassType: String.typeName)
+customerVlanServiceInstance.resourceProperties << new Property (name:"rewrite", valueList: ["ingress", "tag", "pop 1", "symmetric" ], valueClassType: String.typeName)
+customerVlanServiceInstance.resourceProperties << new Property (name:"l2protocol", value: "forward", valueClassType: String.typeName)
+customerVlanServiceInstance.resourceProperties << new Property (name:"service-policy", valueList: ["input", "JANET427902-G0/2/0:12-Ethernet-IngressQoS-Template1-Standard" ], valueClassType: String.typeName)
+customerVlanServiceInstance.resourceProperties << new Property (name:"service-policy", valueList: ["output", "JANET427902-G0/2/0:12-Ethernet-EgressQoS-Template2" ], valueClassType: String.typeName)
+
+//new resources created on order janet ethernet  ingress policy
 Resource custZEndPolicy1 = new Resource(action: "create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-IngressQoS-Template1-Standard", type:ResourceType.Policy )
-custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"template", value:"Ethernet-EgressQoS-template2", valueClassType: String.typeName)
-custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"egress", valueClassType: String.typeName)
+custZEndPolicy1.deviceId = aend_agn.deviceId
+custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"template", value:"Ethernet-IngressQoS-Template1-Standard", valueClassType: String.typeName)
+custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"", valueClassType: String.typeName)
-custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"", valueClassType: String.typeName)
-custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"", valueClassType: String.typeName)
+custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"bc", value:"12500000", valueClassType: String.typeName)
+custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"pir", value:"1000000000", valueClassType: String.typeName)
+custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"be", value:"12500000", valueClassType: String.typeName)
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
 custZEndPolicy1.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
 
-Resource custZEndPolicy2 = new Resource(action: "create", resourceName: "JANETUK429894-Ethernet-EgressQoS-template2", type:ResourceType.Policy )
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"template", value:"Ethernet-EgressQoS-template2", valueClassType: String.typeName)
+//set referenced ingress policy Resource
+customerVlanServiceInstance.referencedResources << custZEndPolicy1.resourceId
+
+//janet ethernet egress service policy
+Resource custZEndPolicy2 = new Resource(action: "create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-EgressQoS-Template2", type:ResourceType.Policy )
+custZEndPolicy2.deviceId = aend_agn.deviceId
+custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"template", value:"Ethernet-EgressQoS-Template2", valueClassType: String.typeName)
 custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"direction", value:"egress", valueClassType: String.typeName)
 custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cir", value:"1000000000", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"cbs", value:"", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"eir", value:"", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"ebs", value:"", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
+custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"bandwidth", value:"1000000", valueClassType: String.typeName)
+custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:STANDARD-QG", name:"queue-limit", value:"2000000", valueClassType: String.typeName)
+custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cos", value:"1", valueClassType: String.typeName)
+custZEndPolicy2.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"cir", value:"150000", valueClassType: String.typeName)
 
+//set referenced egress service policy
+customerVlanServiceInstance.referencedResources << custZEndPolicy1.resourceId << custZEndPolicy2.resourceId
+
+//parent egress
 Resource custEndPolicyParent3 = new Resource(action:"create", resourceName: "JANETUK429894-G0/2/0:12-Ethernet-Parent-EgressQoS-template2", type:ResourceType.Policy )
+custEndPolicyParent3.deviceId = aend_agn.deviceId
 custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"template", value:"Ethernet-Parent-EgressQoS-template2", valueClassType: String.typeName)
 custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+custEndPolicyParent3.resourceProperties << new Property(groupName: "egress QoS class:class-default", name:"shape", valueList:["average","1000000000"], valueClassType: String.typeName)
+custEndPolicyParent3.referencedResources = new ConcurrentLinkedQueue<>()
+custEndPolicyParent3.referencedResources << custZEndPolicy1
 
-Resource custEndPolicy4 = new Resource(action:"create", resourceName: "JANETUK429894-NTE-INGRESS", type:ResourceType.Policy )
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"template", value:"NTE-INGRESS", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"1000000000", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cbs", value:"12500000", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"eir", value:"1000000000", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"ebs", value:"12500000", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"colour_mode", value:"colour-blind", valueClassType: String.typeName)
-custEndPolicy4.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"coupling_flag", value:false, valueClassType: Boolean.typeName)
-
-Resource custNteMgtQoSPolicy = new Resource( action:"create", resourceName: "JANETUK429894-G0/2/0:10-NTE-INGRESS", type:ResourceType.Policy )
-custNteMgtQoSPolicy.resourceProperties << new Property (name:"class", value:"class-default", valueClassType: String.typeName)
-custNteMgtQoSPolicy.resourceProperties << new Property (name:"set", valueList: ["qos-group", "6"], valueClassType: String.typeName)
-custNteMgtQoSPolicy.resourceProperties << new Property (name:"set", valueList: ["mpls", "experimental", "imposition", "6"], valueClassType: String.typeName)
+//NTE ingress policy map
+Resource custManNteIngressPolicy = new Resource(action:"create", resourceName: "JANETUK429894-G0/2/0:10-NTE-INGRESS", type:ResourceType.Policy )
+custManNteIngressPolicy.deviceId = aend_agn.deviceId
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"template", value:"NTE-INGRESS", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"direction", value:"ingress", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"classification_setting_type", value:"qos", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"cir", value:"400000", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"bc", value:"12500", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"qos-group", value:"6", valueClassType: String.typeName)
+custManNteIngressPolicy.resourceProperties << new Property(groupName: "ingress QoS class:class-default", name:"mpls", valueList:["experimental", "imposition", "6"], valueClassType: String.typeName)
 
 
-oline1.orderLineRfs.aEndResources = [aNteEndResource]
-oline1.orderLineRfs.zEndResources = [zEndIfQoSPolicy, zEndPhysIf, custZEndPolicy1, custEndPolicy4]
+//link asr 903 aEndDevice to RFS on the order line
+oline1.rfs.zEndDevice = aend_agn
+
+
+oline1.rfs.aEndDevice.impactedResources = [aNteEndResource]
+oline1.rfs.zEndDevice.impactedResources = [zEndAgnIfQoSPolicy, zEndPhysIf, custZEndPolicy1, custZEndPolicy2]
+//redacted: oline1.rfs.zEndDevice.impactedResources = [zEndPhysIf, zEndIfQoSPolicy, customerVlanServiceInstance, custZEndPolicy1, custZEndPolicy2, custEndPolicyParent3]
+//oline1.rfs.aEndDevice.impactedResources = [aNteEndResource]
 
 wo1.orderLines << oline1
 
 OrderLine oline2 = new OrderLine(jobRef: 704851143, orderLineNumber: 2, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline2.orderLineRfs = new ResourceFacingService(type: ServiceType.ManagementVlan,
+oline2.rfs = new ResourceFacingService(type: ServiceType.ManagementVlan,
         serviceName: "eth-nte-mgt-vlan#1",
         serviceDescription: "vf=EWL:cn=JANET:tl=2C03636667",
-        rfsOpStatus: OperationalStateType.Down,
-        rfsAdminStatus: AdminstrativeStateType.Unlocked,
-        aEndDevice:aend_agn)
+        rfsAdminStatus: AdminstrativeStateType.Down,
+        aEndDevice:aend_agn,
+        zEndDevice:zend_agn)
 
-oline2.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
+oline2.rfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
 
 Resource bdiInterfaceResource = new Resource( action:"create", resourceName: "BDI1002", type:ResourceType.BridgeDomain)
+bdiInterfaceResource.deviceId = aend_agn.deviceId
 bdiInterfaceResource.resourceProperties << new Property (name:"description", value: "JANET_BOYDORR_GLW_A112H", valueClassType: String.typeName )
 bdiInterfaceResource.resourceProperties << new Property (name:"routing_instance", value: "NTE_MGT", valueClassType: String.typeName )
 bdiInterfaceResource.resourceProperties << new Property (name:"ip", value: "10.236.118.253", valueClassType: String.typeName )
@@ -453,12 +479,28 @@ bdiInterfaceResource.resourceProperties << new Property (name:"ip_proxy_arp", va
 bdiInterfaceResource.resourceProperties << new Property (name:"ntp", value: "disable", valueClassType: String.typeName )
 
 
-oline2.orderLineRfs.zEndResources = [zEndPhysIf, custNteMgtQoSPolicy, bdiInterfaceResource ]
+Resource mgtVlanServiceInstance = new Resource(resourceName: "1002 ethernet", type:ResourceType.LogicalSubInterface, resourceAdminStatus: AdminstrativeStateType.Down, action: "create")
+mgtVlanServiceInstance.resourceDescription = "vf=4445;cn:JANET:t1=EAGE0363028:olo=ONEA53884160"
+mgtVlanServiceInstance.parentId =  zEndPhysIf.resourceId
+mgtVlanServiceInstance.deviceId=  aend_agn.deviceId
+mgtVlanServiceInstance.referencedResources = new ConcurrentLinkedQueue<>()
+mgtVlanServiceInstance.resourceProperties << new Property(name:"encapsulation", value: "dot1q 10", valueClassType: String.typeName)
+mgtVlanServiceInstance.resourceProperties << new Property(name:"rewrite", valueList: ["ingress", "tag", "pop", "1", "symmetric"], valueClassType: String.typeName)
+mgtVlanServiceInstance.resourceProperties << new Property (name:"service-policy", valueList: ["input", "JANET427902-G0/2/0:10-NTE-INGRESS" ], valueClassType: String.typeName)
+mgtVlanServiceInstance.resourceProperties << new Property (name:"bridge-domain", value: "1002", valueClassType: String.typeName)
+mgtVlanServiceInstance.referencedResources = new ConcurrentLinkedQueue<>()
+mgtVlanServiceInstance.referencedResources << custManNteIngressPolicy.resourceId
+mgtVlanServiceInstance.referencedResources << bdiInterfaceResource.resourceId
+
+//clone to steop encoded once logic firing
+oline2.rfs.zEndDevice = zend_agn.clone()
+
+oline2.rfs.zEndDevice.impactedResources = [zEndPhysIf, bdiInterfaceResource, custManNteIngressPolicy]
 
 wo1.orderLines << oline2
 
 OrderLine oline3 = new OrderLine(jobRef: 704851143, orderLineNumber: 2, orderLineStatus: "initial", orderLineAction: OrderLineActionType.Create)
-oline3.orderLineRfs = new ResourceFacingService(type: ServiceType.PseudoWire,
+oline3.rfs = new ResourceFacingService(type: ServiceType.PseudoWire,
         serviceName: "3007297536",
         serviceDescription: "inter-agn interconnect",
         rfsOpStatus: OperationalStateType.Down,
@@ -466,21 +508,19 @@ oline3.orderLineRfs = new ResourceFacingService(type: ServiceType.PseudoWire,
         aEndDevice: aend_agn,
         zEndDevice: zend_agn)
 
-oline3.orderLineRfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
-oline3.orderLineRfs.rfsProperties << new Property(name:"pw_id", value:"3007297536", valueClassType: String)
-oline3.orderLineRfs.rfsProperties << new Property(name:"priority", value:0, valueClassType: Integer)
-oline3.orderLineRfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
-oline3.orderLineRfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
+oline3.rfs.rfsProperties << new Property(name:"owning_device", value:"194.159.100.86", valueClassType: String)
+oline3.rfs.rfsProperties << new Property(name:"pw_id", value:"3007297536", valueClassType: String)
+oline3.rfs.rfsProperties << new Property(name:"priority", value:0, valueClassType: Integer)
+oline3.rfs.rfsProperties << new Property(name:"remote_peer", value:"194.159.102.88", valueClassType: String)
+oline3.rfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClassType: String)
 
 wo1.orderLines << oline3
 
-oline3.orderLineRfs.zEndResources  << zEndPhysIf << vfNteMgtVpn
+oline3.rfs.aEndDevice  = aend_agn.clone()
+oline3.rfs.aEndDevice  = zend_agn.clone()
 
+oline3.rfs.aEndDevice.impactedResources = [customerVlanServiceInstance]
 
-//link asr 903 aEndDevice to RFS on the order line
-oline1.orderLineRfs.zEndDevice = aend_agn
-oline2.orderLineRfs.zEndDevice = aend_agn
-oline3.orderLineRfs.zEndDevice = aend_agn
 
 
 ordGroup.orders = [wo1, wo2]
