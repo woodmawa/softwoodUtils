@@ -1452,7 +1452,7 @@ class JsonUtils {
             }
 
 
-            //Map props = pogo.properties
+            //Map props = pogo.deviceProperties
             Map props = getDeclaredFields (pogo)
             def iterableFields = props.findAll { def clazz = it?.value?.getClass()
                 if (clazz)

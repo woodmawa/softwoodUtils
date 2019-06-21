@@ -196,7 +196,7 @@ enum ResourceType {
 
 }
 
-class Resource {
+class Resource implements Cloneable {
     UUID resourceId = UUID.randomUUID()
     UUID deviceId
     UUID parentId
@@ -209,6 +209,13 @@ class Resource {
     Collection<Property> referencedResources
     Collection<Property> resourceProperties = new ConcurrentLinkedQueue<>()
 
+    Resource clone() {
+        Resource r = super.clone()
+        r.resourceId = resourceId
+        r.resourceProperties = resourceProperties
+        r.referencedResources = null
+        r
+    }
 }
 
 enum DeviceRoleType {
@@ -240,15 +247,16 @@ class Device implements Cloneable {
     String deviceOpStatus //= OperationalStateType.Up
     String deviceAdminStatus = AdminstrativeStateType.Unlocked
     Collection<Resource> impactedResources =  new ConcurrentLinkedQueue<>()
-    Collection<Property> properties = new ConcurrentLinkedQueue<>()
+    Collection<Property> deviceProperties = new ConcurrentLinkedQueue<>()
 
     //used to avoid encoded once json encoding
     Device clone () {
-        Device o = super.clone()
-        o.deviceId = deviceId
+        Device d = super.clone()
+        d.deviceId = deviceId
         //start with new empty list
-        o.impactedResources = new ConcurrentLinkedQueue<>()
-        return o
+        d.impactedResources = new ConcurrentLinkedQueue<>()
+        d.deviceProperties = deviceProperties
+        return d
     }
 }
 
@@ -496,7 +504,7 @@ mgtVlanServiceInstance.referencedResources << bdiInterfaceResource.resourceId
 //clone to steop encoded once logic firing
 oline2.rfs.zEndDevice = zend_agn.clone()
 
-oline2.rfs.zEndDevice.impactedResources = [zEndPhysIf, bdiInterfaceResource, custManNteIngressPolicy]
+oline2.rfs.zEndDevice.impactedResources = [zEndPhysIf.clone(), bdiInterfaceResource, custManNteIngressPolicy, mgtVlanServiceInstance]
 
 wo1.orderLines << oline2
 
@@ -518,9 +526,12 @@ oline3.rfs.rfsProperties << new Property(name:"pw_mtu", value:"2000", valueClass
 wo1.orderLines << oline3
 
 oline3.rfs.aEndDevice  = aend_agn.clone()
-oline3.rfs.aEndDevice  = zend_agn.clone()
+oline3.rfs.zEndDevice  = zend_agn.clone()
 
-oline3.rfs.aEndDevice.impactedResources = [customerVlanServiceInstance]
+Resource cethVlanSI = customerVlanServiceInstance.clone()
+cethVlanSI.resourceProperties = new ConcurrentLinkedQueue<>()
+cethVlanSI.resourceProperties << new Property(name:"xconnect", valueList:["194.159.100.88", "3007297536", "encapsulation", "mpls" ], valueClassType: String)
+oline3.rfs.aEndDevice.impactedResources = [cethVlanSI]
 
 
 
