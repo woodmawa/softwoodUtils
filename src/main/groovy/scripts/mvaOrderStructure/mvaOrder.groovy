@@ -34,7 +34,7 @@ enum BssOrderType {
 }
 
 //basic site for order structure
-class Site {
+class Site implements Cloneable {
     UUID siteId = UUID.randomUUID()
     String siteName
     String addressLine1
@@ -43,6 +43,12 @@ class Site {
     String country
     String postalCode
     String geoLocationCode
+
+    Site clone() {
+        Site s = super.clone()
+        s.siteId = siteId
+        s
+    }
 }
 
 class CustomerFacingService {
@@ -317,7 +323,7 @@ CustomerFacingService ethcfs = new CustomerFacingService(cfsName:"2C03636667", p
 owningSite: custSite, remoteSite: remoteSite)
 
 CustomerFacingService ipvpncfs = new CustomerFacingService(cfsName:"3CXXX", productServiceName: "IPVPN", cfsStatus: "new provide",
-        owningSite: custSite)
+        owningSite: custSite.clone())
 
 /**
  * order group feature is optional.  You can send a single atomic order to cortex
