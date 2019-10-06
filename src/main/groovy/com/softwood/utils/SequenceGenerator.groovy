@@ -4,6 +4,7 @@ import java.net.NetworkInterface
 import java.security.SecureRandom
 import java.time.Instant
 import java.util.Enumeration
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Distributed Sequence Generator.
@@ -18,7 +19,9 @@ public class SequenceGenerator {
     private static final int NODE_ID_BITS = 10
     private static final int SEQUENCE_BITS = 12
 
+    //1023 - 10 bits long
     private static final int maxNodeId = (int)(Math.pow(2, NODE_ID_BITS) - 1)
+    //4095 - 12 bits long
     private static final int maxSequence = (int)(Math.pow(2, SEQUENCE_BITS) - 1)
 
     // Custom Epoch (January 1, 2015 Midnight UTC = 2015-01-01T00:00:00Z)
@@ -26,10 +29,14 @@ public class SequenceGenerator {
 
     private final int nodeId
 
+    //volatile gaurantees that reads and writes on multiple threads see the same number
     private volatile long lastTimestamp = -1L
     private volatile long sequence = 0L
 
-    // Create SequenceGenerator with a nodeId
+    //slightly better encapsulation than volatile
+    private AtomicLong aSequence = new AtomicLong (0L)
+
+    // Create SequenceGenerator with a explicit required nodeId
     public SequenceGenerator(int nodeId) {
         if(nodeId < 0 || nodeId > maxNodeId) {
             throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
@@ -37,7 +44,7 @@ public class SequenceGenerator {
         this.nodeId = nodeId
     }
 
-    // Let SequenceGenerator generate a nodeId
+    // Let SequenceGenerator generate a nodeId, using the hash of the mac addresses on network interfaces
     public SequenceGenerator() {
         this.nodeId = createNodeId()
     }
@@ -51,21 +58,33 @@ public class SequenceGenerator {
         }
 
         if (currentTimestamp == lastTimestamp) {
+            //get masked off next atomic sequence number
+            //sequence = aSequence.incrementAndGet() & maxSequence
             sequence = (sequence + 1) & maxSequence;
+            //if masked value has cycled
             if(sequence == 0) {
                 // Sequence Exhausted, wait till next millisecond.
                 currentTimestamp = waitNextMillis(currentTimestamp)
             }
         } else {
             // reset sequence to start with zero for the next millisecond
+            //aSequence.set(0L)
             sequence = 0
         }
 
         lastTimestamp = currentTimestamp;
 
-        long id = currentTimestamp << (TOTAL_BITS - EPOCH_BITS)
-        id |= (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
-        id |= sequence
+        //take the timestamp and bit shift it 64-48 = 16 bits
+        long id = 0
+        long tid = currentTimestamp << (TOTAL_BITS - EPOCH_BITS)
+        //OR in the nodeId bit shited 6 digits
+        long nid = (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
+        //id |= (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
+        //mask off NODE_ID_BITS from sequence and OR it onto end of id
+        long lid = (sequence & maxNodeId)
+        id |= (tid | nid | lid)
+
+        //id made of [timestamp|node|sequence] as a long
         return id
     }
 
@@ -101,6 +120,8 @@ public class SequenceGenerator {
         } catch (Exception ex) {
             nodeId = (new SecureRandom().nextInt())
         }
+
+        //mask down to 10 bits long
         nodeId = nodeId & maxNodeId
         return nodeId
     }
