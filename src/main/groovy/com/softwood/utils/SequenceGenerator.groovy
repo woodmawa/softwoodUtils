@@ -3,6 +3,8 @@ package com.softwood.utils
 import java.net.NetworkInterface
 import java.security.SecureRandom
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.util.Enumeration
 import java.util.concurrent.atomic.AtomicLong
 
@@ -47,6 +49,17 @@ public class SequenceGenerator {
     // Let SequenceGenerator generate a nodeId, using the hash of the mac addresses on network interfaces
     public SequenceGenerator() {
         this.nodeId = createNodeId()
+    }
+
+
+    public String getDateForSequence (long seq) {
+        long mask = (long) (2**63 - 1) << (TOTAL_BITS - EPOCH_BITS)
+        long timeSegment = seq & mask
+
+        //get back time since standard epoc
+        timeSegment += CUSTOM_EPOCH
+
+        LocalDateTime.ofEpochSecond(timeSegment, 0, ZoneOffset.UTC).toString()
     }
 
 

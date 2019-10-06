@@ -12,3 +12,5 @@ long num5 = seq.nextId()
 long num6 = seq.nextId()
 
 println "seq : [$num1, $num2, $num3, $num4, $num5, $num6]"
+
+println seq.getDateForSequence(num1)
