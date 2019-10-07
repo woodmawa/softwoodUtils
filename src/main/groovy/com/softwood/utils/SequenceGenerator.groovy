@@ -13,8 +13,16 @@ import java.util.concurrent.atomic.AtomicLong
  * Distributed Sequence Generator.
  * Inspired by Twitter snowflake: https://github.com/twitter/snowflake/tree/snowflake-2010
  *
+ * based on masking together time, node, and sequence number to generate a monotonically increasing value across
+ * a distributed collection of nodes forming a single application
+ *
  * This is a Singleton pattern using builder to generate a singleton instance.
  * Make sure that you create and reuse a Single instance of SequenceGenerator per node in your distributed system cluster.
+ *
+ * @author Will Woodman
+ * @since 2019-10-07
+ * @version 1.0
+ *
  */
 public class SequenceGenerator {
     private static final int TOTAL_BITS = 64
