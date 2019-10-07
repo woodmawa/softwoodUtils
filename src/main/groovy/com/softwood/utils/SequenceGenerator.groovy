@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong
  * Distributed Sequence Generator.
  * Inspired by Twitter snowflake: https://github.com/twitter/snowflake/tree/snowflake-2010
  *
- * This class should be used as a Singleton.
+ * This is a Singleton pattern using builder to generate a singleton instance.
  * Make sure that you create and reuse a Single instance of SequenceGenerator per node in your distributed system cluster.
  */
 public class SequenceGenerator {
@@ -95,13 +95,13 @@ public class SequenceGenerator {
 
         //LocalDateTime.ofEpochSecond(shiftedBackSegment, 0, ZoneOffset.UTC).toString()
         LocalDateTime dt = new Timestamp (epochMillis).toLocalDateTime()
+
     }
 
     /**
      * nextId()
-     * a synchronised method that calculates a sequence that is time sortable, and is comprised of
-     *
-     * time in milliseconds top 64 to 22 bits, followed by 10 bits for the node, and 12 bits for the sequence number
+     * a synchronised method that calculates a monotonically increasing sequence that is time sortable, and is comprised of
+     * time in milliseconds from 64 to 22 bits, followed by 10 bits for the node, and 12 bits for the sequence number
      * within a given millisecond of accuracy from the system clock
      *
      * @return
