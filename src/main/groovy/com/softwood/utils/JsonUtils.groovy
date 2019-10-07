@@ -454,7 +454,7 @@ class JsonUtils {
                 }
 
             }
-            else (clazz == json.getClass()) {
+            else if (clazz == json.getClass()) {
                 instance = json
             }
          } else if (json instanceof JsonArray) {
