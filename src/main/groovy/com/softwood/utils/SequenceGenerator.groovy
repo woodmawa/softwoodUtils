@@ -34,17 +34,14 @@ public class SequenceGenerator {
 
     private final int nodeId
 
-    //volatile gaurantees that reads and writes on multiple threads see the same number
+    //volatile guarantees that reads and writes on multiple threads see the same number
     private volatile long lastTimestamp = -1L
     private volatile long sequence = 0L
 
-    //slightly better encapsulation than volatile
-    private AtomicLong aSequence = new AtomicLong (0L)
-
     //factory instance
-    private SequenceGenerator instance
+    private volatile static SequenceGenerator instance
 
-    //builder option - returns the class
+    //builder option - returns the class, so that build can be called at the end of the method chain
     public static setNode (int id) {
         if(id < 0 || id > maxNodeId) {
             throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
@@ -53,12 +50,20 @@ public class SequenceGenerator {
         SequenceGenerator
     }
 
-    public static SequenceGenerator build () {
+    /**
+     * build()
+     * returns a one time factory instance.  Will return the same instance on all calls from any thread
+     * @return
+     */
+    public static synchronized SequenceGenerator build () {
 
-        if (!node)
-            new SequenceGenerator()
-        else
-            new SequenceGenerator (node)
+        if (!instance) {
+            if (!node)
+                instance = new SequenceGenerator()
+            else
+                instance = SequenceGenerator(node)
+        } else
+            instance
     }
 
     // private factory constructor, Create SequenceGenerator with a explicit required nodeId
@@ -69,7 +74,7 @@ public class SequenceGenerator {
         this.nodeId = nodeId
     }
 
-    // Let factory SequenceGenerator generate a nodeId, using the hash of the mac addresses on network interfaces
+    // Let factory SequenceGenerator generate a nodeId, bu default using the hash of the mac addresses on network interfaces
     private SequenceGenerator() {
         this.nodeId = createNodeId()
     }
@@ -92,6 +97,15 @@ public class SequenceGenerator {
         LocalDateTime dt = new Timestamp (epochMillis).toLocalDateTime()
     }
 
+    /**
+     * nextId()
+     * a synchronised method that calculates a sequence that is time sortable, and is comprised of
+     *
+     * time in milliseconds top 64 to 22 bits, followed by 10 bits for the node, and 12 bits for the sequence number
+     * within a given millisecond of accuracy from the system clock
+     *
+     * @return
+     */
     public synchronized long nextId() {
         long currentTimestamp = timestamp()
 
@@ -117,17 +131,19 @@ public class SequenceGenerator {
         lastTimestamp = currentTimestamp;
 
         //take the timestamp and bit shift it 64-42 = 22 bits
-        long id = 0
+        AtomicLong  seq = new AtomicLong (0)
         long tid = currentTimestamp << (TOTAL_BITS - EPOCH_BITS)
-        //OR in the nodeId bit shited 6 digits
-        long nid = (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
-        //id |= (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
-        //mask off NODE_ID_BITS from sequence and OR it onto end of id
-        long lid = (sequence & maxNodeId)
-        id |= (tid | nid | lid)
 
-        //id made of [timestamp|node|sequence] as a long
-        return id
+        //OR in the nodeId bit shifted 10 digits
+        long nid = (nodeId << (TOTAL_BITS - EPOCH_BITS - NODE_ID_BITS))
+
+        //mask off SEQUENCE_ID_BITS from sequence, 12 digits and OR it onto end of id
+        long lid = (sequence & maxSequence)
+        //ensure atomic update
+        seq.set (tid | nid | lid)
+
+        //seq made of [timestamp|node|sequence] as a long
+        return seq.get()
     }
 
 
@@ -144,6 +160,13 @@ public class SequenceGenerator {
         return currentTimestamp
     }
 
+    /**
+     * createNodeId
+     * generates a ref number for node by creating a hash from all network interface mac addresses on this node
+     * this is masked to ensure its no longer than 10 bits long
+     *
+     * @return int nodeId
+     */
     private int createNodeId() {
         int nodeId
         try {
