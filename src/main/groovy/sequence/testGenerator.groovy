@@ -2,7 +2,7 @@ package sequence
 
 import com.softwood.utils.SequenceGenerator
 
-SequenceGenerator seq = new SequenceGenerator()
+SequenceGenerator seq = SequenceGenerator.build()
 
 long num1 = seq.nextId()
 

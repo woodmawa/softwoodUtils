@@ -30,6 +30,8 @@ public class SequenceGenerator {
     // Custom Epoch (January 1, 2015 Midnight UTC = 2015-01-01T00:00:00Z)
     private static final long CUSTOM_EPOCH = 1420070400000L
 
+    public static int node
+
     private final int nodeId
 
     //volatile gaurantees that reads and writes on multiple threads see the same number
@@ -39,16 +41,36 @@ public class SequenceGenerator {
     //slightly better encapsulation than volatile
     private AtomicLong aSequence = new AtomicLong (0L)
 
-    // Create SequenceGenerator with a explicit required nodeId
-    public SequenceGenerator(int nodeId) {
+    //factory instance
+    private SequenceGenerator instance
+
+    //builder option - returns the class
+    public static setNode (int id) {
+        if(id < 0 || id > maxNodeId) {
+            throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
+        }
+        node = id
+        SequenceGenerator
+    }
+
+    public static SequenceGenerator build () {
+
+        if (!node)
+            new SequenceGenerator()
+        else
+            new SequenceGenerator (node)
+    }
+
+    // private factory constructor, Create SequenceGenerator with a explicit required nodeId
+    private SequenceGenerator(int nodeId) {
         if(nodeId < 0 || nodeId > maxNodeId) {
             throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
         }
         this.nodeId = nodeId
     }
 
-    // Let SequenceGenerator generate a nodeId, using the hash of the mac addresses on network interfaces
-    public SequenceGenerator() {
+    // Let factory SequenceGenerator generate a nodeId, using the hash of the mac addresses on network interfaces
+    private SequenceGenerator() {
         this.nodeId = createNodeId()
     }
 
