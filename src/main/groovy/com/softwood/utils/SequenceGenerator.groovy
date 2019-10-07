@@ -2,6 +2,7 @@ package com.softwood.utils
 
 import java.net.NetworkInterface
 import java.security.SecureRandom
+import java.sql.Timestamp
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -52,16 +53,22 @@ public class SequenceGenerator {
     }
 
 
-    public String getDateForSequence (long seq) {
-        long mask = (long) (2**63 - 1) << (TOTAL_BITS - EPOCH_BITS)
-        long timeSegment = seq & mask
-
-        //get back time since standard epoc
-        timeSegment += CUSTOM_EPOCH
-
-        LocalDateTime.ofEpochSecond(timeSegment, 0, ZoneOffset.UTC).toString()
+    public String getDateStringForSequence (long seq) {
+        getLocalDateTimeForSequence (seq).toString()
     }
 
+    public LocalDateTime getLocalDateTimeForSequence (long seq) {
+        long mask = (long) (2**64 - 1) << (TOTAL_BITS - EPOCH_BITS)
+        long timeSegment = seq & mask
+        long shiftedBackSegment = timeSegment >>  (TOTAL_BITS - EPOCH_BITS)
+
+        //get back to time since standard epoc
+        long epochMillis = shiftedBackSegment + CUSTOM_EPOCH
+
+
+        //LocalDateTime.ofEpochSecond(shiftedBackSegment, 0, ZoneOffset.UTC).toString()
+        LocalDateTime dt = new Timestamp (epochMillis).toLocalDateTime()
+    }
 
     public synchronized long nextId() {
         long currentTimestamp = timestamp()
@@ -87,7 +94,7 @@ public class SequenceGenerator {
 
         lastTimestamp = currentTimestamp;
 
-        //take the timestamp and bit shift it 64-48 = 16 bits
+        //take the timestamp and bit shift it 64-42 = 22 bits
         long id = 0
         long tid = currentTimestamp << (TOTAL_BITS - EPOCH_BITS)
         //OR in the nodeId bit shited 6 digits
