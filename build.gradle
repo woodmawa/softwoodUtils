@@ -24,7 +24,7 @@ dependencies {
     implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.0-beta-3' //, ext: 'pom'
     //spock not ready for groovy 3 beta
 
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.12' 
     implementation group: 'com.fasterxml.uuid', name: 'java-uuid-generator', version: '3.2.0'
     implementation group: 'io.vertx', name: 'vertx-core', version: '3.8.2'
     implementation group: 'javax.inject', name: 'javax.inject', version: '1'
