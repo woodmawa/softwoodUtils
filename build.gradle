@@ -22,7 +22,7 @@ dependencies {
     //implementation replaces compile and is not transitevly resolved, API is transitively resolved
     //compile 'org.codehaus.groovy:groovy-all:2.5.8'
     //implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.0-beta-3' //, ext: 'pom'
-    compile group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.0-rc-1'
+    implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.0-rc-1'
     //spock not ready for groovy 3 beta
 
     testImplementation group: 'junit', name: 'junit', version: '4.12'
