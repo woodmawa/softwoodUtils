@@ -1,6 +1,5 @@
 package com.softwood.utils
 
-import com.sun.xml.internal.fastinfoset.util.CharArray
 import groovy.transform.CompileStatic
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
