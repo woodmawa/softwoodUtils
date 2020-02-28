@@ -2,6 +2,7 @@ package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
 import com.softwood.rules.api.Condition
+import com.softwood.rules.api.Fact
 
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicBoolean
@@ -32,7 +33,7 @@ class BasicRule {
 
     Action action  = new BasicAction (name: "basicAction", description: "do nothing basic action")
 
-    def evaluate (Collection facts, param = null) {
+    def evaluate (Collection<Fact> facts, param = null) {
         AtomicBoolean checkPreConditions = new AtomicBoolean (false)
 
         //serial at the mo parallelise later
@@ -45,6 +46,8 @@ class BasicRule {
         if (checkPreConditions.get()) {
             def ret = (param ? action.execute(param) : action.execute())
             ret
+        } else {
+            println "rule evaulate  : pre conditions $preConditions were not met "
         }
     }
 

@@ -1,6 +1,8 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
+//todo look at java lambda interface pasisng using function signature rather than closure
+// import java.util.function.
 
 /**
  * base Action implementation
@@ -11,7 +13,6 @@ class BasicAction implements Action {
 
     String name = ""
     String description = ""
-    int priority = 0
     private Closure doAction = {}  //do nothing
 
     void setAction (Closure c) {

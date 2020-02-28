@@ -24,7 +24,6 @@ class TestActionSpec extends Specification {
         action.action.resolveStrategy == Closure.DELEGATE_FIRST
         action.action.delegate == param
         output == "did your action"
-        action.priority == 0
 
     }
 }
