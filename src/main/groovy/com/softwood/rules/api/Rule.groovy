@@ -46,6 +46,6 @@ interface Rule extends Comparable<Rule> {
          * Rule actions abstraction : this method encapsulates the rule's actions.
          * @throws Exception thrown if an exception occurs during actions performing
          */
-        void execute(Facts facts) throws Exception
+        def execute(Facts facts) throws Exception
 
 }

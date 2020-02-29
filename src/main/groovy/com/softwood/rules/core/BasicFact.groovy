@@ -1,23 +1,35 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Fact
+import groovy.transform.MapConstructor
 import groovy.transform.ToString
 
+@MapConstructor
 @ToString
 class BasicFact implements Fact {
 
     String name = ""
     String description = ""
 
-    @Delegate Map entry = [:]
+    BasicFact () {}
 
-    void setEntry (Map e) {
-        entry = e
-        name = entry.entrySet()?[0].key
+    BasicFact (String name, value) {
+        this.name = name
+        if (!description)
+            description = name
+        $entry = [(name):value]
+    }
+
+    @Delegate
+    private Map $entry = [:]
+
+    void setName(Map e) {
+        $entry = e
+        name = $entry.entrySet()?[0].key
     }
 
     def getName() {
-        name = entry.entrySet()?[0].key
+        name = $entry.entrySet()?[0].key
     }
 
     def getDescription() {
@@ -25,9 +37,17 @@ class BasicFact implements Fact {
     }
 
     def getValue() {
-        def lov = entry.values()
-        return entry.values()?[0]
+        def lov = $entry.values()
+        return $entry.values()?[0]
     }
+
+    void setEntry(Map arg) {
+        assert arg.size() == 1
+        $entry = arg
+        name = $entry.entrySet()?[0].key
+        description = name
+    }
+
 
     //need to intercept as otherwise it defaults all properties to the map delegate
     def getProperty(String name) {
@@ -38,7 +58,7 @@ class BasicFact implements Fact {
         else if (name == 'value')
             return getDescription()
         else
-            return entry.(name)     //just invoke on map delegate
+            return $entry.(name)     //just invoke on map delegate
     }
 
 }

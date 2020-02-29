@@ -14,27 +14,32 @@ class Facts<String, Fact>  {
 
     //add these methods to Facts
     @Delegate
-    Map<String, Fact> map  = new HashMap()
+    Map<String, Fact> $map  = new HashMap()
 
-    String name = ""
-    String description = ""
+    String name = "my Facts"
+    String description = "some standard facts"
 
-    // get entry entry ref based on key
-    Fact fact (key) {
-        BasicFact f = new BasicFact()
+    // create a Fact from the key, and value from the $map delegate for same key
+    Fact getFact (key) {
         //create a new map with one  entry
-        f.entry = [(key): map.get(key)]
-        return f
+        BasicFact fact = new BasicFact((key),  $map.get(key))
+        return fact
     }
 
-
-    Iterator<Fact> iterator() {
-        return map.iterator()
-    }
 
     List<Fact> asList () {
-        map.iterator().toList()
+        $map.iterator().toList()
     }
 
+
+    //need to intercept as otherwise it defaults all properties to the map delegate
+    def getProperty(java.lang.String name) {
+        if (name == 'name')
+            return getName()
+        else if (name =='description')
+            return getDescription()
+         else
+            return $map.(name)     //just invoke on map delegate
+    }
 
 }

@@ -1,12 +1,13 @@
 package com.softwood.rules.api
 
+import groovy.util.Proxy
 
 /**
  * a collection of Rules for the rules engine
  */
 class Rules implements Iterable<Rule> {
 
-    private Set<Rule> rules = new TreeSet<>();
+    private Set<Rule> rules = new TreeSet<>()
 
     /**
      * Create a new {@link Rules} object.
@@ -42,9 +43,10 @@ class Rules implements Iterable<Rule> {
      *
      * @param rule to register
      */
-    public void register(Object rule) {
-        Objects.requireNonNull(rule)
+    public void register(Object ruleObj) {
+        assert ruleObj, "object $ruleObj cannot be null"  //groovy way
         //todo proxies
+        rules.add (new Proxy().wrap (ruleObj) as Rule)
         //rules.add(RuleProxy.asRule(rule));
     }
 
@@ -54,7 +56,7 @@ class Rules implements Iterable<Rule> {
      * @param rule to unregister
      */
     public void unregister(Rule rule) {
-        Objects.requireNonNull(rule)
+        Objects.requireNonNull(rule)        //java utils way
         rules.remove(rule)
     }
     /**
@@ -62,10 +64,10 @@ class Rules implements Iterable<Rule> {
      *
      * @param rule to unregister
      */
-    public void unregister(Object rule) {
-        Objects.requireNonNull(rule);
-        //todo proxies
-        //rules.remove(RuleProxy.asRule(rule));
+    public void unregister(Object ruleObj) {
+        Objects.requireNonNull(ruleObj);
+        //- uses groovy proxy todo proxies
+        rules.remove (new Proxy().wrap (ruleObj) as Rule)
     }
 
     /**

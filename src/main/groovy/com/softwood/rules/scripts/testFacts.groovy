@@ -8,6 +8,8 @@ import com.softwood.rules.core.BasicFact
 //Facts has a hashMap as delegate so gets all map features as well
 Facts facts = new Facts (name:"myfacts", description:"some facts")
 
+println "facts instance called : " + facts.name
+
 //facts.add (["sky": "isBlue"])
 facts << ["sky": "isBlue"] << ["high":"noon"]
 facts.putAll (["what": "now"])
@@ -23,7 +25,7 @@ for (Map.Entry  node in i) {
 }
 
 
-Fact f1 = facts.fact("sky")
+Fact f1 = facts.getFact("sky")
 
 println f1
 

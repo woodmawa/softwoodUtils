@@ -7,7 +7,9 @@ import com.softwood.rules.api.Action
 /**
  * base Action implementation
  * invokes the closure and returns the result
- * if param is passed to action the delagate for doAction is set to parameter passed
+ * if param is passed to action the delegate for doAction is set to parameter passed
+ *
+ * could have used a closure as delegate i think ...
  */
 class BasicAction implements Action {
 
