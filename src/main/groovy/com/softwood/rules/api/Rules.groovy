@@ -77,11 +77,10 @@ class Rules implements Iterable<Rule> {
      */
     public void unregister(final String ruleName){
         Objects.requireNonNull(ruleName)
-        Rule rule = findRuleByName(ruleName)
-        if(rule != null) {
-            unregister(rule)
+        Optional<Rule> rule = findRuleByName(ruleName)
+        rule.ifPresent(r -> unregister(r))      //use lambda
         }
-    }
+
 
     /**
      * Check if the rule set is empty.
@@ -104,12 +103,13 @@ class Rules implements Iterable<Rule> {
         return rules.iterator()
     }
 
-    private Rule findRuleByName(String ruleName){
+    //todo replace null return with Optional
+    private Optional<Rule> findRuleByName(String ruleName){
         for(Rule rule : rules){
             if(rule.getName().equalsIgnoreCase(ruleName))
-                return rule
+                return Optional.of(rule)
         }
-        return null
+        return Optional.ofNullable(null)
     }
 
 }
