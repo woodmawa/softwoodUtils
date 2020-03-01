@@ -1,33 +1,29 @@
 package com.softwood.rules.api
 
-import com.softwood.rules.core.BasicFact
-import groovy.transform.ToString
 
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentLinkedDeque
+import groovy.transform.ToString
 
 /**
  * Collection of fact with a name as key to retrieve a Fact, and can be iterated over
+ * todo might want to use Tuple for a Fact
  */
 @ToString
-class Facts<String, Fact>  {
+class Facts<String, Object>  {
 
     //add these methods to Facts
     @Delegate
-    Map<String, Fact> $map  = new HashMap()
+    Map<String, Object> $map  = new HashMap()
 
     String name = "my Facts"
     String description = "some standard facts"
 
-    // create a Fact from the key, and value from the $map delegate for same key
-    Fact getFact (key) {
-        //create a new map with one  entry
-        BasicFact fact = new BasicFact((key),  $map.get(key))
-        return fact
+    // get fact using key from $map delegate
+    public <T> T getFact (key) {
+        return (T) $map.get (key)
     }
 
 
-    List<Fact> asList () {
+    public <T> List<T> asList () {
         $map.iterator().toList()
     }
 

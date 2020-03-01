@@ -4,7 +4,7 @@ import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rules
 import com.softwood.rules.core.BasicAction
-import com.softwood.rules.core.BasicFact
+import com.softwood.rules.core.DeprecateBasicFact
 import com.softwood.rules.core.BasicRule
 
 def rule = new BasicRule (name:"rule#1", description: "first rule", priority: 1)
@@ -23,13 +23,13 @@ rules.register(rule)
 
 Facts facts = new Facts()
 
-Fact fact= new BasicFact (name:"sky", value:"isBlue")
+Fact fact= new DeprecateBasicFact (name:"sky", value:"isBlue")
 
-fact = new BasicFact()
+fact = new DeprecateBasicFact()
 fact.setEntry(name:"sky", value:"isBlue")
 
 
-facts << fact << new BasicFact (name:"isWintery", value: true)
+facts << fact << new DeprecateBasicFact (name:"isWintery", value: true)
 
 assert facts.size() == 2
 

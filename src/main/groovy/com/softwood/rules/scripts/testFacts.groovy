@@ -1,9 +1,7 @@
 package com.softwood.rules.scripts
 
-import com.softwood.rules.api.Fact
-import com.softwood.rules.api.Facts
-import com.softwood.rules.core.BasicFact
 
+import com.softwood.rules.api.Facts
 
 //Facts has a hashMap as delegate so gets all map features as well
 Facts facts = new Facts (name:"myfacts", description:"some facts")
@@ -12,25 +10,25 @@ println "facts instance called : " + facts.name
 
 //facts.add (["sky": "isBlue"])
 facts << ["sky": "isBlue"] << ["high":"noon"]
-facts.putAll (["what": "now"])
+facts.putAll (["what": 0])
 
 List list = facts.asList()
 println list
 
-Iterator i = facts.iterator()
+Iterator iterable = facts.iterator()
 
 // i.each {println "$it :  ${it.getClass()}" }
-for (Map.Entry  node in i) {
+for (Map.Entry  node in iterable) {
   println node.key + "  : " + node.value
 }
 
 
-Fact f1 = facts.getFact("sky")
 
+String f1 = facts.getFact("sky")
+int num = facts.getFact ("what")
+println "<--->"
 println f1
+println num
+println facts.high
 
-assert f1.size() == 1
 
-def n = f1.name   //this tries to look up the string value as 'key' which has null entry
-println n
-println "get entry for sky  " + f1.value //this invokes getter - works !

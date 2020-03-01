@@ -4,16 +4,19 @@ import com.softwood.rules.api.Fact
 import groovy.transform.MapConstructor
 import groovy.transform.ToString
 
+/**
+ * may not be necessary or maybe we just use Tuple as base
+ */
 @MapConstructor
 @ToString
-class BasicFact implements Fact {
+class DeprecateBasicFact implements Fact {
 
     String name = ""
     String description = ""
 
-    BasicFact () {}
+    DeprecateBasicFact() {}
 
-    BasicFact (String name, value) {
+    DeprecateBasicFact(String name, value) {
         this.name = name
         if (!description)
             description = name
