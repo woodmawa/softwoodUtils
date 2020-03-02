@@ -39,4 +39,11 @@ class BasicCondition implements Predicate, Condition {
     Predicate or(Predicate other) {
         return super.or(other)
     }
+
+    //coerce Condition to return its closure
+    /*Closure asType (Class  clazz) {
+        if (clazz instanceof Closure) {
+            dynamicTest
+        }
+    }*/
 }

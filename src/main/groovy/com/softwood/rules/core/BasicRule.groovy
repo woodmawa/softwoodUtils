@@ -5,6 +5,8 @@ import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
+import groovy.transform.EqualsAndHashCode
+import groovy.transform.ToString
 
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicBoolean
@@ -15,7 +17,9 @@ import java.util.function.Predicate
  * before the action will be invoked
  *
  */
-class BasicRule implements Rule {
+
+@EqualsAndHashCode(includes = ["name", "description", "priority"])
+class BasicRule implements Rule, Comparable {
 
     /**
      * Rule name.
@@ -42,7 +46,7 @@ class BasicRule implements Rule {
      * @return
      */
     private boolean checkPreconditions (Facts facts) {
-        AtomicBoolean checkPreConditions = new AtomicBoolean (false)
+        AtomicBoolean checkPreConditions = new AtomicBoolean (true)
 
         //serial at the mo parallelise later
         Iterator iter = facts.iterator()
@@ -79,7 +83,14 @@ class BasicRule implements Rule {
         return execute (facts as Collection)
     }
 
+
+    //compare based on hashCode  of rule
     int compareTo(Rule o) {
-        return 0
+        this.hashCode() <=> o.hashCode()
+
+    }
+
+    String toString() {
+        "BasicRule(name:$name, description:$description, priority:$priority})"
     }
 }
