@@ -20,19 +20,19 @@ class BasicRule implements Rule {
     /**
      * Rule name.
      */
-    String name
+    String name = "unnamed"
 
     /**
      * Rule description.
      */
-    String description
+    String description = "unspecified"
 
     /**
      * Rule priority.
      */
-    int priority
+    int priority = 0
 
-    Collection<Predicate> preConditions = new ConcurrentLinkedDeque<Predicate>()
+    Collection<Predicate> preConditions = new ConcurrentLinkedDeque<>()
 
     Action action  = new BasicAction (name: "basicAction", description: "do nothing basic action")
 
@@ -41,12 +41,18 @@ class BasicRule implements Rule {
      * @param facts
      * @return
      */
-    private boolean checkPreconditions (facts) {
+    private boolean checkPreconditions (Facts facts) {
         AtomicBoolean checkPreConditions = new AtomicBoolean (false)
 
         //serial at the mo parallelise later
-        facts.each {fact ->
+        Iterator iter = facts.iterator()
+        iter.forEachRemaining {Map.Entry fact ->     //essentially this is a Map.Entry
+            def val = fact.value
+            def key = fact.key
+            int numOfRuleConditions = preConditions.size()
+            Condition firstCond = preConditions?[0]
             preConditions.each {Predicate condition ->
+                def testRes = condition.test(val)
                 checkPreConditions.getAndSet(checkPreConditions.get() && condition.test(fact))
 
             }
@@ -54,8 +60,9 @@ class BasicRule implements Rule {
         checkPreConditions.get()
     }
 
-    def evaluate (Collection<Fact> facts, param = null) {
-       checkPreconditions(facts)
+
+    boolean evaluate(Facts facts, param = null) {
+        return checkPreconditions (facts)
     }
 
     def execute (Collection<Fact> facts, param = null) {
@@ -68,12 +75,8 @@ class BasicRule implements Rule {
         }
     }
 
-    boolean evaluate(Facts facts) {
-        return evaluate (facts as Collection)
-    }
-
     def execute (Facts facts) {
-        return false
+        return execute (facts as Collection)
     }
 
     int compareTo(Rule o) {

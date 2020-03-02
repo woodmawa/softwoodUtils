@@ -9,6 +9,10 @@ class Rules implements Iterable<Rule> {
 
     private Set<Rule> rules = new TreeSet<>()
 
+    int size() {
+        rules.size()
+    }
+
     /**
      * Create a new {@link Rules} object.
      *
@@ -34,7 +38,7 @@ class Rules implements Iterable<Rule> {
      * @param rule to register
      */
     void register(Rule rule) {
-        Objects.requireNonNull(rule)
+        Objects.requireNonNull(rule)    //Java utils
         rules.add(rule)
     }
 
@@ -44,7 +48,7 @@ class Rules implements Iterable<Rule> {
      * @param rule to register
      */
     public void register(Object ruleObj) {
-        assert ruleObj, "object $ruleObj cannot be null"  //groovy way
+        assert ruleObj, "object $ruleObj cannot be null"  //groovy assert way
         //todo proxies
         rules.add (new Proxy().wrap (ruleObj) as Rule)
         //rules.add(RuleProxy.asRule(rule));

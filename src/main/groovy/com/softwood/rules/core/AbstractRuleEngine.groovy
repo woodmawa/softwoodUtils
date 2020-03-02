@@ -2,7 +2,7 @@ package com.softwood.rules.core
 
 import com.softwood.rules.api.RuleListener
 import groovy.beans.Bindable
-import com.softwood.rules.api.RulesEngineListener
+import com.softwood.rules.api.RuleEngineListener
 
 /**
  * enable class to add rule listeners
@@ -11,6 +11,6 @@ import com.softwood.rules.api.RulesEngineListener
  */
 
 class AbstractRuleEngine {
-    @Bindable List<RulesEngineListener> ruleEngineListeners = []
+    @Bindable List<RuleEngineListener> ruleEngineListeners = []
     @Bindable List<RuleListener> ruleListeners = []
 }
