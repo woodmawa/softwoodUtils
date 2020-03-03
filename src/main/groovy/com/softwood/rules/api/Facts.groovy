@@ -20,6 +20,10 @@ class Facts<String, Object>  {
     String name = "my Facts"
     String description = "some standard facts"
 
+    Facts leftShift (Map map) {
+        $map.putAll(map)
+    }
+
     // get fact using key from $map delegate
     public <T> T findFact(key) {
         return (T) $map.get (key)

@@ -8,13 +8,5 @@ class Player {
 
     HashMap attributes = [:]
 
-    List<Sensor> sensors = []
-
-    Collection<Fact> getWorldState () {
-        sensors.collect {
-            it.sense()
-        }
-    }
-
 
 }

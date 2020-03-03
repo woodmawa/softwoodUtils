@@ -6,13 +6,18 @@ import org.codehaus.groovy.runtime.MethodClosure
 
 class Sensor {
     String name
-    Player owner
-    Closure detect = {key, attmap-> attmap.get(key) }
+    Closure $detect = {key, attmap-> attmap.get(key) }
 
-    Fact sense() {
-        assert owner
-        if  (owner.attributes.get (name)) {
-            new BasicFact (name:name, value:detect(name,  owner.attributes))
+    //try and sense state on arg - nominally player in this example
+    Fact sense(arg) {
+        println "sense for $name in $arg"
+        assert arg
+        def attVal = arg.attributes.get (name)
+        println "\tsense for $name in $arg, found $attVal"
+
+        if  (arg.attributes.get (name)) {
+            Fact fact = new BasicFact (name:name, value:$detect(name,  arg.attributes))
+            fact
         }
 
     }
