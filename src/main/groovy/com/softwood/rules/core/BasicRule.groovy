@@ -41,6 +41,17 @@ class BasicRule implements Rule, Comparable {
     //set action to an action that does nothing - returns "Do nothing action" by default
     Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
+    void setAction (Closure action) {
+        assert action
+        action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
+    }
+
+    Action shiftleft (Closure action) {
+        assert action
+        action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
+        this
+    }
+
     /**
      * checks each fact angainst any preConditions
      * @param facts
