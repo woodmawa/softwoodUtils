@@ -32,10 +32,10 @@ println "rule2 now has state with ${rule2.action.stateData}"
 
 Condition c = {println "it: $it of type ${it.getClass()}, test it.name == 'act#2' ";  it.name == "act#2"}
 def testres = c.test (rule2)
-rule2.preConditions << {if (it.getClass() == String)
-                            it == "isBlue-er"
+rule2.preConditions << {if (it.name == "sky")
+                            it.value == "isBlue-er"
                         else
-                            it as boolean} as Condition   //takes the closure and coerces it to Condition
+                            false} as Condition   //takes the closure and coerces it to Condition
 
 //register rule1
 rules.register(rule2)

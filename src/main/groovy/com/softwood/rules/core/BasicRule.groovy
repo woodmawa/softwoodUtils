@@ -56,11 +56,11 @@ class BasicRule implements Rule, Comparable {
         AtomicBoolean preConditionsCheck = new AtomicBoolean (true)
 
         //serial at the mo parallelise later
-        Iterator iter = facts.iterator()
-        iter.forEachRemaining {Map.Entry fact ->     //essentially this is a Map.Entry
+        List<Fact> list = facts.asList()
+        list.each {Fact fact ->     //essentially this is a Map.Entry
             preConditions.each {Predicate condition ->
-                def testRes = condition.test(fact as Fact)
-                preConditionsCheck.getAndSet(preConditionsCheck.get() && condition.test(fact as Fact))
+                def testRes = condition.test(fact)
+                preConditionsCheck.getAndSet(preConditionsCheck.get() && condition.test(fact))
 
             }
         }
