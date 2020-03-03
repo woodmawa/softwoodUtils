@@ -13,15 +13,14 @@ class BasicCondition implements Predicate, Condition {
     String name = "unnamed"
     String description = "unnamed"
 
-    Closure dynamicTest = {return false}
+    Closure dynamicTest = {fact -> println "default condition evaluated $fact.name, with value $fact.value, returning false"; return false}
 
     boolean test (Fact fact = null) {
         if (fact) {
-            def value = fact.value
-            if (value)
-               test (value)
-            test()
-        }
+               dynamicTest (fact)
+         }
+        else
+            return false
     }
 
      boolean test(Object o) {
@@ -40,10 +39,4 @@ class BasicCondition implements Predicate, Condition {
         return super.or(other)
     }
 
-    //coerce Condition to return its closure
-    /*Closure asType (Class  clazz) {
-        if (clazz instanceof Closure) {
-            dynamicTest
-        }
-    }*/
 }

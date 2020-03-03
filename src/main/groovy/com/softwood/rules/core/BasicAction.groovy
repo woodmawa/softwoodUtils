@@ -1,6 +1,9 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
+
+import java.util.concurrent.ConcurrentHashMap
+
 //todo look at java lambda interface pasisng using function signature rather than closure
 // import java.util.function.
 
@@ -15,7 +18,27 @@ class BasicAction implements Action {
 
     String name = ""
     String description = ""
-    private Closure doAction = {}  //do nothing
+    private Closure doAction = {arg -> "No Action"}  //do nothing
+
+    //enable action to carry sata data
+    Map stateData = new ConcurrentHashMap<>()
+
+    //dont permit chnage of state from without the action
+    Map getStateData () {
+        stateData.asImmutable()
+    }
+
+    void setStateData (Map state) {
+        stateData = new ConcurrentHashMap<>(state)
+    }
+
+    void leftShift (Map additionalState) {
+        stateData << additionalState
+    }
+
+    void clearStateData() {
+        stateData.clear()
+    }
 
     void setAction (Closure c) {
         doAction = c.clone()
@@ -28,13 +51,18 @@ class BasicAction implements Action {
 
     def execute (param = null ) {
         assert doAction
-        if (param != null) {
-            doAction.delegate = param
 
-            doAction()
+        def result
+        if (param != null) {
+            //set the action as the delegate for doAction.  closure can call getStateData() for action state
+            doAction.delegate = this
+
+            result = doAction(param)
 
         } else
-            doAction()
+            result = doAction()
+
+        result
     }
 
     def call (param = null) {

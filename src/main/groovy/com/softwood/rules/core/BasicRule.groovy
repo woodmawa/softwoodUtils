@@ -38,7 +38,8 @@ class BasicRule implements Rule, Comparable {
 
     Collection<Predicate> preConditions = new ConcurrentLinkedDeque<>()
 
-    Action action  = new BasicAction (name: "basicAction", description: "do nothing basic action")
+    //set action to an action that does nothing - returns "Do nothing action" by default
+    Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
     /**
      * checks each fact angainst any preConditions
@@ -46,7 +47,13 @@ class BasicRule implements Rule, Comparable {
      * @return
      */
     private boolean checkPreconditions (Facts facts) {
-        AtomicBoolean checkPreConditions = new AtomicBoolean (true)
+
+        if (preConditions.size() == 0) {   //no pre conditions so just return true
+            println "this rule $this has no preconditions, return true"
+            return true
+        }
+
+        AtomicBoolean preConditionsCheck = new AtomicBoolean (true)
 
         //serial at the mo parallelise later
         Iterator iter = facts.iterator()
@@ -56,12 +63,12 @@ class BasicRule implements Rule, Comparable {
             int numOfRuleConditions = preConditions.size()
             Condition firstCond = preConditions?[0]
             preConditions.each {Predicate condition ->
-                def testRes = condition.test(val)
-                checkPreConditions.getAndSet(checkPreConditions.get() && condition.test(fact))
+                def testRes = condition.test(fact as Fact)
+                preConditionsCheck.getAndSet(preConditionsCheck.get() && condition.test(fact as Fact))
 
             }
         }
-        checkPreConditions.get()
+        preConditionsCheck.get()
     }
 
 
@@ -69,18 +76,15 @@ class BasicRule implements Rule, Comparable {
         return checkPreconditions (facts)
     }
 
-    def execute (Collection<Fact> facts, param = null) {
+    def execute (Facts facts, param = null) {
 
-        if (checkPreconditions()) {
+        if (checkPreconditions(facts)) {
             def ret = (param ? action.execute(param) : action.execute())
             ret
         } else {
             println "rule evaulate  : pre conditions $preConditions were not met "
+            "preconditions not met"
         }
-    }
-
-    def execute (Facts facts) {
-        return execute (facts as Collection)
     }
 
 
