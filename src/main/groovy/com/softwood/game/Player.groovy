@@ -10,9 +10,9 @@ class Player {
 
     List<Sensor> sensors = []
 
-    Facts getWorldState () {
+    Collection<Fact> getWorldState () {
         sensors.collect {
-            it.sense() as Fact
+            it.sense()
         }
     }
 
