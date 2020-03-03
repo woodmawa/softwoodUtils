@@ -1,7 +1,10 @@
 package com.softwood.rules.scripts
 
-
+import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
+import com.softwood.rules.core.BasicFact
+
+import java.util.stream.Stream
 
 //Facts has a hashMap as delegate so gets all map features as well
 Facts facts = new Facts (name:"myfacts", description:"some facts")
@@ -17,8 +20,27 @@ println list
 
 Iterator iterable = facts.iterator()
 
+List<Fact> listOfFacts = facts.asFacts()
+Fact fact1 = listOfFacts[0]
+
+println "from proy we have $fact1, and name $fact1.name"
+
+
+int count = facts.get$map().iterator().size()
+Map.Entry first = facts.get$map().iterator().next()
+Fact firstFact = new BasicFact(first)
+println "firstFact name is $firstFact.name"
+
+int numofEentries = facts.stream().count()
+println "entries in stream counted as $numofEentries"
+
+println "--> rintln stream of facts "
+Stream<Fact> streamOfFacts = facts.stream()
+streamOfFacts.forEach{ f -> println f.name}
+
 // i.each {println "$it :  ${it.getClass()}" }
-for (Map.Entry  node in iterable) {
+println "---> for node in iterable"
+for (  node in iterable) {
   println node.key + "  : " + node.value
 }
 

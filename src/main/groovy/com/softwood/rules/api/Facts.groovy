@@ -1,7 +1,10 @@
 package com.softwood.rules.api
 
-
+import com.softwood.rules.core.BasicFact
 import groovy.transform.ToString
+
+import java.util.concurrent.ConcurrentHashMap
+import java.util.stream.Stream
 
 /**
  * Collection of fact with a name as key to retrieve a Fact, and can be iterated over
@@ -12,7 +15,7 @@ class Facts<String, Object>  {
 
     //add these methods to Facts
     @Delegate
-    Map<String, Object> $map  = new HashMap()
+    Map<String, Object> $map  = new ConcurrentHashMap()
 
     String name = "my Facts"
     String description = "some standard facts"
@@ -22,9 +25,23 @@ class Facts<String, Object>  {
         return (T) $map.get (key)
     }
 
+    Collection<Fact> asFacts () {
+        List list = $map.collect {
+            new BasicFact (name:(it.key), value:it.value)
+        }
+        list
+    }
+
+    //returns a stream of Map.EntrySetView
+    Stream<Map.Entry> stream () {
+        //$map.entrySet().stream()
+        List facts = asFacts()
+        facts.stream()
+    }
 
     public <T> List<T> asList () {
-        $map.iterator().toList()
+        //$map.iterator().toList()
+        asFacts().toList()
     }
 
 

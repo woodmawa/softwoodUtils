@@ -58,10 +58,6 @@ class BasicRule implements Rule, Comparable {
         //serial at the mo parallelise later
         Iterator iter = facts.iterator()
         iter.forEachRemaining {Map.Entry fact ->     //essentially this is a Map.Entry
-            def val = fact.value
-            def key = fact.key
-            int numOfRuleConditions = preConditions.size()
-            Condition firstCond = preConditions?[0]
             preConditions.each {Predicate condition ->
                 def testRes = condition.test(fact as Fact)
                 preConditionsCheck.getAndSet(preConditionsCheck.get() && condition.test(fact as Fact))
