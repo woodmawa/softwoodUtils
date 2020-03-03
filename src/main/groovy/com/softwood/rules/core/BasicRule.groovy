@@ -7,8 +7,10 @@ import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
+import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.function.Predicate
 
@@ -41,11 +43,17 @@ class BasicRule implements Rule, Comparable {
     //set action to an action that does nothing - returns "Do nothing action" by default
     Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
+    Collection <MethodClosure> postActionEffects = new ConcurrentLinkedQueue<>()
+
     void setAction (Closure action) {
         assert action
         action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
     }
 
+    void setAction (Action action) {
+        assert action
+        this.action = action
+    }
     Action shiftleft (Closure action) {
         assert action
         action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
@@ -64,29 +72,41 @@ class BasicRule implements Rule, Comparable {
             return true
         }
 
-        AtomicBoolean preConditionsCheck = new AtomicBoolean (true)
+        //start false
+        AtomicBoolean preConditionsCheck = new AtomicBoolean (false)
 
         //serial at the mo parallelise later
+
+        //for each fact in facts
         List<Fact> list = facts.asList()
-        list.each {Fact fact ->     //essentially this is a Map.Entry
+        list.each {Fact fact ->
+            println "test fact $fact, against rule preConditions"
             preConditions.each {Predicate condition ->
                 def testRes = condition.test(fact)
-                preConditionsCheck.getAndSet(preConditionsCheck.get() && condition.test(fact))
+                preConditionsCheck.compareAndSet(false, condition.test(fact) )
+                println "condtion.test on $fact, set check state to ${preConditionsCheck.get()}"
 
             }
         }
         preConditionsCheck.get()
     }
 
+    def applyPostActionEffects (arg = null) {
+        //apply each effect if it has any defined passing in the optional arg to which the effect applies
+        postActionEffects.each {
+            effect -> effect(arg)
+        }
+    }
 
     boolean evaluate(Facts facts, param = null) {
         return checkPreconditions (facts)
     }
 
-    def execute (Facts facts, param = null) {
+    def execute (Facts facts, arg = null) {
 
         if (checkPreconditions(facts)) {
-            def ret = (param ? action.execute(param) : action.execute())
+            def ret = (arg ? action.execute(arg) : action.execute())
+            applyPostActionEffects(arg)
             ret
         } else {
             println "rule evaulate  : pre conditions $preConditions were not met "

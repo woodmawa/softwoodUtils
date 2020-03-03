@@ -15,6 +15,10 @@ import groovy.transform.ToString
 @MapConstructor
 class BasicFact implements Fact {
 
+    String name
+    def value
+
+
     BasicFact (Map.Entry e) {
         name = e.getKey()
         value = e.getValue()
@@ -27,6 +31,4 @@ class BasicFact implements Fact {
         this
     }
 
-    String name
-    def value
 }

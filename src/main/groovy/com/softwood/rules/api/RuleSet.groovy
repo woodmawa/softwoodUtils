@@ -1,11 +1,15 @@
 package com.softwood.rules.api
 
-import groovy.util.Proxy
+import groovy.transform.MapConstructor
+
+import java.util.stream.Stream
 
 /**
- * a collection of Rules for the rules engine
+ * a collection of RuleSet for the rules engine
  */
-class Rules implements Iterable<Rule> {
+@MapConstructor
+class RuleSet implements Iterable<Rule> {
+    String name
 
     private Set<Rule> rules = new TreeSet<>()
 
@@ -14,23 +18,26 @@ class Rules implements Iterable<Rule> {
     }
 
     /**
-     * Create a new {@link Rules} object.
+     * Create a new {@link RuleSet} object.
      *
      * @param rules to register
      */
-    Rules(Set<Rule> rules) {
+    RuleSet(Set<Rule> rules) {
         this.rules = new TreeSet<>(rules)
     }
 
     /**
-     * Create a new {@link Rules} object.
+     * Create a new {@link RuleSet} object.
      *
      * @param rules to register
      */
-    Rules(Rule... rules ) {
+    RuleSet(Rule... rules ) {
         Collections.addAll(this.rules, rules)
     }
 
+    void leftShift (Rule... rules) {
+        Collections.addAll(this.rules, rules)
+    }
 
     /**
      * Register a new rule.
@@ -102,9 +109,13 @@ class Rules implements Iterable<Rule> {
         rules.clear()
     }
 
-    @Override
     public Iterator<Rule> iterator() {
         return rules.iterator()
+    }
+
+    //todo
+    public Stream<Rule> stream() {
+        return rules.stream()
     }
 
     //todo replace null return with Optional

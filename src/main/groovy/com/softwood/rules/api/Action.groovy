@@ -8,5 +8,4 @@ interface Action {
     Map getStateData()
     void setStateData (Map m)
     void clearStateData ()
-    void leftShift (Map additionalState)
 }

@@ -21,7 +21,7 @@ class Facts<String, Object>  {
     String description = "some standard facts"
 
     // get fact using key from $map delegate
-    public <T> T getFact (key) {
+    public <T> T findFact(key) {
         return (T) $map.get (key)
     }
 

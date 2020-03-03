@@ -29,11 +29,8 @@ class BasicAction implements Action {
     }
 
     void setStateData (Map state) {
-        stateData = new ConcurrentHashMap<>(state)
-    }
-
-    void leftShift (Map additionalState) {
-        stateData << additionalState
+        assert state
+        stateData.putAll(new ConcurrentHashMap<>(state))
     }
 
     void clearStateData() {

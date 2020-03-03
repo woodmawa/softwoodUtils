@@ -1,21 +1,18 @@
 package com.softwood.rules.scripts
 
 import com.softwood.rules.api.Condition
-import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.RuleEngine
-import com.softwood.rules.api.Rules
+import com.softwood.rules.api.RuleSet
 import com.softwood.rules.core.BasicAction
-import com.softwood.rules.core.BasicCondition
 import com.softwood.rules.core.DefaultRuleEngine
-import com.softwood.rules.core.DeprecateBasicFact
 import com.softwood.rules.core.BasicRule
 
 def rule = new BasicRule (name:"rule#1", description: "first rule", priority: 1)
 //assign action to the rule
 rule.action = new BasicAction (name:"action#1", description:"some action", action: {println "did rule action #1"; "act#1"})
 
-Rules rules = new Rules()
+RuleSet rules = new RuleSet()
 
 assert rules.size() == 0
 
@@ -27,13 +24,16 @@ rules.register(rule)
 //create another rule this time with a precondition,
 def rule2 = new BasicRule (name:"rule#2", description: "second rule", priority: 0)
 rule2.action = new BasicAction (name:"act#2", description:"another action", action: {println "did rule action #2"; "act#2"})
-rule2.action << ["some state": "try this for size"]  //add some state data to the action
+rule2.action.stateData << ["some state": "try this for size"]  //add some state data to the action
 println "rule2 now has state with ${rule2.action.stateData}"
 
-Condition c = {println "it: $it of type ${it.getClass()}, test it.name == 'act#2' ";  it.name == "act#2"}
-def testres = c.test (rule2)
-rule2.preConditions << {if (it.name == "sky")
-                            it.value == "isBlue-er"
+//Condition c = {println "it: $it of type ${it.getClass()}, test it.name == $it.name "
+               //it.value == "isBlue"}
+//def testres = c.test (rule2)
+rule2.preConditions << {
+    def arg = it
+    if (it.name == "sky")
+                            it.value == "isBlue"
                         else
                             false} as Condition   //takes the closure and coerces it to Condition
 

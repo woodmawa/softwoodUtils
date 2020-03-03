@@ -3,8 +3,7 @@ package com.softwood.rules.core
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import com.softwood.rules.api.RuleEngine
-import com.softwood.rules.api.Rules
-import groovy.beans.Bindable
+import com.softwood.rules.api.RuleSet
 
 /**
  * default Rule engine and takes all the bindable rulelisteners, ruleEngineListeners
@@ -13,7 +12,7 @@ import groovy.beans.Bindable
 
 class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
 
-    Collection<Boolean> check(Facts facts, Rules rules) {
+    Collection<Boolean> check(Facts facts, RuleSet rules) {
         assert rules, facts
         println "with rules $rules, size ${rules.size()}"
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
@@ -24,7 +23,7 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         results
     }
 
-   def run (Facts facts, Rules rules) {
+   def run (Facts facts, RuleSet rules) {
        assert rules, facts
        Collection<Object> results = rules.iterator().collect { Rule rule ->
            rule.execute (facts)

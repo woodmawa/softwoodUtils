@@ -46,8 +46,8 @@ for (  node in iterable) {
 
 
 
-String f1 = facts.getFact("sky")
-int num = facts.getFact ("what")
+String f1 = facts.findFact("sky")
+int num = facts.findFact ("what")
 println "<--->"
 println f1
 println num
