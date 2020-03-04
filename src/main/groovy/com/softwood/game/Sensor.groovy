@@ -12,15 +12,11 @@ class Sensor {
 
     //try and sense state on arg - nominally player in this example
     Fact sense(arg) {
-        println "sense for $name in $arg"
-        assert arg
+       assert arg
         def attVal = arg.attributes.get (name)
-        println "\tsense for $name in $arg, found $attVal"
 
         if  (name) {
-            Fact fact = new BasicFact (name:name, value:$detect(name,  arg.attributes))
-            println "\tbuilt a Fact with $fact"
-            fact
+            new BasicFact (name:name, value:$detect(name,  arg.attributes))
         }
 
     }
