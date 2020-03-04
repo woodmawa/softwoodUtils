@@ -33,13 +33,15 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
        def prioritySortedRules = rules.sort {rule1, rule2 -> rule1.priority <=> rule2.priority}
        Collection<Object> results = prioritySortedRules.iterator().collect { Rule rule ->
 
+           def result
            ruleListeners.each {it.beforeExecute(rule, facts)}
            try {
-               rule.execute (facts, arg)
+               result = rule.execute (facts, arg)
                ruleListeners.each {it.onSuccess(rule, facts)}
            } catch  (Exception e) {
                ruleListeners.each { it.onError (rule, facts, e) }
            }
+           result
        }
        results
    }
