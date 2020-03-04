@@ -41,11 +41,13 @@ interface Rule extends Comparable<Rule> {
          * @return true if the rule should be applied given the provided facts, false otherwise
          */
         boolean evaluate(Facts facts)
+        boolean evaluate(Facts facts, arg)
 
         /**
          * Rule actions abstraction : this method encapsulates the rule's actions.
          * @throws Exception thrown if an exception occurs during actions performing
          */
         def execute(Facts facts) throws Exception
+        def execute(Facts facts, arg) throws Exception
 
 }
