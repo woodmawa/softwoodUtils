@@ -20,7 +20,7 @@ class BasicAction implements Action {
     String description = ""
     private Closure doAction = {arg -> "No Action"}  //do nothing
 
-    //enable action to carry sata data
+    //enable action to carry state data if required as context for doAction closure
     Map stateData = new ConcurrentHashMap<>()
 
     //dont permit chnage of state from without the action
@@ -54,7 +54,10 @@ class BasicAction implements Action {
             //set the action as the delegate for doAction.  closure can call getStateData() for action state
             doAction.delegate = this
 
-            result = doAction(param)
+            if (doAction.maximumNumberOfParameters >= 1)
+                result = doAction(param)
+            else
+                result = doAction()
 
         } else
             result = doAction()

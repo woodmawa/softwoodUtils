@@ -3,11 +3,13 @@ package com.softwood.rules.scripts
 import com.softwood.game.Player
 import com.softwood.game.Sensor
 import com.softwood.game.SensorArray
+import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import com.softwood.rules.api.RuleEngine
 import com.softwood.rules.api.RuleSet
 import com.softwood.rules.core.BasicAction
+import com.softwood.rules.core.BasicFact
 import com.softwood.rules.core.BasicRule
 import com.softwood.rules.core.DefaultRuleEngine
 
@@ -28,15 +30,19 @@ for (s in sa.sensors) {
 Facts facts = sa.getPlayerWorldState(toby)
 
 println facts
-asserts facts.size() == 3
+assert facts.size() == 3
 
 Rule rule = new BasicRule (name:"isNewbie", description:"is this a new player",
-            action: new BasicAction (name:"print value", action: { fact -> println "$fact.name : $fact.value"}) )
+            action: new BasicAction (name:"print value", action: { player -> println "'isNewbie' : ${player.attributes.isNewbie} "; 'success'}) )
+rule.postActionEffects << {Player player-> player.applyAttributeStateUpdates([isNewbie:false])}
 
 RuleSet rules = new RuleSet(name: "first rule set")
 rules.register(rule)
 
 RuleEngine rs = new DefaultRuleEngine()
 
-rs.run(facts, rules)
+//pass the player, toby, as the context to be passed to each rule.action invoked
+println rs.run(facts, rules, toby)
+
+println "toby isNewbie now : " + toby.attributes.isNewbie
 

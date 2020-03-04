@@ -21,15 +21,12 @@ class SensorArray {
     Facts getPlayerWorldState (Player player) {
         Map map = [:]
         sensors.each {
-            println "in getWS check sensor $it.name"
             Fact fact = it.sense(player)
-            println "in getWS found fact  $fact"
             map << [(fact?.name): fact?.value]
-            println "in getWS map is  $map"
-        }
+       }
 
-        Facts facts = new Facts()
-        facts.$map.putAll ( map)
+     Facts facts = new Facts()
+        facts.putAll ( map)
         facts
     }
 

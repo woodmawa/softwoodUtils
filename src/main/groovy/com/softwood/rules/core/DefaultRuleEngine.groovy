@@ -12,7 +12,7 @@ import com.softwood.rules.api.RuleSet
 
 class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
 
-    Collection<Boolean> check(Facts facts, RuleSet rules) {
+    Collection<Boolean> check(Facts facts, RuleSet rules, arg = null) {
         assert rules, facts
         println "with rules $rules, size ${rules.size()}"
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
@@ -23,10 +23,10 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         results
     }
 
-   def run (Facts facts, RuleSet rules) {
+   def run (Facts facts, RuleSet rules, arg = null) {
        assert rules, facts
        Collection<Object> results = rules.iterator().collect { Rule rule ->
-           rule.execute (facts)
+           rule.execute (facts, arg)
        }
        results
    }
