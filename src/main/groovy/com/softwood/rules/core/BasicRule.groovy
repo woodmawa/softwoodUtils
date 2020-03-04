@@ -6,6 +6,7 @@ import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.Sortable
 import groovy.transform.ToString
 import org.codehaus.groovy.runtime.MethodClosure
 

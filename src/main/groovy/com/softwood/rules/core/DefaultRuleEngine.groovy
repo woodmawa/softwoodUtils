@@ -18,16 +18,56 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
             println "rule '$rule.name' evaluate facts $facts"
 
-            rule.evaluate(facts)
+            ruleListeners.each {it.beforeEvaluate(rule, facts)}
+
+            boolean res = rule.evaluate (facts, arg)
+            ruleListeners.each {it.afterEvaluate(rule, facts, res)}
+
         }
         results
     }
 
    def run (Facts facts, RuleSet rules, arg = null) {
        assert rules, facts
-       Collection<Object> results = rules.iterator().collect { Rule rule ->
-           rule.execute (facts, arg)
+
+       def prioritySortedRules = rules.sort {rule1, rule2 -> rule1.priority <=> rule2.priority}
+       Collection<Object> results = prioritySortedRules.iterator().collect { Rule rule ->
+
+           ruleListeners.each {it.beforeExecute(rule, facts)}
+           try {
+               rule.execute (facts, arg)
+               ruleListeners.each {it.onSuccess(rule, facts)}
+           } catch  (Exception e) {
+               ruleListeners.each { it.onError (rule, facts, e) }
+           }
        }
        results
    }
+
+
+    /**
+     * these pair allow rule engine to process facts against a single rule
+     * @param facts
+     * @param rule
+     * @param arg - this will be passed as context data to any rule.action when executing the action closure
+     * @return
+     */
+    boolean check(Facts facts, Rule rule, arg = null) {
+        assert rule, facts
+
+        rule.evaluate(facts, arg)
+
+    }
+
+    def run (Facts facts, Rule rule, arg = null) {
+        assert rule, facts
+
+        try {
+            rule.execute (facts, arg)
+            ruleListeners.each {it.onSuccess(rule, facts)}
+        } catch  (Exception e) {
+            ruleListeners.each { it.onError (rule, facts, e) }
+        }
+    }
+
 }

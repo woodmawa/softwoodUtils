@@ -48,6 +48,6 @@ public interface RuleListener {
      * @param facts known facts after executing the rule
      * @param exception the exception thrown when attempting to execute the rule
      */
-    void onFailure(Rule rule, Facts facts, Exception exception)
+    void onError (Rule rule, Facts facts, Exception exception)
 
 }

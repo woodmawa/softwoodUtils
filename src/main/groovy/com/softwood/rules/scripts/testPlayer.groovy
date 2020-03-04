@@ -18,8 +18,7 @@ Player toby = new Player (name:"tobias", attributes:["energyLevel":100, "hasSwor
 
 SensorArray sa = new SensorArray()
 
-sa << new Sensor (name:"energyLevel")
-sa<< new Sensor (name:"hasSword")
+sa << new Sensor (name:"energyLevel") << new Sensor (name:"hasSword")
 sa << new Sensor (name:"isNewbie")
 assert sa.sensors.size() == 3
 
@@ -34,7 +33,11 @@ assert facts.size() == 3
 
 Rule rule = new BasicRule (name:"isNewbie", description:"is this a new player",
             action: new BasicAction (name:"print value", action: { player -> println "'isNewbie' : ${player.attributes.isNewbie} "; 'success'}) )
+
 rule.postActionEffects << {Player player-> player.applyAttributeStateUpdates([isNewbie:false])}
+//give him a sword as well as you know he wants one...
+rule.postActionEffects << {Player player-> player.applyAttributeStateUpdates([hasSword:true, energyLevel: 98])}
+
 
 RuleSet rules = new RuleSet(name: "first rule set")
 rules.register(rule)
@@ -45,4 +48,5 @@ RuleEngine rs = new DefaultRuleEngine()
 println rs.run(facts, rules, toby)
 
 println "toby isNewbie now : " + toby.attributes.isNewbie
+println toby.attributeList
 
