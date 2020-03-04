@@ -3,8 +3,8 @@ package com.softwood.rules.api
 import java.util.concurrent.ConcurrentMap
 
 interface Action {
-    def execute (param)
-    def execute ()
+    def invoke (param)
+    def invoke ()
     Map getStateData()
     void setStateData (Map m)
     void clearStateData ()

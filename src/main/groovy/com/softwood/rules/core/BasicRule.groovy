@@ -1,13 +1,10 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
-import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import groovy.transform.EqualsAndHashCode
-import groovy.transform.Sortable
-import groovy.transform.ToString
 import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -106,7 +103,7 @@ class BasicRule implements Rule, Comparable {
     def execute (Facts facts, arg = null) {
 
         if (checkPreconditions(facts)) {
-            def ret = (arg ? action.execute(arg) : action.execute())
+            def ret = (arg ? action.invoke(arg) : action.invoke())
             applyPostActionEffects(arg)
             ret
         } else {

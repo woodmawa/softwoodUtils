@@ -29,7 +29,7 @@ class Facts<String, Object>  {
         return (T) $map.get (key)
     }
 
-    Collection<Fact> asFacts () {
+    Collection<Fact> asFact() {
         List list = $map.collect {
             new BasicFact (name:(it.key), value:it.value)
         }
@@ -39,13 +39,13 @@ class Facts<String, Object>  {
     //returns a stream of Map.EntrySetView
     Stream<Map.Entry> stream () {
         //$map.entrySet().stream()
-        List facts = asFacts()
+        List facts = asFact()
         facts.asImmutable().stream()
     }
 
     public <T> List<T> asList () {
         //$map.iterator().toList()
-        asFacts().toList()
+        asFact().toList()
     }
 
 

@@ -1,9 +1,7 @@
 package com.softwood.rules
 
 import com.softwood.rules.api.Action
-import com.softwood.rules.api.Condition
 import com.softwood.rules.core.BasicAction
-import com.softwood.rules.core.BasicCondition
 import spock.lang.Specification
 
 class TestActionSpec extends Specification {
@@ -16,7 +14,7 @@ class TestActionSpec extends Specification {
         Action action = new BasicAction (name:"act#1", description:"do something", action: doIt)
 
         when:
-        def  result = action.execute(param)
+        def  result = action.invoke(param)
 
         then:
         action.name == "act#1"

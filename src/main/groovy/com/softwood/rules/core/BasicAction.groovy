@@ -46,7 +46,8 @@ class BasicAction implements Action {
         doAction
     }
 
-    def execute (param = null ) {
+    @Override
+    def invoke(param = null ) {
         assert doAction
 
         def result
@@ -66,6 +67,6 @@ class BasicAction implements Action {
     }
 
     def call (param = null) {
-        execute (param)
+        invoke (param)
     }
 }

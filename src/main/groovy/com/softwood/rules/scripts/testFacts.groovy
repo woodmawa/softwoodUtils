@@ -20,7 +20,7 @@ println list
 
 Iterator iterable = facts.iterator()
 
-List<Fact> listOfFacts = facts.asFacts()
+List<Fact> listOfFacts = facts.asFact()
 Fact fact1 = listOfFacts[0]
 
 println "from proy we have $fact1, and name $fact1.name"
