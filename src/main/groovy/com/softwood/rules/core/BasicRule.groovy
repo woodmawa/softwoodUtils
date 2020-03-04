@@ -5,6 +5,7 @@ import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import groovy.transform.EqualsAndHashCode
+import groovy.transform.MapConstructor
 import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -18,6 +19,7 @@ import java.util.function.Predicate
  *
  */
 
+@MapConstructor
 @EqualsAndHashCode(includes = ["name", "description", "priority"])
 class BasicRule implements Rule, Comparable {
 

@@ -1,6 +1,7 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
+import groovy.transform.MapConstructor
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -14,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * could have used a closure as delegate i think ...
  */
+@MapConstructor
 class BasicAction implements Action {
 
     String name = ""

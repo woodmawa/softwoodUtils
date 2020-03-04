@@ -3,13 +3,14 @@ package com.softwood.rules.scripts
 import com.softwood.game.Player
 import com.softwood.game.Sensor
 import com.softwood.game.SensorArray
-import com.softwood.rules.api.Fact
+import com.softwood.rules.api.Action
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
+import com.softwood.rules.api.RulesBuilder
 import com.softwood.rules.api.RuleEngine
+import com.softwood.rules.api.RuleFactory
 import com.softwood.rules.api.RuleSet
 import com.softwood.rules.core.BasicAction
-import com.softwood.rules.core.BasicFact
 import com.softwood.rules.core.BasicRule
 import com.softwood.rules.core.DefaultRuleEngine
 
@@ -30,6 +31,12 @@ Facts facts = sa.getPlayerWorldState(toby)
 
 println facts
 assert facts.size() == 3
+
+//use factory instead
+Rule r = RuleFactory.newRule(name:"wills rule")
+Action a = RuleFactory.newAction()
+
+
 
 Rule rule = new BasicRule (name:"isNewbie", description:"is this a new player",
             action: new BasicAction (name:"print value", action: { player -> println "'isNewbie' : ${player.attributes.isNewbie} "; 'success'}) )
