@@ -2,9 +2,11 @@ package com.softwood.rules.core
 
 import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Fact
+import groovy.transform.ToString
 
 import java.util.function.Predicate
 
+@ToString
 class BasicCondition implements Predicate, Condition {
 
     def lowerLimit  = 0
@@ -13,7 +15,12 @@ class BasicCondition implements Predicate, Condition {
     String name = "unnamed"
     String description = "unnamed"
 
-    Closure dynamicTest = {fact -> println "default condition evaluated $fact.name, with value $fact.value, returning false"; return false}
+    private Closure dynamicTest = {fact -> println "default condition evaluated $fact.name, with value $fact.value, returning false"; return false}
+
+    void setTest (Closure test) {
+        assert test
+        dynamicTest =  test
+    }
 
     boolean test (Fact fact = null) {
         if (fact) {

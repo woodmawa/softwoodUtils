@@ -1,6 +1,7 @@
 package com.softwood.rules.api
 
 import groovy.transform.MapConstructor
+import groovy.transform.ToString
 
 import java.util.stream.Stream
 
@@ -127,4 +128,7 @@ class RuleSet implements Iterable<Rule> {
         return Optional.ofNullable(null)
     }
 
+    String toString() {
+        "$this.class.name ($name, numRules:${rules.size()})"
+    }
 }

@@ -6,6 +6,7 @@ import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.MapConstructor
+import groovy.util.logging.Slf4j
 import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -21,6 +22,7 @@ import java.util.function.Predicate
 
 @MapConstructor
 @EqualsAndHashCode(includes = ["name", "description", "priority"])
+@Slf4j
 class BasicRule implements Rule, Comparable {
 
     /**
@@ -68,7 +70,7 @@ class BasicRule implements Rule, Comparable {
     private boolean checkPreconditions (Facts facts) {
 
         if (preConditions.size() == 0) {   //no pre conditions so just return true
-            println "this rule $this has no preconditions, return true"
+            log.debug ("rule <$this> has no preconditions, return true")
             return true
         }
 
@@ -80,14 +82,15 @@ class BasicRule implements Rule, Comparable {
         //for each fact in facts
         List<Fact> list = facts.asList()
         list.each {Fact fact ->
-            println "test fact $fact, against rule preConditions"
+            log.debug "test $fact, against rule preConditions"
             preConditions.each {Predicate condition ->
                 def testRes = condition.test(fact)
                 preConditionsCheck.compareAndSet(false, condition.test(fact) )
-                println "condtion.test on $fact, set check state to ${preConditionsCheck.get()}"
+                log.debug "\tcondition $condition, performed test on $fact, set  rule preConditions check state to : ${preConditionsCheck.get()}"
 
             }
         }
+        log.debug "rules preConditions final check state is ${preConditionsCheck.get()}"
         preConditionsCheck.get()
     }
 
@@ -109,7 +112,7 @@ class BasicRule implements Rule, Comparable {
             applyPostActionEffects(arg)
             ret
         } else {
-            println "rule evaulate  : pre conditions $preConditions were not met "
+            log.debug  "rule evaulate  : pre conditions $preConditions were not met "
             "preconditions not met"
         }
     }

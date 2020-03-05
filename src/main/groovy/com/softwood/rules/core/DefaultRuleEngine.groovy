@@ -4,6 +4,7 @@ import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import com.softwood.rules.api.RuleEngine
 import com.softwood.rules.api.RuleSet
+import groovy.transform.MapConstructor
 
 /**
  * default Rule engine and takes all the bindable rulelisteners, ruleEngineListeners

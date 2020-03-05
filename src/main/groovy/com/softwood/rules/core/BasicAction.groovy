@@ -2,6 +2,8 @@ package com.softwood.rules.core
 
 import com.softwood.rules.api.Action
 import groovy.transform.MapConstructor
+import groovy.transform.ToString
+import groovy.util.logging.Slf4j
 
 import java.util.concurrent.ConcurrentHashMap
 
@@ -16,6 +18,8 @@ import java.util.concurrent.ConcurrentHashMap
  * could have used a closure as delegate i think ...
  */
 @MapConstructor
+@Slf4j
+@ToString
 class BasicAction implements Action {
 
     String name = ""
@@ -44,6 +48,10 @@ class BasicAction implements Action {
         doAction.resolveStrategy = Closure.DELEGATE_FIRST
     }
 
+    void setDoAction (Closure c) {
+        setAction c
+    }
+
     Closure getAction () {
         doAction
     }
@@ -57,13 +65,20 @@ class BasicAction implements Action {
             //set the action as the delegate for doAction.  closure can call getStateData() for action state
             doAction.delegate = this
 
+            if (param)
+                log.debug "Action $this, running doAction closure with $param"
+            else
+                log.debug "Action $this, running doAction closure, with no params"
+
             if (doAction.maximumNumberOfParameters >= 1)
                 result = doAction(param)
             else
                 result = doAction()
 
-        } else
+        } else {
+            log.debug "Action $this, running doAction closure, with no params"
             result = doAction()
+        }
 
         result
     }

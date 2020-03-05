@@ -19,8 +19,8 @@ import java.lang.reflect.TypeVariable
  */
 class RuleFactory {
     private static def actionFactory = [(ActionType.Standard.toString()): BasicAction]
-    private static def ruleFactory = [(ActionType.Standard.toString()): BasicRule]
-    private static def ruleEngineFactory = [(ActionType.Standard.toString()): DefaultRuleEngine]
+    private static def ruleFactory = [(RuleType.Standard.toString()): BasicRule]
+    private static def ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
 
     static enum ActionType {
         Standard
@@ -73,11 +73,21 @@ class RuleFactory {
 
     static RuleEngine newRuleEngine (RuleEngineType type, Map initMap=null) {
 
-        Class<Rule> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
+        Class<RuleEngine> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
 
-        Constructor<Rule> mapConstructor = factoryRuleEngineClazz.getDeclaredConstructor(Map)
-        if (mapConstructor && initMap)
-            return mapConstructor.newInstance(initMap)
+        /*
+         * cant call getDeclaredConstructor(Map) if theres only default constructor, throws an exception!
+         * so get list of constructors - assumed there be one
+         * check parameterTypes for that constructor
+         * if that contains Map go find explicitly  - else just create using default constructor
+         */
+        Constructor[] cons = factoryRuleEngineClazz.constructors
+        Class[] cTypes = cons[0].parameterTypes
+        if (cTypes.contains(Map)){
+            Constructor<RuleEngine> mapConstructor = factoryRuleEngineClazz.getDeclaredConstructor(Map)
+            if (mapConstructor && initMap)
+                return mapConstructor.newInstance(initMap)
+        }
         else
             return factoryRuleEngineClazz.newInstance()
 
