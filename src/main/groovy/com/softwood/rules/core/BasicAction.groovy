@@ -19,7 +19,6 @@ import java.util.concurrent.ConcurrentHashMap
  */
 @MapConstructor
 @Slf4j
-@ToString
 class BasicAction implements Action {
 
     String name = ""
@@ -85,5 +84,9 @@ class BasicAction implements Action {
 
     def call (param = null) {
         invoke (param)
+    }
+
+    String toString () {
+        "$this.class.name ($name) "
     }
 }

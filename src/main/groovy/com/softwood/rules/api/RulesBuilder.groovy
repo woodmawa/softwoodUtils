@@ -110,6 +110,7 @@ class BuilderActionFactory extends AbstractFactory {
 
     def newInstance (FactoryBuilderSupport builder, name, value, Map attributes) {
         Action action  = RuleFactory.newAction(name: value)
+        action
     }
 
     boolean onHandleNodeAttributes (FactoryBuilderSupport builder, Object node, Map attributes) {

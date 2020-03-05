@@ -47,8 +47,8 @@ class RuleFactory {
             //actionFactory.get(type.toString()).getConstructor().newInstance()
             action = factoryActionClazz.newInstance()
 
-        action.name = (action.name != "") ?: "anonymous action"
-        action.description = (action.description != "") ?: "description: anonymous action, does nothing"
+        action.name = (initMap?.name) ?: "anonymous action"
+        action.description = (initMap?.description) ?: "description: anonymous action, does nothing"
         action
     }
 
