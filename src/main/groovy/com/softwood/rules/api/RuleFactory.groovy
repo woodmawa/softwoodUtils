@@ -49,6 +49,8 @@ class RuleFactory {
 
         action.name = (initMap?.name) ?: "anonymous action"
         action.description = (initMap?.description) ?: "description: anonymous action, does nothing"
+        if (initMap.action)
+            action.action = initMap.action
         action
     }
 
@@ -98,8 +100,12 @@ class RuleFactory {
     }
 
     static Condition newCondition (Map initMap = null) {
-        Class<Condition> factoryConditionClazz = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
-
+        Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
+        if (initMap.dynamicTest)
+            condition.conditionTest = initMap.dynamicTest
+        if (initMap.conditionTest)
+            condition.conditionTest = initMap.conditionTest
+        condition
     }
 
 

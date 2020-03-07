@@ -1,5 +1,9 @@
 package com.softwood.rules.api
 
-interface Condition {
-    boolean test (Object o )
+import java.util.function.Predicate
+
+interface Condition extends Predicate {
+    Condition or (Condition c)
+    Condition and (Condition c)
+    Condition negate ()
 }

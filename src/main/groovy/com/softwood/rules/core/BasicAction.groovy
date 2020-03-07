@@ -23,7 +23,7 @@ class BasicAction implements Action {
 
     String name = ""
     String description = ""
-    private Closure doAction = {arg -> "No Action"}  //do nothing
+    protected Closure doAction = {arg -> "No Action"}  //do nothing
 
     //enable action to carry state data if required as context for doAction closure
     Map stateData = new ConcurrentHashMap<>()

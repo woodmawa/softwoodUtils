@@ -2,12 +2,15 @@ package com.softwood.rules.core
 
 import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Fact
+import groovy.transform.MapConstructor
 import groovy.transform.ToString
+import groovy.util.logging.Slf4j
 
 import java.util.function.Predicate
 
-@ToString
-class BasicCondition implements Predicate, Condition {
+@MapConstructor
+@Slf4j
+class BasicCondition implements Condition {
 
     def lowerLimit  = 0
     def upperLimit = 0
@@ -15,35 +18,70 @@ class BasicCondition implements Predicate, Condition {
     String name = "unnamed"
     String description = "unnamed"
 
-    private Closure dynamicTest = {fact -> println "default condition evaluated $fact.name, with value $fact.value, returning false"; return false}
-
-    void setTest (Closure test) {
+    protected Closure dynamicTest = {fact -> println "default condition evaluated $fact, returning false"; return false}
+    
+    //this will NOT be called by default map constructor when creating BasicCondition -
+    //the groovy logic directly tries to find public attribute - but this is a method
+    void setConditionTest (Closure test) {
         assert test
         dynamicTest =  test
     }
 
-    boolean test (Fact fact = null) {
+    Closure getConditionTest () {
+        dynamicTest
+    }
+
+    boolean test (fact = null) {
+        log.debug "evaluated test with <$fact> as input to the test"
         if (fact) {
-               dynamicTest (fact)
+            if (dynamicTest.maximumNumberOfParameters > 0)
+               return dynamicTest (fact)
+            else
+                return dynamicTest()
          }
         else
             return false
     }
 
-     boolean test(Object o) {
-        return dynamicTest (o)
+    Condition and (Condition other) {
+        Closure combined = {
+            def v1 = this.test(it)
+            def v2 =  other.test(it)
+            v1 && v2
+        }
+        BasicCondition condition =  new BasicCondition (name: "($name & $other.name)", description: "logical AND")
+        condition.conditionTest = combined
+        condition
     }
 
-    Predicate and(Predicate other) {
-        return super.and(other)
-    }
-
-     Predicate negate() {
+    Condition negate() {
         return super.negate()
     }
 
-    Predicate or(Predicate other) {
-        return super.or(other)
+    Condition or (Condition other) {
+        //return super.or(other)
+        Closure combined = {
+            def v1 = this.test(it)
+            def v2 =  other.test(it)
+            v1 || v2
+        }
+        BasicCondition condition =  new BasicCondition (name: "($name | $other.name)", description: "logical OR")
+        condition.conditionTest = combined
+        condition
     }
 
+    boolean asType (Class clazz, param=null) {
+        assert clazz
+        if (clazz == Boolean)
+            if (param)
+                this.test(param)
+            else
+                this.test()
+        else
+            this //just use groovy truth here - return this condition, would normally be 'true'
+    }
+
+    String toString() {
+        "${this.getClass().name} ($name, $description)"
+    }
 }
