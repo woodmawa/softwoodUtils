@@ -108,6 +108,17 @@ class RuleFactory {
         condition
     }
 
+    static Condition newCondition (Map initMap = null, Closure test) {
+        if (test)
+            if (initMap)
+                initMap << [conditionTest:test]
 
+        Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
+        if (initMap.dynamicTest)
+            condition.conditionTest = initMap.dynamicTest
+        if (initMap.conditionTest)
+            condition.conditionTest = initMap.conditionTest
+        condition
+    }
 
 }

@@ -12,19 +12,29 @@ import java.util.function.Predicate
 @Slf4j
 class BasicCondition implements Condition {
 
+    /*
+     * lowerLimit, upperLimit and measure are values that be for a condition and
+     * used in the test closure
+     *
+     * measure can be set as absolute value to test against
+     */
     def lowerLimit  = 0
     def upperLimit = 0
     def measure = 0
+
+    //A condition can have a name, and a description
     String name = "unnamed"
     String description = "unnamed"
 
-    protected Closure dynamicTest = {fact -> println "default condition evaluated $fact, returning false"; return false}
+    Closure dynamicTest = {fact -> println "default condition evaluated $fact, returning false"; return false}
 
-    //this will NOT be called by default map constructor when creating BasicCondition -
-    //the groovy logic directly tries to find public attribute - but this is a method
+    //this setter will NOT be called by default map constructor when creating BasicCondition -
+    //the groovy logic directly tries to find public attribute - but this is a method so its not called
     void setConditionTest (Closure test) {
         assert test
         dynamicTest =  test
+        dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
+        dynamicTest.delegate = this
     }
 
     Closure getConditionTest () {
@@ -40,7 +50,7 @@ class BasicCondition implements Condition {
                 return dynamicTest()
          }
         else
-            return false
+            return dynamicTest()    //just invoke the no args test
     }
 
     Condition and (Condition other) {
@@ -62,6 +72,10 @@ class BasicCondition implements Condition {
         condition
     }
 
+    /*
+     * if coerced to boolean evaluate the test and return it
+     * otherwise just use the default groovy truth for this
+     */
     boolean asType (Class clazz, param=null) {
         assert clazz
         if (clazz == Boolean)
