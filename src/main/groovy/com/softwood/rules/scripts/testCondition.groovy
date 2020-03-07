@@ -25,7 +25,7 @@ boolean bool1 = c1
 boolean bool2 = c1 as Boolean //have to force explicitly to get the cast
 
 println "bool1 was $bool1, and bool2 was $bool2"
-def c3 = c1 or c2
+def c3 = c1 | c2
 
 println "c3 is " + c3.class.name + " with dynamic test closure " + c3.dynamicTest
 

@@ -5,5 +5,7 @@ appender("Console-Appender", ConsoleAppender) {
     }
 }
 
+//see https://dzone.com/articles/logback-configuration-using-groovy
+logger("com.softwood.rules", INFO, ["Console-Appender" /*, "File-Appender", "Async-Appender"*/], false)
 
 root(DEBUG,["Console-Appender"])
