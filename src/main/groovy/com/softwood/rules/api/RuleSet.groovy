@@ -129,6 +129,6 @@ class RuleSet implements Iterable<Rule> {
     }
 
     String toString() {
-        "$this.class.name ($name, numRules:${rules.size()})"
+        "$this.class.name ($name, num of rules:${rules.size()})"
     }
 }

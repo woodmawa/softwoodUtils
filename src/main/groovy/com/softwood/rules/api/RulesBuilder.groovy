@@ -73,8 +73,6 @@ class BuilderRuleFactory extends AbstractFactory {
 
 class BuilderConditionFactory extends AbstractFactory {
 
-    boolean isLeaf () {true}
-
     def newInstance (FactoryBuilderSupport builder, name, value, Map attributes) {
         Condition condition  = new BasicCondition (name:value)
     }
@@ -98,10 +96,16 @@ class BuilderConditionFactory extends AbstractFactory {
         }
         //closure test for condition to check
         if (attributes.test) {
-            node.test = attributes.test
+            node.conditionTest = attributes.test
             attributes.remove ('test')
         }
     }
+
+    //if child it must be the closure for the condition
+    void setChild (FactoryBuilderSupport builder, Object parent, Object child) {
+        parent.conditionAction = child as Closure
+    }
+
 }
 
 class BuilderActionFactory extends AbstractFactory {
@@ -124,7 +128,7 @@ class BuilderActionFactory extends AbstractFactory {
         }
         //this allows for either version when declaring an action
         if (attributes.doAction) {
-            node.doAction = attributes.doAction
+            node.action = attributes.doAction
             attributes.remove ('doAction')
         }
         if (attributes.action) {
@@ -135,6 +139,7 @@ class BuilderActionFactory extends AbstractFactory {
 
     //if child it must be the closure for the action
     void setChild (FactoryBuilderSupport builder, Object parent, Object child) {
+        println "action: set child called with $child"
         parent.action = child as Closure
     }
 
