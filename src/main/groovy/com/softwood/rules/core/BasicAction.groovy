@@ -23,7 +23,7 @@ class BasicAction implements Action {
 
     String name = ""
     String description = ""
-    protected Closure doAction = {arg -> "No Action"}  //do nothing
+    Closure doAction = {arg -> "Default: No Action"}  //do nothing
 
     //enable action to carry state data if required as context for doAction closure
     Map stateData = new ConcurrentHashMap<>()
@@ -45,6 +45,8 @@ class BasicAction implements Action {
     void setAction (Closure c) {
         doAction = c.clone()
         doAction.resolveStrategy = Closure.DELEGATE_FIRST
+        //set the this action as the delegate for doAction.  closure can call getStateData() for action state
+        doAction.delegate = this
     }
 
     void setDoAction (Closure c) {
@@ -61,8 +63,6 @@ class BasicAction implements Action {
 
         def result
         if (param != null) {
-            //set the action as the delegate for doAction.  closure can call getStateData() for action state
-            doAction.delegate = this
 
             if (param)
                 log.debug "Action $this, running doAction closure with $param"

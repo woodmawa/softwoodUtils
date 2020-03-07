@@ -32,7 +32,7 @@ class BasicCondition implements Condition {
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
     void setConditionTest (Closure test) {
         assert test
-        dynamicTest =  test
+        dynamicTest =  test.clone()
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
         dynamicTest.delegate = this
     }

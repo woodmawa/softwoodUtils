@@ -11,7 +11,7 @@ class TestConditionSpec extends Specification {
         given: "two conditions that take an arg as input, test equality in the closure"
         String param = "william"
         //create a BasicCondition directly, however default map constructor is looking at public fields not  get/setters, so first create
-        //without the explicit use of setter would fail
+        //without the explicit use of setter would fail, unless dynamicTest is made public
         Condition condition1 = new BasicCondition(name: "c1#", description : "my first condition", dynamicTest: {it == "william"})
         condition1.conditionTest = {it == "william"}
         //create a BasicCondition via the RuleFactory, you can pass the condition as a map constructor entry or as closure

@@ -58,6 +58,12 @@ class RuleFactory {
         newAction (ActionType.Standard, initMap)
     }
 
+    static Action newAction (Map initMap =null, Closure newAct) {
+        if (Action)
+            initMap << [action: newAct]
+        newAction (ActionType.Standard, initMap)
+    }
+
     static Rule newRule (RuleType type, Map initMap=null) {
 
         Class<Rule> factoryRuleClazz = ruleFactory.get(type.toString())
