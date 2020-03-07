@@ -44,27 +44,19 @@ class BasicCondition implements Condition {
     }
 
     Condition and (Condition other) {
-        Closure combined = {
-            def v1 = this.test(it)
-            def v2 =  other.test(it)
-            v1 && v2
-        }
+        Closure combined = {this.test(it) && other.test(it)}
         BasicCondition condition =  new BasicCondition (name: "($name & $other.name)", description: "logical AND")
         condition.conditionTest = combined
         condition
     }
 
-    Condition negate() {
-        return super.negate()
+    Condition negate(param =null) {
+        return !test (param)
     }
 
     Condition or (Condition other) {
         //return super.or(other)
-        Closure combined = {
-            def v1 = this.test(it)
-            def v2 =  other.test(it)
-            v1 || v2
-        }
+        Closure combined = {this.test(it) || other.test(it)}
         BasicCondition condition =  new BasicCondition (name: "($name | $other.name)", description: "logical OR")
         condition.conditionTest = combined
         condition
