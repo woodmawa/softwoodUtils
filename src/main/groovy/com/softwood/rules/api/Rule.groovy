@@ -34,6 +34,16 @@ interface Rule extends Comparable<Rule> {
          */
         int getPriority()
 
+        /*
+         * get the collection of preConditions
+         */
+        Collection<Condition> getPreConditions ()
+
+        /*
+        * get the collection of effects
+        */
+        Collection<Closure> getEffects  ()
+
         /**
          * Rule conditions abstraction : this method encapsulates the rule's conditions.
          * <strong>Implementations should handle any runtime exception and return true/false accordingly</strong>
