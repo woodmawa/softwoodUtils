@@ -1,5 +1,6 @@
 package com.softwood.rules
 
+import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import com.softwood.rules.api.RuleFactory
 import spock.lang.Specification
@@ -12,7 +13,7 @@ class TestRuleSpec extends Specification {
             Rule rule = RuleFactory.newRule (name:'rule#1', description:'new rule', priority:10){ result = "rule executed"}
             rule.preConditions << RuleFactory.newCondition () {it > 10 }
             rule.effects << {effectResult = "done"}
-            
+            Facts facts = new Facts()
 
             then: "try and evoke the rule "
             rule.execute(facts, )

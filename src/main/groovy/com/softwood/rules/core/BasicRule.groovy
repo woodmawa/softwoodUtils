@@ -47,6 +47,10 @@ class BasicRule implements Rule, Comparable {
 
     Collection <MethodClosure> postActionEffects = new ConcurrentLinkedQueue<>()
 
+    List<MethodClosure> getEffects () {
+        postActionEffects.toList()
+    }
+
     void setAction (Closure action) {
         assert action
         action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
@@ -112,9 +116,17 @@ class BasicRule implements Rule, Comparable {
             applyPostActionEffects(arg)
             ret
         } else {
-            log.debug  "rule evaulate  : pre conditions $preConditions were not met "
+            log.debug  "rule execute   : pre conditions $preConditions were not met "
             "preconditions not met"
         }
+    }
+
+    /*
+     * forced execution of the rule action, no preconditions check
+     */
+    def justExecute (arg = null) {
+        log.debug  "rule justExecute   : invoked action with $arg "
+        action.invoke (arg)
     }
 
 

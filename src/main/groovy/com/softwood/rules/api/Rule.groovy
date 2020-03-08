@@ -42,7 +42,7 @@ interface Rule extends Comparable<Rule> {
         /*
         * get the collection of effects
         */
-        Collection<Closure> getEffects  ()
+        List<Closure> getEffects  ()
 
         /**
          * Rule conditions abstraction : this method encapsulates the rule's conditions.
@@ -59,5 +59,12 @@ interface Rule extends Comparable<Rule> {
          */
         def execute(Facts facts) throws Exception
         def execute(Facts facts, arg) throws Exception
+
+        /**
+         * Rule actions abstraction : this method just directly calls the action - no conditions check, no effects invoked
+         * @throws Exception thrown if an exception occurs during actions performing
+         */
+        def justExecute() throws Exception
+        def justExecute(arg) throws Exception
 
 }
