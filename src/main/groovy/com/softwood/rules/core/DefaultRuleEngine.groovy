@@ -19,10 +19,10 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
             println "rule '$rule.name' evaluate facts $facts"
 
-            ruleListeners.each {it.beforeEvaluate(rule, facts)}
+            ruleListeners.each {it?.beforeEvaluate(rule, facts)}
 
             boolean res = rule.evaluate (facts, arg)
-            ruleListeners.each {it.afterEvaluate(rule, facts, res)}
+            ruleListeners.each {it?.afterEvaluate(rule, facts, res)}
 
         }
         results
@@ -35,12 +35,12 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
        Collection<Object> results = prioritySortedRules.iterator().collect { Rule rule ->
 
            def result
-           ruleListeners.each {it.beforeExecute(rule, facts)}
+           ruleListeners.each {it?.beforeExecute(rule, facts)}
            try {
                result = rule.execute (facts, arg)
-               ruleListeners.each {it.onSuccess(rule, facts)}
+               ruleListeners.each {it?.onSuccess(rule, facts)}
            } catch  (Exception e) {
-               ruleListeners.each { it.onError (rule, facts, e) }
+               ruleListeners.each { it?.onError (rule, facts, e) }
            }
            result
        }
@@ -58,18 +58,21 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
     boolean check(Facts facts, Rule rule, arg = null) {
         assert rule, facts
 
+        ruleListeners.each {it?.beforeEvaluate(rule, facts)}
         rule.evaluate(facts, arg)
+        ruleListeners.each {it?.afterEvaluate(rule, facts)}
 
     }
 
     def run (Facts facts, Rule rule, arg = null) {
         assert rule, facts
 
+        ruleListeners.each {it?.beforeExecute(rule, facts)}
         try {
             rule.execute (facts, arg)
-            ruleListeners.each {it.onSuccess(rule, facts)}
+            ruleListeners.each {it?.onSuccess(rule, facts)}
         } catch  (Exception e) {
-            ruleListeners.each { it.onError (rule, facts, e) }
+            ruleListeners.each { it?.onError (rule, facts, e) }
         }
     }
 

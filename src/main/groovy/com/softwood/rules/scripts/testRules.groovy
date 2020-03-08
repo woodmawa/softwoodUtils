@@ -3,10 +3,13 @@ package com.softwood.rules.scripts
 import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.RuleEngine
+import com.softwood.rules.api.RuleListener
 import com.softwood.rules.api.RuleSet
 import com.softwood.rules.core.BasicAction
 import com.softwood.rules.core.DefaultRuleEngine
 import com.softwood.rules.core.BasicRule
+
+import java.beans.PropertyChangeListener
 
 def rule = new BasicRule (name:"rule#1", description: "first rule", priority: 1)
 //assign action to the rule
@@ -58,6 +61,12 @@ assert facts.description == "starter for 10"
 
 //rule engine is statless so pass it any facts and any rules you want evaluated
 RuleEngine re = new DefaultRuleEngine()
+
+Map listener = [afterEvaluate: {lrule, lfacts, lresult -> println "listener: after evaluate rule $lrule with facts $lfacts returned $lresult "},
+                 beforeExecute: {lrule, lfacts -> println "listener: before the run the action on $lrule with facts $lfacts"},
+                 onSuccess: {lrule, lfacts -> println "listener: succeeded to run the action on $lrule with facts $lfacts"}
+                ]
+re.registerRuleListener( listener as RuleListener)
 
 def res = re.run(facts, rules)
 

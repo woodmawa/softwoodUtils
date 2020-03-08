@@ -30,7 +30,7 @@ class BasicAction implements Action {
 
     //dont permit chnage of state from without the action
     Map getStateData () {
-        stateData.asImmutable()
+        stateData
     }
 
     void setStateData (Map state) {

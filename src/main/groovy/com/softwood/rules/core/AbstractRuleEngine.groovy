@@ -5,6 +5,7 @@ import groovy.beans.Bindable
 import com.softwood.rules.api.RuleEngineListener
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
  * enable class to add rule listeners
@@ -13,8 +14,32 @@ import java.util.concurrent.ConcurrentHashMap
  */
 
 class AbstractRuleEngine {
-    @Bindable List<RuleEngineListener> ruleEngineListeners = []
-    @Bindable List<RuleListener> ruleListeners = []
+    Queue<RuleEngineListener> ruleEngineListeners = new ConcurrentLinkedQueue<>()
+    Queue<RuleListener> ruleListeners = new ConcurrentLinkedQueue<>()
 
     HashMap attributes = new ConcurrentHashMap<>()
+
+    public List<RuleListener> getRuleListeners() {
+        return ruleListeners.toList()
+    }
+
+    public List<RuleEngineListener> getRulesEngineListeners() {
+        return ruleEngineListeners.toList()
+    }
+
+    public void registerRulesEngineListener(RuleEngineListener ruleEngineListener) {
+        rulesEngineListeners.add(ruleEngineListener)
+    }
+
+    public void registerRuleListener(RuleListener ruleListener) {
+        ruleListeners.add(ruleListener)
+    }
+
+    public void registerRuleListeners(List<RuleListener> ruleListeners) {
+        this.ruleListeners.addAll(ruleListeners)
+    }
+
+    public void registerRulesEngineListeners(List<RuleEngineListener> ruleEngineListeners) {
+        this.rulesEngineListeners.addAll(ruleEngineListeners);
+    }
 }
