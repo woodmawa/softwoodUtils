@@ -40,9 +40,14 @@ interface Rule extends Comparable<Rule> {
         Collection<Condition> getPreConditions ()
 
         /*
-        * get the collection of effects
+        * get the collection of effects as a list of closures
         */
-        List<Closure> getEffects  ()
+        List<Closure> getEffectsList  ()
+
+        /*
+         * returns reference to internal action effects queue
+         */
+        Collection<Closure> getPostActionEffects ()
 
         /**
          * Rule conditions abstraction : this method encapsulates the rule's conditions.

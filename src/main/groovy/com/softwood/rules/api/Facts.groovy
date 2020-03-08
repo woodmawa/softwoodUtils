@@ -22,10 +22,16 @@ class Facts<String, Object>  {
 
     Facts leftShift (Map map) {
         $map.putAll(map)
+        this
     }
 
     // get fact using key from $map delegate
-    public <T> T findFact(key) {
+    Fact findFact(key) {
+        def value = $map.get (key)
+       new BasicFact (name:key, value:value)
+    }
+
+    public <T> T getFactValue(key) {
         return (T) $map.get (key)
     }
 

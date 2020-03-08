@@ -79,6 +79,21 @@ class RuleFactory {
         newRule (RuleType.Standard, initMap)
     }
 
+    /*
+     * if rule is created with a closure, assume its for the embedded rule.action
+     */
+    static Rule newRule (Map initMap =null, Closure actionMethod) {
+        assert actionMethod
+        Rule rule = newRule (RuleType.Standard, initMap)
+        //if created with a closure create a default Action using the closure and assign to the rule
+        (rule as BasicRule).action  = newAction([name:'RuleFactory initialised'], actionMethod)
+        rule
+
+    }
+
+    /*
+     * create a new rule engine instance
+     */
     static RuleEngine newRuleEngine (RuleEngineType type, Map initMap=null) {
 
         Class<RuleEngine> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
@@ -107,22 +122,23 @@ class RuleFactory {
 
     static Condition newCondition (Map initMap = null) {
         Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
-        if (initMap.dynamicTest)
+        if (initMap?.dynamicTest)
             condition.conditionTest = initMap.dynamicTest
-        if (initMap.conditionTest)
+        if (initMap?.conditionTest)
             condition.conditionTest = initMap.conditionTest
         condition
     }
 
     static Condition newCondition (Map initMap = null, Closure test) {
-        if (test)
-            if (initMap)
-                initMap << [conditionTest:test]
-
+        if (initMap == null)
+            initMap = [name: 'Anonymous Condition']
+        if (test) {
+            initMap << [conditionTest: test]
+        }
         Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
-        if (initMap.dynamicTest)
+        if (initMap?.dynamicTest)
             condition.conditionTest = initMap.dynamicTest
-        if (initMap.conditionTest)
+        if (initMap?.conditionTest)
             condition.conditionTest = initMap.conditionTest
         condition
     }

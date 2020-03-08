@@ -47,7 +47,7 @@ class BasicRule implements Rule, Comparable {
 
     Collection <MethodClosure> postActionEffects = new ConcurrentLinkedQueue<>()
 
-    List<MethodClosure> getEffects () {
+    List<MethodClosure> getEffectsList () {
         postActionEffects.toList()
     }
 
@@ -98,7 +98,7 @@ class BasicRule implements Rule, Comparable {
         preConditionsCheck.get()
     }
 
-    def applyPostActionEffects (arg = null) {
+    private def applyPostActionEffects (arg = null) {
         //apply each effect if it has any defined passing in the optional arg to which the effect applies
         postActionEffects.each {
             effect -> effect(arg)
@@ -122,11 +122,14 @@ class BasicRule implements Rule, Comparable {
     }
 
     /*
-     * forced execution of the rule action, no preconditions check
+     * forced execution of the rule action, no preconditions check is applied
+     * if any effects are enabled then execute them as well
      */
     def justExecute (arg = null) {
         log.debug  "rule justExecute   : invoked action with $arg "
-        action.invoke (arg)
+        def result = action.invoke (arg)
+        applyPostActionEffects(arg)
+        result
     }
 
 
