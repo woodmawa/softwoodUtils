@@ -1,5 +1,6 @@
 package com.softwood.rules.core
 
+import ch.qos.logback.core.joran.conditional.ElseAction
 import com.softwood.rules.api.Action
 import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
@@ -100,8 +101,12 @@ class BasicRule implements Rule, Comparable {
 
     private def applyPostActionEffects (arg = null) {
         //apply each effect if it has any defined passing in the optional arg to which the effect applies
-        postActionEffects.each {
-            effect -> effect(arg)
+        log.debug "applying any post rule execution effects with arg : <$arg>"
+        postActionEffects.each { effect ->
+            if (effect.maximumNumberOfParameters > 0 )
+               effect(arg)
+            else
+                effect()
         }
     }
 
