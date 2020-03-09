@@ -15,5 +15,15 @@ interface RuleEngine {
     def run (Facts facts, Rule rule)
     def run (Facts facts, Rule rule, arg)
 
+    void registerRuleListener (RuleListener listener)
+    void registerRuleListeners (List<RuleListener> list)
+    void removeRuleListener (RuleListener listener)
 
+    void registerRuleEngineListener (RuleEngineListener listener)
+    void registerRuleEngineListeners (List<RuleEngineListener> list)
+    void removeRuleListener (RuleEngineListener listener)
+
+    void leftShift (Map mapOfAttributes)
+    void addAttribute (String key, value)
+    void removeAttribute (String key)
 }

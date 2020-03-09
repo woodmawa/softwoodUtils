@@ -27,7 +27,7 @@ class AbstractRuleEngine {
         firePropertyChange('attributes', oldValue, attributes)
     }
 
-    public void removeAttribute (String key, value) {
+    public void removeAttribute (String key) {
         assert key
 
         def oldValue = attributes.clone()
@@ -61,11 +61,20 @@ class AbstractRuleEngine {
         ruleListeners.add(ruleListener)
     }
 
+    public void removeRuleListener (RuleListener listener) {
+        ruleListeners.remove(listener)
+    }
+
+
     public void registerRuleListeners(List<RuleListener> ruleListeners) {
         this.ruleListeners.addAll(ruleListeners)
     }
 
     public void registerRulesEngineListeners(List<RuleEngineListener> ruleEngineListeners) {
         this.rulesEngineListeners.addAll(ruleEngineListeners);
+    }
+
+    public void removeRuleEngineListener (RuleEngineListener listener) {
+        ruleEngineListeners.remove(listener)
     }
 }
