@@ -17,7 +17,33 @@ class AbstractRuleEngine {
     Queue<RuleEngineListener> ruleEngineListeners = new ConcurrentLinkedQueue<>()
     Queue<RuleListener> ruleListeners = new ConcurrentLinkedQueue<>()
 
-    HashMap attributes = new ConcurrentHashMap<>()
+    @Bindable HashMap attributes = new ConcurrentHashMap<>()
+
+    public void addAttribute (String key, value) {
+        assert key
+
+        def oldValue = attributes.clone()
+        attributes.put (key, value )
+        firePropertyChange('attributes', oldValue, attributes)
+    }
+
+    public void removeAttribute (String key, value) {
+        assert key
+
+        def oldValue = attributes.clone()
+        attributes.remove (key, value )
+        firePropertyChange('attributes', oldValue, attributes)
+    }
+
+
+    void leftShift (Map attribs) {
+        assert attribs
+
+        def oldValue = attributes.clone()
+        attributes << attribs
+        firePropertyChange('attributes', oldValue, attributes)
+    }
+
 
     public List<RuleListener> getRuleListeners() {
         return ruleListeners.toList()
