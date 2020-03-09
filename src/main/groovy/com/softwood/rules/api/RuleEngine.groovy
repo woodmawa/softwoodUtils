@@ -21,7 +21,7 @@ interface RuleEngine {
 
     void registerRuleEngineListener (RuleEngineListener listener)
     void registerRuleEngineListeners (List<RuleEngineListener> list)
-    void removeRuleListener (RuleEngineListener listener)
+    void removeRuleEngineListener (RuleEngineListener listener)
 
     void leftShift (Map mapOfAttributes)
     void addAttribute (String key, value)

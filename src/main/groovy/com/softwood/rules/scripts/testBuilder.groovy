@@ -14,6 +14,7 @@ def rules = builder.ruleSet ('myRules') {
     rule ('myRule', description:'first rule', priority:0) {
         preCondition ('isTired', description:'must meet',lowerLimit:-1, upperLimit:10 , test:{ fact-> fact.value < 60}) /*{ fact-> fact.value < 60}*/
         action ('act#1', description:"do something", stateData:[:], doAction : {println "your tired"}) /*{println "your tired 2"}*/
+        effect (action : {println "applying my effect"})
     }
 }
 

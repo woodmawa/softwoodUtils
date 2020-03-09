@@ -45,20 +45,20 @@ class AbstractRuleEngine {
     }
 
 
+    /**
+     * process ruleListeners
+     *
+     */
     public List<RuleListener> getRuleListeners() {
         return ruleListeners.toList()
     }
 
-    public List<RuleEngineListener> getRulesEngineListeners() {
-        return ruleEngineListeners.toList()
-    }
-
-    public void registerRulesEngineListener(RuleEngineListener ruleEngineListener) {
-        rulesEngineListeners.add(ruleEngineListener)
-    }
-
     public void registerRuleListener(RuleListener ruleListener) {
         ruleListeners.add(ruleListener)
+    }
+
+    public void registerRuleListeners(List<RuleListener> ruleListeners) {
+        this.ruleListeners.addAll(ruleListeners)
     }
 
     public void removeRuleListener (RuleListener listener) {
@@ -66,15 +66,25 @@ class AbstractRuleEngine {
     }
 
 
-    public void registerRuleListeners(List<RuleListener> ruleListeners) {
-        this.ruleListeners.addAll(ruleListeners)
+    /**
+     * process ruleEngineListeners
+     *
+     */
+    public List<RuleEngineListener> getRuleEngineListeners() {
+        return ruleEngineListeners.toList()
     }
 
-    public void registerRulesEngineListeners(List<RuleEngineListener> ruleEngineListeners) {
-        this.rulesEngineListeners.addAll(ruleEngineListeners);
+    public void registerRuleEngineListener(RuleEngineListener ruleEngineListener) {
+        ruleEngineListeners.add(ruleEngineListener)
+    }
+
+
+    public void registerRuleEngineListeners(List<RuleEngineListener> ruleEngineListeners) {
+        this.ruleEngineListeners.addAll(ruleEngineListeners);
     }
 
     public void removeRuleEngineListener (RuleEngineListener listener) {
         ruleEngineListeners.remove(listener)
     }
+
 }

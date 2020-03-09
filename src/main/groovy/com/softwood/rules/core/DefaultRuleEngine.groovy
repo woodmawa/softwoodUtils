@@ -3,6 +3,7 @@ package com.softwood.rules.core
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
 import com.softwood.rules.api.RuleEngine
+import com.softwood.rules.api.RuleEngineListener
 import com.softwood.rules.api.RuleSet
 import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
@@ -27,6 +28,9 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
     Collection<Boolean> check(Facts facts, RuleSet rules, arg = null) {
         assert rules, facts
         log.debug("with rules $rules, size ${rules.size()}")
+
+        //if any ruleEnginListeners are set, then process them
+        ruleEngineListeners.each {it?.beforeEvaluate(rules, facts)}
 
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
             println "rule '$rule.name' evaluate facts $facts"
@@ -63,14 +67,20 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
                    ruleListeners.each { it?.onError(rule, facts, e) }
                }
            }
+
+
            result
        }
+
+       //if any ruleEnginListeners are set, then  process them
+       ruleEngineListeners.each {it?.afterExecute(rules, facts, resultsList)}
+
        resultsList
    }
 
 
     /**
-     * these pair allow rule engine to process facts against a single rule
+     * these pair allow rule engine to process facts against a Single  rule, rather an ruleSet
      * @param facts
      * @param rule
      * @param arg - this will be passed as context data to any rule.action when executing the action closure
@@ -78,6 +88,9 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
      */
     boolean check(Facts facts, Rule rule, arg = null) {
         assert rule, facts
+
+        //if any ruleEnginListeners are set, then process them
+        ruleEngineListeners.each {it?.beforeRuleEvaluate(rule, facts)}
 
         def yehNey = ruleListeners.each {it?.beforeEvaluate(rule, facts)}
         if (yehNey.any {it == false}) {
@@ -103,10 +116,14 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
                 result = rule.execute(facts, arg)
                 ruleListeners.each {it?.onSuccess(rule, facts)}
             }
-            result
         } catch  (Exception e) {
             ruleListeners.each { it?.onError (rule, facts, e) }
         }
+
+        //if any ruleEnginListeners are set, then  process them
+        ruleEngineListeners.each {it?.afterRuleExecute(rule, facts, result)}
+
+        result
     }
 
 }
