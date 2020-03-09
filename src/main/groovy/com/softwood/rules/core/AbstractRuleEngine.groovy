@@ -31,7 +31,7 @@ class AbstractRuleEngine {
         assert key
 
         def oldValue = attributes.clone()
-        attributes.remove (key, value )
+        attributes.remove (key)
         firePropertyChange('attributes', oldValue, attributes)
     }
 
