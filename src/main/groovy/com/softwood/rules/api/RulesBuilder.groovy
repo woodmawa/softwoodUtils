@@ -186,20 +186,24 @@ class BuilderActionFactory extends AbstractFactory {
  */
 class BuilderEffectFactory extends AbstractFactory {
 
+    class EffectContainer {
+        Closure effectAction = {}
+    }
+
     boolean isLeaf () {true}
 
     def newInstance (FactoryBuilderSupport builder, name, value, Map attributes) {
-        Closure effect  = {}
+        new EffectContainer()
     }
 
     boolean onHandleNodeAttributes (FactoryBuilderSupport builder, Object node, Map attributes) {
         if (attributes.action) {
-            node = attributes.action.clone()
+            node.effectAction = attributes.action.clone()
             attributes.remove('action')
         }
     }
 
     void setParent (FactoryBuilderSupport builder, Object parent, Object node) {
-        parent.effects << node
+        parent.postActionEffects << node.effectAction
     }
 }
