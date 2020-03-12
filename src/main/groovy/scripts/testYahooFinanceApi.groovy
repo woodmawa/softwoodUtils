@@ -11,6 +11,17 @@ import groovy.json.JsonSlurper
 
 import groovyx.net.http.HTTPBuilder
 
+String apikey = System.getenv('RAPIDAPI-KEY')
+
+
+/**
+ * see https://rapidapi.com/blog/how-to-use-the-yahoo-finance-api/
+ *
+ * also
+ * https://docs.rapidapi.com/docs/keys
+ *
+ * https://rapidapi.com/integraatio/api/morningstar1
+ */
 
 //really basic form - just use URL /UrlConnection
 /*
@@ -18,7 +29,7 @@ def url = new URL('https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/get-su
 URLConnection http = url.openConnection()
 
 http.setRequestProperty('x-rapidapi-host', 'apidojo-yahoo-finance-v1.p.rapidapi.com')
-http.setRequestProperty('x-rapidapi-key', '38797a919fmsh89b375ea99634cfp1991eajsn80a3a7cfb54d')
+http.setRequestProperty('x-rapidapi-key', apikey)
 
 
 String result
@@ -30,11 +41,12 @@ result = reader.text
 System.exit (1)
  */
 
+
 //use Groovy HTTP Builder - this now works
 HTTPBuilder request = new HTTPBuilder ('https://apidojo-yahoo-finance-v1.p.rapidapi.com')
 
 request.setHeaders(['x-rapidapi-host': 'apidojo-yahoo-finance-v1.p.rapidapi.com',
-                'x-rapidapi-key' : '38797a919fmsh89b375ea99634cfp1991eajsn80a3a7cfb54d'
+                'x-rapidapi-key' : apikey
 ])
 
 request.get(path: '/market/get-summary',
@@ -46,10 +58,10 @@ request.get(path: '/market/get-summary',
 
 System.exit (1)
 
-//this alternative uses Unirest client 
+//this alternative uses Unirest client
 HttpResponse<String> response = Unirest.get("https://apidojo-yahoo-finance-v1.p.rapidapi.com/market/get-summary?region=UK&lang=en")
         .header("x-rapidapi-host", "apidojo-yahoo-finance-v1.p.rapidapi.com")
-        .header("x-rapidapi-key", "38797a919fmsh89b375ea99634cfp1991eajsn80a3a7cfb54d")
+        .header("x-rapidapi-key", apikey)
         .asString();
 
 JsonSlurper slurper = new JsonSlurper()
