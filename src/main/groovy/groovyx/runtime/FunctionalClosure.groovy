@@ -97,7 +97,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
         if (clos.maximumNumberOfParameters == 0){
             throw new IncorrectClosureArgumentsException("from: closure must accept at least one argument")
         }
-        Closure cons = new FunctionalClosure<>(clos.clone())
+        Closure cons = new FunctionalClosure<>(clos)
         cons
     }
 
@@ -111,7 +111,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
     static MethodClosure asMethodClosure (Closure clos ) {
         assert clos
 
-        Closure cons = new FunctionalClosure<>(clos.clone())
+        Closure cons = new FunctionalClosure<>(clos)
         cons::accept
     }
 
