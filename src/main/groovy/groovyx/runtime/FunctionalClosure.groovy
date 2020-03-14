@@ -24,9 +24,11 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
     FunctionalClosure (final Closure clos) {
         //setup the abstract closure with the owner of the closure
         //super(clos?.owner)
-        super (clos.clone())
+        super (clos.owner)
 
         maximumNumberOfParameters = clos.getMaximumNumberOfParameters()
+        parameterTypes = clos.parameterTypes
+        delegate = clos.delegate
         action = clos.clone()
    }
 
@@ -46,7 +48,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @param delegate - the object you want to provide the context for the action
      */
     //
-    void setDelegate (Object delegate) {
+    void setDelegate (final Object delegate) {
         action.delegate = delegate
     }
 
@@ -75,7 +77,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @param clos pass some closure to convert to Functional type
      * @return Consumer<T>
      */
-    static <T> Consumer<T>  consumerFrom (Closure clos ) {
+    static <T> Consumer<T>  consumerFrom (final Closure clos ) {
         assert clos
 
         if (clos.maximumNumberOfParameters == 0){
@@ -91,7 +93,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @param clos pass some closure to convert to Functional type
      * @return Consumer<T>
      */
-    static <T,R> Function<T, R>  functionFrom (Closure clos ) {
+    static <T,R> Function<T, R>  functionFrom (final Closure clos ) {
         assert clos
 
         if (clos.maximumNumberOfParameters == 0){
@@ -108,7 +110,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @return Consumer<T>
      */
 
-    static MethodClosure asMethodClosure (Closure clos ) {
+    static MethodClosure asMethodClosure (final Closure clos ) {
         assert clos
 
         Closure cons = new FunctionalClosure<>(clos)
