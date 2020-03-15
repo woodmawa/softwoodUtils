@@ -3,6 +3,7 @@ package scripts
 import groovyx.runtime.FunctionalClosure
 
 import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.core.Observable
 
 import io.reactivex.rxjava3.functions.Consumer
 import io.reactivex.rxjava3.functions.Function
@@ -48,3 +49,13 @@ flowl.map{num -> num*2}.subscribe({println it} )
 
 Flowable flow2 = Flowable.fromIterable([1,2,3])
 flow2.subscribe (cons)
+
+println "use an observer"
+String text = "william"
+Observable obs = Observable.just (text)
+
+obs.map {"hi " + it }.subscribe({println it})
+
+text = "marian"
+
+sleep(1000)
