@@ -1,6 +1,7 @@
 package scripts
 
 import groovyx.runtime.FunctionalClosure
+
 import io.reactivex.rxjava3.core.Flowable
 
 import io.reactivex.rxjava3.functions.Consumer
@@ -15,6 +16,12 @@ cons << {println it}
 
 //as this really a closure we can just invoke it
 cons("william")
+cons.accept(10)
+
+//force SAM coercion
+Function f = {println it + " william"; it} as Function
+println "for f('hi') returned > " + f('hi')
+
 
 Function func = FunctionalClosure.functionFrom ({println it; "function done"})
 
@@ -23,14 +30,21 @@ Consumer cons2 = FunctionalClosure.consumerFrom { num -> println num}
 
 MethodClosure mc = FunctionalClosure.asMethodClosure {println it}
 
-cons.accept(10)
+
+MethodClosure sout = System.out::println
+sout ("invoke System.out.println as a MethodClosure :")
+
+//get a method closure from an ordinary closure
+def methClos = {println it}::call
+ methClos ("try invoke methodClosure() from a closure ")
+
+//SAM coercion for closure to Function
+Function doubler = {num -> print "number to double is $num > "; 2*num} as Function
+println doubler.apply (10)
+
+Flowable flowl = Flowable.fromIterable([1,2,3])
+flowl.map{num -> num*2}.subscribe({println it} )
 
 
-def sout = System.out::println
-Flowable pl = Flowable.fromIterable([1,2,3])
-
-//Function pc = {num -> println num} as Function
-
-pl.map{num -> num*2}.subscribe(cons)
-
-
+Flowable flow2 = Flowable.fromIterable([1,2,3])
+flow2.subscribe (cons)
