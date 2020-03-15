@@ -1,63 +1,102 @@
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+
+    dependencies {
+        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.9.2'
+    }
+}
+
+
+/* cant use this form with allprojects {}
+//https://stackoverflow.com/questions/26236308/how-to-apply-plugin-to-allprojects-with-new-gradle-plugins-mechanism
+
 plugins {
     id 'groovy'
-    id 'java'
+    id 'java-library'
     id 'maven-publish'
 
 }
 
-group 'com.softwood'
-version '1.0-SNAPSHOT'
+ */
+allprojects {
 
-sourceCompatibility = 1.8
+    //cant use new plugins feature in all projects or subprojects yet - a known issue
+    apply plugin: 'java-library'
+    apply plugin: 'groovy'
+    apply plugin: 'maven-publish'
+    apply plugin: 'org.asciidoctor.convert'
+    apply from: "${rootProject.projectDir}/gradle/indy.gradle"
+    //apply from: "${rootProject.projectDir}/gradle/asciidoctor.gradle"
 
-repositories {
-    mavenCentral()
-    mavenLocal()
-    maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
+    tasks.withType(org.asciidoctor.gradle.AsciidoctorTask) {
+        outputs.cacheIf { true }
+    }
 
-}
+    //try incremental compile feature for groovy
+    tasks.withType(GroovyCompile).configureEach {
+        options.incremental = true
+    }
 
-dependencies {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        maven { url 'https://oss.sonatype.org/content/repositories/snapshots/' }
 
-    //implementation replaces compile and is not transitevly resolved, API is transitively resolved
-    implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.1'
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
-    implementation group: 'org.codehaus.groovy.modules.http-builder', name: 'http-builder', version: '0.7.1'
-    implementation group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
-    implementation group: 'io.reactivex.rxjava3', name: 'rxjava', version: '3.0.0'
+    }
 
+    //give each project its default dependencies
+    dependencies {
 
-    implementation group: 'com.fasterxml.uuid', name: 'java-uuid-generator', version: '4.0'
-    implementation group: 'io.vertx', name: 'vertx-core', version: '3.8.5'
-    implementation group: 'javax.inject', name: 'javax.inject', version: '1'
-    testImplementation group: 'junit', name: 'junit', version: '4.13'
-    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-M2-groovy-3.0' /*{
+        //implementation replaces compile and is not transitevly resolved, API is transitively resolved
+        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.1'
+        implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
+        implementation group: 'javax.inject', name: 'javax.inject', version: '1'
+        testImplementation group: 'junit', name: 'junit', version: '4.13'
+        testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-M2-groovy-3.0' /*{
         exclude group: 'org.codehaus.groovy', name: 'groovy-all'
     }*/
 
-    //
-    implementation group: 'com.github.seancfoley', name: 'ipaddress', version: '5.2.1'  //ipv4 & v6 handling library, better options than JDK
+    }
 
-}
+    buildDir = 'target'
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
+
+    //todo - fix this where is isReleaseVersion?
+    //ext.buildDate = isReleaseVersion?new Date():new Date(0)
+
+    /*
+     * todod
+    task generateReleaseInfo(type: ReleaseInfoGenerator) {
+        version = rootProject.groovyVersion
+        bundleVersion = rootProject.groovyBundleVersion
+        buildDate = rootProject.buildDate
+        outputFile = file("$buildDir/release-info/groovy-release-info.properties")
+    }*/
 
 //should include java and groovy
-task sourceJar (type : Jar) {
-    from sourceSets.main.allGroovy
-    classifier "sources"
-}
+    task sourceJar (type : Jar) {
+        from sourceSets.main.allGroovy
+        classifier "sources"
+    }
 
-publishing {
-    publications {
-        mavenGroovy(MavenPublication) {
-            from components.java
-           artifact (sourceJar) {
-                classifier = 'sources'
+    publishing {
+        publications {
+            mavenGroovy(MavenPublication) {
+                from components.java
+                artifact (sourceJar) {
+                    classifier = 'sources'
+                }
+                // more goes in here
             }
-            // more goes in here
+        }
+        repositories {
+            mavenLocal()
         }
     }
-    repositories {
-        mavenLocal()
-    }
-} 
+}
 

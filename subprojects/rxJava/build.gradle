@@ -1,0 +1,16 @@
+plugins {
+//inherits from root first
+}
+
+group 'com.com.softwood'
+version '1.0-SNAPSHOT'
+
+dependencies {
+    //inherits from allprojects{} in root - just add the extras here
+    //implementation group: 'group', name: 'name', version: '1.x.x'
+    implementation group: 'io.reactivex.rxjava3', name: 'rxjava', version: '3.0.1'
+
+}
+
+
+

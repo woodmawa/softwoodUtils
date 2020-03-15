@@ -2,6 +2,8 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="utils.com.softwood.rules.main" target="11" />
+      <module name="utils.com.softwood.rules.test" target="11" />
       <module name="utils_main" target="1.8" />
       <module name="utils_test" target="1.8" />
     </bytecodeTargetLevel>

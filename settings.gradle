@@ -1,2 +1,15 @@
 rootProject.name = 'utils'
 
+def subprojects = ['rules',
+        'rxJava',
+        'playpen',
+        'utils']
+
+//include these as projects
+include(subprojects as String[])
+
+//tell gradle where to find each subproject, under the /subprojects folder
+rootProject.children.each { prj ->
+    prj.projectDir = new File("$rootDir/subprojects/$prj.name")
+}
+
