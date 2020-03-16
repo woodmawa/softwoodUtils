@@ -1,4 +1,38 @@
-=== hello to Wills Rules
+= Softwood Rules
+:sectnums:
+:sectnumlevels: 5
 
-this is the first outting for Will Rules
+This project has come of previous work, and a smattering of cross reference from jeasy rules, with the addition of some features
+for my lad who was doing a games project and wanted an something for his AI rules engine.
+
+This engine was developed using Groovy v3.0.2 and java 11 LTS
+
+== Where to start
+The basic idea is simple, you need a view concepts to work from
+
+. Facts
+. Rules and RuleSet
+. Conditions
+. Actions
+. and Effects
+
+and Engine to process the Facts against the Rules
+
+the project consists oa a public API folder, and a core folder that provides the implementation
+users are expected to use the public API primarily to work with the library.
+
+so taking this in order, here are the basic principles to work with.
+
+=== Facts
+
+Facts is a named group of individual Fact's that you want the engine to assess against its rules.  This uses a ConcurrentHashMap internally, so
+it should be thread safe.
+
+This provides a name, and description attribute, but otherwise the Fact's are store in the ConcurrentHashmap delegate.
+
+this provides an << operator where by HashMap may be passed and this is put into the Facts
+
+
+
+
 

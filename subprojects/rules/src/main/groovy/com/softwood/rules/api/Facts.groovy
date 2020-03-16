@@ -20,7 +20,7 @@ class Facts<String, Object>  {
     String name = "my Facts"
     String description = "some standard facts"
 
-    Facts leftShift (Map map) {
+    Facts leftShift (final Map map) {
         $map.putAll(map)
         this
     }
