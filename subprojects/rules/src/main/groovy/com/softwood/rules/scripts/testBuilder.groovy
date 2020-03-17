@@ -8,7 +8,7 @@ import com.softwood.rules.api.RulesBuilder
 
 def builder = new RulesBuilder ()
 
-Closure yt = {println "your tired 2"}
+Closure yourTired = {println "your tired 2"}
 
 Closure effectAction = {println "applying my effect"}
 def rules = builder.ruleSet ('myRules') {
@@ -21,7 +21,7 @@ def rules = builder.ruleSet ('myRules') {
 
 rules.each { Rule rule->
     print "just do the action directly : "
-    rule.action.doAction()
+    rule.action.invoke()
 }
 
 Facts facts = new Facts()

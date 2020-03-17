@@ -19,11 +19,11 @@ class RuleFactory {
     private static def ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
 
     static enum ActionType {
-        Standard
+        Default
     }
 
     static enum RuleType {
-        Standard
+        Default
     }
 
     static enum RuleEngineType {
@@ -51,13 +51,13 @@ class RuleFactory {
     }
 
     static Action newAction (Map initMap =null) {
-        newAction (ActionType.Standard, initMap)
+        newAction (ActionType.Default, initMap)
     }
 
     static Action newAction (Map initMap =null, Closure newAct) {
         if (Action)
             initMap << [action: newAct]
-        newAction (ActionType.Standard, initMap)
+        newAction (ActionType.Default, initMap)
     }
 
     static Rule newRule (RuleType type, Map initMap=null) {
@@ -72,7 +72,7 @@ class RuleFactory {
     }
 
     static Rule newRule (Map initMap =null) {
-        newRule (RuleType.Standard, initMap)
+        newRule (RuleType.Default, initMap)
     }
 
     /*
@@ -139,4 +139,11 @@ class RuleFactory {
         condition
     }
 
+    static RuleSet newRuleSet (Map initMap = null) {
+        if (initMap == null)
+            initMap = [name: 'Anonymous RuleSet']
+
+        RuleSet ruleSet = (initMap) ? new RuleSet(initMap) : new RuleSet()
+        ruleSet
+    }
 }
