@@ -116,13 +116,21 @@ class BasicRule implements Rule, Comparable {
 
     def execute (Facts facts, arg = null) {
 
+        def result
         if (checkPreconditions(facts)) {
-            def ret = (arg ? action.invoke(arg) : action.invoke())
+            try {
+            result = (arg ? action.invoke(arg) : action.invoke())
+            }
+            catch (Exception e) {
+                log.debug "rule execute : threw exception, no post action effects were run   " + e.stackTrace
+                return "threw exception"
+            }
+
             applyPostActionEffects(arg)
-            ret
+            result
         } else {
             log.debug  "rule execute   : pre conditions $preConditions were not met "
-            "preconditions not met"
+            return "preconditions not met"
         }
     }
 
@@ -132,7 +140,15 @@ class BasicRule implements Rule, Comparable {
      */
     def justExecute (arg = null) {
         log.debug  "rule justExecute   : invoked action with $arg "
-        def result = action.invoke (arg)
+
+        def result
+        try {
+            result = action.invoke(arg)
+        } catch (Exception e) {
+            log.debug "rule justExecute : threw exception, no post action effects were run   " + e.stackTrace
+            return "threw exception"
+        }
+
         applyPostActionEffects(arg)
         result
     }
