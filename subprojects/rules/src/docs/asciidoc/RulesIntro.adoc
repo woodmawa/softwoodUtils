@@ -1,6 +1,11 @@
 = Softwood Rules
+:author:  Will Woodman
+:emial: <will.woodman@btinternet.com>
+:toc: left
+:tocLevels:4
 :sectnums:
 :sectnumlevels: 5
+:imagesdir: ./images
 
 This project has come of previous work, and a smattering of cross reference from jeasy rules, with the addition of some features
 for my lad who was doing a games project and wanted an something for his AI rules engine.
@@ -16,21 +21,49 @@ The basic idea is simple, you need a view concepts to work from
 . Actions
 . and Effects
 
-and Engine to process the Facts against the Rules
+and a RuleEngine instance to process the Facts against the Rules
 
-the project consists oa a public API folder, and a core folder that provides the implementation
+the project consists of a public API folder, and a core folder that provides the implementation
 users are expected to use the public API primarily to work with the library.
+
 
 so taking this in order, here are the basic principles to work with.
 
+
+=== Logical Model
+A picture is worth a thousand words so here is the basic structure of the project
+represented in UML.  This shows the core elements of the API and the default implementations
+to be found in the src/core folder
+
+image::uml/logicalmodel_Rulesmodel.png[]
+
+== Rules API
 === Facts
+Lets start with Facts.  This is implemented as a class in the api folder.
 
 Facts is a named group of individual Fact's that you want the engine to assess against its rules.  This uses a ConcurrentHashMap internally, so
 it should be thread safe.
 
-This provides a name, and description attribute, but otherwise the Fact's are store in the ConcurrentHashmap delegate.
+each instance of Facts can have a discrete `name` and `description` if required.  These are optional.
 
-this provides an << operator where by HashMap may be passed and this is put into the Facts
+This provides a name, and description attribute, but otherwise the Fact's are store in the ConcurrentHashmap delegate.
+Essentially each Map.Entry represents a Fact
+
+Facts provides an << (groovy left shift) operator where by a Map may be passed and this will be put into into the Facts internally.
+
+The RuleEngine can process Facts, or a single Fact if required against Rules.
+
+Facts provides a convenience method `findFact(String key)` that will do a lookup and if the entry is
+matched will return the Fact.  If you just want the value rather than the Fact entry use `getFactvalue(String key)` instead
+
+if you want a Stream<Fact> of facts then invoke the `stream()` method, which generates an immutable stream of
+facts for a stream pipeline.
+
+=== RuleFactory
+In order to simplify and hide the internals a Factory class is provided to generate
+instances of the required types, handle defaulting and so forth.
+
+This provides a number of methods to handle creating key instances you require for rule processing.
 
 
 

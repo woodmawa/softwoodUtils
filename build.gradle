@@ -31,6 +31,20 @@ allprojects {
     apply from: "${rootProject.projectDir}/gradle/indy.gradle"
     //apply from: "${rootProject.projectDir}/gradle/asciidoctor.gradle"
 
+    asciidoctor {
+        attributes 'build-gradle': file('build.gradle'),
+                'sourcedir': project.sourceSets.main.java.srcDirs[0],
+                'endpoint-url': 'http://example.org',
+                'imagesdir': 'images',
+                'toc': 'left',
+                'icons': 'font',
+                'setanchors': '',
+                'idprefix': '',
+                'idseparator': '-',
+                'docinfo': 'shared'
+
+    }
+
     tasks.withType(org.asciidoctor.gradle.AsciidoctorTask) {
         outputs.cacheIf { true }
     }
