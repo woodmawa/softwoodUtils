@@ -1,16 +1,36 @@
-
+/*
 buildscript {
     repositories {
-        jcenter()
+        mavenCentral()
+        //jcenter()
+        maven {
+            url "https://dl.bintray.com/asciidoctor/maven/"
+        }
         maven {
             url "https://plugins.gradle.org/m2/"
         }
+
     }
 
     dependencies {
-        classpath "org.asciidoctor:asciidoctor-gradle-plugin:${gradle_asciidoctor_version}",
-                "com.github.jruby-gradle:jruby-gradle-plugin:${gradle_asciidoctor_pdf_version}"
+        classpath "org.asciidoctor:asciidoctor-gradle-jvm:${gradle_asciidoctor_version}",
+                "org.asciidoctor:asciidoctor-gradle-jvm-gems:${gradle_asciidoctor_version}"
     }
+}
+*/
+
+/**
+ * this this is the latest version of asciidoctor plugin in new form
+ *
+ * see https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+ *
+ * set apply false at root project level -
+ * then use apply plugin in the allProjects{} or subprojects{} closures
+ *
+ */
+plugins {
+    id "org.asciidoctor.jvm.gems" version "${gradle_asciidoctor_version}" apply false
+    id "org.asciidoctor.jvm.convert" version "${gradle_asciidoctor_version}" apply false
 }
 
 
@@ -21,7 +41,6 @@ plugins {
     id 'groovy'
     id 'java-library'
     id 'maven-publish'
-
 }
 
  */
@@ -31,8 +50,9 @@ allprojects {
     apply plugin: 'java-library'
     apply plugin: 'groovy'
     apply plugin: 'maven-publish'
-    apply plugin: 'org.asciidoctor.convert'
-    apply plugin: "com.github.jruby-gradle.base"    //needed for asciidoctor-pdf
+    apply plugin: 'org.asciidoctor.jvm.convert'  //latest flavor
+    apply plugin: "org.asciidoctor.jvm.gems"
+    //apply plugin: "com.github.jruby-gradle.base"    //needed for asciidoctor-pdf
     apply from: "${rootProject.projectDir}/gradle/indy.gradle"
     //apply from: "${rootProject.projectDir}/gradle/asciidoctor.gradle"
 
@@ -51,9 +71,12 @@ allprojects {
 
     }
 
-    tasks.withType(org.asciidoctor.gradle.AsciidoctorTask) {
+    /*todo fix
+    tasks.withType(org.asciidoctor.jvm.gradle.AsciidoctorTask) {
+
         outputs.cacheIf { true }
     }
+    */
 
     //try incremental compile feature for groovy
     tasks.withType(GroovyCompile).configureEach {
