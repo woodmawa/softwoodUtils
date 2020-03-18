@@ -14,8 +14,8 @@ import java.lang.reflect.Constructor
  *
  */
 class RuleFactory {
-    private static def actionFactory = [(ActionType.Standard.toString()): BasicAction]
-    private static def ruleFactory = [(RuleType.Standard.toString()): BasicRule]
+    private static def actionFactory = [(ActionType.Default.toString()): BasicAction]
+    private static def ruleFactory = [(RuleType.Default.toString()): BasicRule]
     private static def ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
 
     static enum ActionType {

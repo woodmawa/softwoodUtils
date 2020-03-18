@@ -31,6 +31,7 @@ buildscript {
 plugins {
     id "org.asciidoctor.jvm.gems" version "${gradle_asciidoctor_version}" apply false
     id "org.asciidoctor.jvm.convert" version "${gradle_asciidoctor_version}" apply false
+    id 'org.asciidoctor.jvm.pdf' version "${gradle_asciidoctor_version}" apply false
 }
 
 
@@ -52,6 +53,7 @@ allprojects {
     apply plugin: 'maven-publish'
     apply plugin: 'org.asciidoctor.jvm.convert'  //latest flavor
     apply plugin: "org.asciidoctor.jvm.gems"
+    apply plugin: "org.asciidoctor.jvm.pdf"
     //apply plugin: "com.github.jruby-gradle.base"    //needed for asciidoctor-pdf
     apply from: "${rootProject.projectDir}/gradle/indy.gradle"
     //apply from: "${rootProject.projectDir}/gradle/asciidoctor.gradle"

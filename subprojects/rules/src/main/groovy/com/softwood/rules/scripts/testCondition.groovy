@@ -3,6 +3,13 @@ package com.softwood.rules.scripts
 import com.softwood.rules.api.Condition
 import com.softwood.rules.api.RuleFactory
 import com.softwood.rules.core.BasicCondition
+import com.softwood.rules.core.ConditionClosure
+
+//ConditionClosure conClos2 = {println "$it"; true}
+Condition conClos = new ConditionClosure({println "$it"; true} )
+conClos << {println " added some : $it"; true}
+boolean result = conClos.test ("hi william")
+
 
 def param = "william"
 Closure tes1 = {5 > 10}
