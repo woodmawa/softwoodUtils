@@ -33,8 +33,8 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     def measure = 0
 
     //A condition can have a name, and a description
-    String name = "unnamed"
-    String description = "unnamed"
+    public String name = "unnamed"
+    public String description = "unnamed"
 
     ConditionClosure(Object owner, Object thisObject ) {
         super(owner, thisObject)

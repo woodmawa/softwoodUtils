@@ -11,4 +11,12 @@ interface Condition extends Predicate {
     void setName (String name)
     String getDescription()
     void setDescription(String description)
+    void setLowerLimit (def lowerBound)
+    def getLowerLimit()
+    void setUpperLimit (def lowerBound)
+    def getUpperLimit()
+    void setMeasure (def measure)
+    def getMeasure ()
+    void setConditionTest (Predicate test)
+
 }

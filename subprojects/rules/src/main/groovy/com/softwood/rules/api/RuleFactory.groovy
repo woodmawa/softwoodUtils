@@ -3,10 +3,12 @@ package com.softwood.rules.api
 import com.softwood.rules.core.BasicAction
 import com.softwood.rules.core.BasicCondition
 import com.softwood.rules.core.BasicRule
+import com.softwood.rules.core.ConditionClosure
 import com.softwood.rules.core.DefaultRuleEngine
 import groovy.transform.CompileStatic
 
 import java.lang.reflect.Constructor
+import java.util.function.Predicate
 
 /**
  * Rule factory class to abstract away what the core implementation types are
@@ -19,6 +21,8 @@ class RuleFactory {
     private static Map actionFactory = [(ActionType.Default.toString()): BasicAction]
     private static Map ruleFactory = [(RuleType.Default.toString()): BasicRule]
     private static Map ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
+    private static Map conditionFactory = [(ConditionType.Default.toString()): BasicCondition,
+                                           (ConditionType.Closure.toString()) : ConditionClosure]
 
     static enum ActionType {
         Default
@@ -31,6 +35,54 @@ class RuleFactory {
     static enum RuleEngineType {
         Default,Inferencing
     }
+
+    static enum ConditionType {
+        Default,Closure
+    }
+
+    /**
+     * we have two implementations of Condition, one as BasicCondition , the other as a ConditionClosure
+     * handle the variances
+     * @param type - Default or Closure
+     * @param initMap - initialisation map if provided
+     * @param predicate - a test closure
+     * @return
+     */
+    static Condition newCondition (ConditionType type, Map initMap=null, Predicate predicate=null) {
+        Class<Condition> factoryConditionClazz = conditionFactory.get(type.toString()) as Condition
+
+        Constructor<Condition> mapConstructor = factoryConditionClazz.getDeclaredConstructor(Map)
+        Condition condition
+
+        if (type == ConditionType.Closure) {
+            if (predicate)
+                condition = ConditionClosure.from (predicate::test)
+            else
+                condition = ConditionClosure.from ((initMap?.dynamicTest as Predicate)::test  ?: {})
+        } else if (type == ConditionType.Default) {
+            if (mapConstructor && initMap)
+                condition = mapConstructor.newInstance(initMap)
+            else
+                condition = factoryConditionClazz.newInstance()
+            if (initMap.test)
+                condition.conditionTest = predicate as Closure
+            else
+                condition.conditionTest = (initMap?.dynamicTest as Predicate)::test ?: {false}
+        }
+
+
+        condition.name = (initMap?.name) ?: "anonymous condition"
+        condition.description = (initMap?.description) ?: "description: anonymous condition"
+        condition
+
+    }
+
+    /**
+     * create a new action
+     * @param type
+     * @param initMap
+     * @return
+     */
 
     static Action newAction (ActionType type, Map initMap=null) {
 
@@ -48,7 +100,7 @@ class RuleFactory {
         action.name = (initMap?.name) ?: "anonymous action"
         action.description = (initMap?.description) ?: "description: anonymous action, does nothing"
         if (initMap.action)
-            action.action = initMap.action as Action
+            action.action = initMap.action as Closure
         action
     }
 
@@ -57,7 +109,7 @@ class RuleFactory {
     }
 
     static Action newAction (Map initMap =null, @DelegatesTo (Action) Closure newAct) {
-        if (Action)
+        if (newAct)
             initMap << [action: newAct]
         newAction (ActionType.Default, initMap)
     }
