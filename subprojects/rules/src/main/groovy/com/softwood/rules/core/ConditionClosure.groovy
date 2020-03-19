@@ -7,6 +7,8 @@ import groovy.util.logging.Slf4j
 import org.codehaus.groovy.reflection.stdclasses.CachedClosureClass
 import org.codehaus.groovy.runtime.ComposedClosure
 
+import java.util.function.Predicate
+
 @MapConstructor
 @Slf4j
 @CompileStatic
@@ -14,12 +16,13 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
 
     /**
      * add static builder to create ConditionClosure from original source closure
-     * @param closure
+     * @param predicate
      * @return
+     *
      */
-    static from (Closure closure) {
+    static Condition from (Predicate predicate) {
         //could clone here
-        new ConditionClosure (closure, closure.thisObject)
+        new ConditionClosure (predicate, predicate)
     }
 
     /*
@@ -33,8 +36,8 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     def measure = 0
 
     //A condition can have a name, and a description
-    public String name = "unnamed"
-    public String description = "unnamed"
+    String name = "unnamed"
+    String description = "unnamed"
 
     ConditionClosure(Object owner, Object thisObject ) {
         super(owner, thisObject)
@@ -78,20 +81,21 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
 
     Condition and (final Condition other) {
         Closure combined = {this.test(it) && other.test(it)}
-        ConditionClosure condition =  ConditionClosure<Boolean>.from (combined)
+        Condition condition =  ConditionClosure<Boolean>.from (combined)
         condition.name = "($name & $other.name)"
         condition.description = "logical AND"
         condition
     }
 
+    /* todo fix logic - just use default for now
     Boolean  negate(param =null) {
         return !test (param)
     }
-
+*/
     Condition or (final Condition other) {
         //return super.or(other)
         Closure combined = {this.test(it) || other.test(it)}
-        ConditionClosure condition =  ConditionClosure<Boolean>.from (combined)
+        Condition condition =  ConditionClosure<Boolean>.from (combined)
         condition.name = "($name & $other.name)"
         condition.description = "logical OR"
         condition
@@ -114,5 +118,10 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
 
     String toString() {
         "${this.getClass().name} ($name, $description)"
+    }
+
+    @Override
+    void setConditionTest(Predicate test) {
+        setDelegate (test as Object)
     }
 }

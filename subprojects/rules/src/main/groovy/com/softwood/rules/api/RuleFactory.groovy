@@ -65,14 +65,15 @@ class RuleFactory {
             else
                 condition = factoryConditionClazz.newInstance()
             if (initMap.test)
-                condition.conditionTest = predicate as Closure
+                condition.setConditionTest (predicate)
             else
-                condition.conditionTest = (initMap?.dynamicTest as Predicate)::test ?: {false}
+                condition.setConditionTest( (initMap?.dynamicTest as Predicate) ?: {false} as Predicate)
         }
 
-
-        condition.name = (initMap?.name) ?: "anonymous condition"
-        condition.description = (initMap?.description) ?: "description: anonymous condition"
+        String name = (initMap?.name) ?: "anonymous condition"
+        condition.setName(name)
+        String description = (initMap?.description) ?: "description: anonymous condition"
+        condition.setDescription(description)
         condition
 
     }
@@ -170,7 +171,7 @@ class RuleFactory {
         newRuleEngine (RuleEngineType.Default, initMap)
     }
 
-    static Condition newCondition (Map initMap = null) {
+/*    static Condition newCondition (Map initMap = null) {
         Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
         if (initMap?.dynamicTest)
             condition.conditionTest = initMap.dynamicTest as Closure
@@ -192,6 +193,7 @@ class RuleFactory {
             condition.conditionTest = initMap.conditionTest as Closure
         condition
     }
+*/
 
     static RuleSet newRuleSet (Map initMap = null) {
         if (initMap == null)

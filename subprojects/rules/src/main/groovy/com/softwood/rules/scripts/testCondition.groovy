@@ -19,7 +19,9 @@ myClos("hi william")
 
 Closure std = {println "std was called with '$it'"; true}
 println "std dump is  " + std.dump()
-Condition conClos = ConditionClosure.from (std )
+
+
+Condition conClos = RuleFactory.newCondition(RuleFactory.ConditionType.Closure, [name:'myCondition'], std )
 //conClos << {println " added some : $it"; true}
 println "conClos dump is " +  conClos.dump()
 println ">>now invoke the closure "

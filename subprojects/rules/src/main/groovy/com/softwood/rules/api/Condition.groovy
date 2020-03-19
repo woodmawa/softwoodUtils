@@ -5,7 +5,7 @@ import java.util.function.Predicate
 interface Condition extends Predicate {
     Condition or (Condition c)
     Condition and (Condition c)
-    Condition negate ()
+    //Condition negate () default defined in Predicate
 
     String getName()
     void setName (String name)

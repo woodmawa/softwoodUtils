@@ -5,6 +5,8 @@ import groovy.transform.CompileStatic
 import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
 
+import java.util.function.Predicate
+
 @MapConstructor
 @Slf4j
 @CompileStatic
@@ -28,9 +30,9 @@ class BasicCondition implements Condition {
 
     //this setter will NOT be called by default map constructor when creating BasicCondition -
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
-    void setConditionTest (Closure test) {
-        assert test
-        dynamicTest =  test.clone() as Closure
+    void setConditionTest (Predicate predicate) {
+        assert predicate
+        dynamicTest =  predicate::test
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
         dynamicTest.delegate = this
     }
@@ -58,9 +60,10 @@ class BasicCondition implements Condition {
         condition
     }
 
-    Boolean negate(param =null) {
-        return !test (param)
-    }
+    /*  todo fix logic - for now just just default in Predicate
+    Condition negate() {
+        return ConditionClosure.from(!getOwner())
+    }*/
 
     Condition or (Condition other) {
         //return super.or(other)
