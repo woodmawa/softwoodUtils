@@ -5,6 +5,8 @@ import com.softwood.rules.api.Action
 import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
+import com.softwood.rules.api.RuleFactory
+import groovy.transform.CompileStatic
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
@@ -24,6 +26,7 @@ import java.util.function.Predicate
 @MapConstructor
 @EqualsAndHashCode(includes = ["name", "description", "priority"])
 @Slf4j
+@CompileStatic
 class BasicRule implements Rule, Comparable {
 
     /**
@@ -52,18 +55,20 @@ class BasicRule implements Rule, Comparable {
         postActionEffects.toList()
     }
 
-    void setAction (Closure action) {
-        assert action
-        action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
+    void setAction (@DelegatesTo (Action) Closure task) {
+        assert task
+        action = RuleFactory.newAction (name:"anonymousAction", description:"anonymous action", task )
     }
 
     void setAction (Action action) {
         assert action
         this.action = action
     }
-    Action shiftleft (Closure action) {
+
+
+    Rule shiftLeft (Closure task) {
         assert action
-        action = new BasicAction (name:"anonymousAction", description:"anonymous action", action )
+        action = RuleFactory.newAction (name:"anonymousAction", description:"anonymous action", task )
         this
     }
 

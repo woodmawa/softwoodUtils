@@ -1,13 +1,26 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Condition
+import groovy.transform.CompileStatic
 import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
 import org.codehaus.groovy.reflection.stdclasses.CachedClosureClass
+import org.codehaus.groovy.runtime.ComposedClosure
 
 @MapConstructor
 @Slf4j
-class ConditionClosure extends Closure<Boolean> implements Condition {
+@CompileStatic
+class ConditionClosure<V> extends Closure<V> implements Condition {
+
+    /**
+     * add static builder to create ConditionClosure from original source closure
+     * @param closure
+     * @return
+     */
+    static from (Closure closure) {
+        //could clone here
+        new ConditionClosure (closure, closure.thisObject)
+    }
 
     /*
      * lowerLimit, upperLimit and measure are values that be for a condition and
@@ -25,16 +38,28 @@ class ConditionClosure extends Closure<Boolean> implements Condition {
 
     ConditionClosure(Object owner, Object thisObject ) {
         super(owner, thisObject)
-        //final CachedClosureClass cachedClass = (CachedClosureClass) ReflectionCache.getCachedClass(getClass());
-        //cachedClass
     }
 
     ConditionClosure(Object owner) {
         super(owner, null)
     }
 
+    public  Closure leftShift(final Closure other) {
+        ComposedClosure composed =  new ComposedClosure(other, this)
+        System.out.println "return composedClosure ${composed.toString()}  from ${other.toString()}"
+        composed
+    }
+
+    /**
+     * implement a doCall on this class. call() on inherited Closure will route to this doCall()
+     * @param args
+     * @return
+     */
+
     def doCall( args) {
-        def result = ((Closure) getOwner()).call(args)
+        Closure clos = (Closure) getOwner()
+        def result = clos.call(args)
+        println "return result as $result"
         result
     }
 
@@ -51,22 +76,24 @@ class ConditionClosure extends Closure<Boolean> implements Condition {
             return call()    //just invoke the no args test
     }
 
-    Condition and (Condition other) {
+    Condition and (final Condition other) {
         Closure combined = {this.test(it) && other.test(it)}
-        ConditionClosure condition =  new ConditionClosure (name: "($name & $other.name)", description: "logical AND")
-        condition.conditionTest = combined
+        ConditionClosure condition =  ConditionClosure<Boolean>.from (combined)
+        condition.name = "($name & $other.name)"
+        condition.description = "logical AND"
         condition
     }
 
-    Condition negate(param =null) {
+    Boolean  negate(param =null) {
         return !test (param)
     }
 
-    Condition or (Condition other) {
+    Condition or (final Condition other) {
         //return super.or(other)
         Closure combined = {this.test(it) || other.test(it)}
-        ConditionClosure condition =  new ConditionClosure (name: "($name | $other.name)", description: "logical OR")
-        condition.conditionTest = combined
+        ConditionClosure condition =  ConditionClosure<Boolean>.from (combined)
+        condition.name = "($name & $other.name)"
+        condition.description = "logical OR"
         condition
     }
 

@@ -4,6 +4,7 @@ import com.softwood.rules.core.BasicAction
 import com.softwood.rules.core.BasicCondition
 import com.softwood.rules.core.BasicRule
 import com.softwood.rules.core.DefaultRuleEngine
+import groovy.transform.CompileStatic
 
 import java.lang.reflect.Constructor
 
@@ -13,10 +14,11 @@ import java.lang.reflect.Constructor
  * returns instance of api interface class for the user to use
  *
  */
+@CompileStatic
 class RuleFactory {
-    private static def actionFactory = [(ActionType.Default.toString()): BasicAction]
-    private static def ruleFactory = [(RuleType.Default.toString()): BasicRule]
-    private static def ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
+    private static Map actionFactory = [(ActionType.Default.toString()): BasicAction]
+    private static Map ruleFactory = [(RuleType.Default.toString()): BasicRule]
+    private static Map ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
 
     static enum ActionType {
         Default
@@ -32,7 +34,7 @@ class RuleFactory {
 
     static Action newAction (ActionType type, Map initMap=null) {
 
-        Class<Rule> factoryActionClazz = actionFactory.get(type.toString())
+        Class<Action> factoryActionClazz = actionFactory.get(type.toString())
 
         Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
 
@@ -46,7 +48,7 @@ class RuleFactory {
         action.name = (initMap?.name) ?: "anonymous action"
         action.description = (initMap?.description) ?: "description: anonymous action, does nothing"
         if (initMap.action)
-            action.action = initMap.action
+            action.action = initMap.action as Action
         action
     }
 
@@ -54,7 +56,7 @@ class RuleFactory {
         newAction (ActionType.Default, initMap)
     }
 
-    static Action newAction (Map initMap =null, Closure newAct) {
+    static Action newAction (Map initMap =null, @DelegatesTo (Action) Closure newAct) {
         if (Action)
             initMap << [action: newAct]
         newAction (ActionType.Default, initMap)
@@ -78,9 +80,9 @@ class RuleFactory {
     /*
      * if rule is created with a closure, assume its for the embedded rule.action
      */
-    static Rule newRule (Map initMap =null, Closure actionMethod) {
+    static Rule newRule (Map initMap =null, @DelegatesTo (Action) Closure actionMethod) {
         assert actionMethod
-        Rule rule = newRule (RuleType.Standard, initMap)
+        Rule rule = newRule (RuleType.Default, initMap)
         //if created with a closure create a default Action using the closure and assign to the rule
         (rule as BasicRule).action  = newAction([name:'RuleFactory initialised'], actionMethod)
         rule
@@ -119,9 +121,9 @@ class RuleFactory {
     static Condition newCondition (Map initMap = null) {
         Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
         if (initMap?.dynamicTest)
-            condition.conditionTest = initMap.dynamicTest
+            condition.conditionTest = initMap.dynamicTest as Closure
         if (initMap?.conditionTest)
-            condition.conditionTest = initMap.conditionTest
+            condition.conditionTest = initMap.conditionTest as Closure
         condition
     }
 
@@ -133,9 +135,9 @@ class RuleFactory {
         }
         Condition condition = (initMap) ? new BasicCondition(initMap) : new BasicCondition()
         if (initMap?.dynamicTest)
-            condition.conditionTest = initMap.dynamicTest
+            condition.conditionTest = initMap.dynamicTest as Closure
         if (initMap?.conditionTest)
-            condition.conditionTest = initMap.conditionTest
+            condition.conditionTest = initMap.conditionTest as Closure
         condition
     }
 

@@ -1,11 +1,13 @@
 package com.softwood.rules.core
 
 import com.softwood.rules.api.Condition
+import groovy.transform.CompileStatic
 import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
 
 @MapConstructor
 @Slf4j
+@CompileStatic
 class BasicCondition implements Condition {
 
     /*
@@ -28,7 +30,7 @@ class BasicCondition implements Condition {
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
     void setConditionTest (Closure test) {
         assert test
-        dynamicTest =  test.clone()
+        dynamicTest =  test.clone() as Closure
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
         dynamicTest.delegate = this
     }
@@ -43,10 +45,10 @@ class BasicCondition implements Condition {
             if (dynamicTest.maximumNumberOfParameters > 0)
                return dynamicTest (fact)
             else
-                return dynamicTest()
+                return dynamicTest(null)
          }
         else
-            return dynamicTest()    //just invoke the no args test
+            return dynamicTest(null)    //just invoke the no args test
     }
 
     Condition and (Condition other) {
@@ -56,7 +58,7 @@ class BasicCondition implements Condition {
         condition
     }
 
-    Condition negate(param =null) {
+    Boolean negate(param =null) {
         return !test (param)
     }
 

@@ -6,4 +6,9 @@ interface Condition extends Predicate {
     Condition or (Condition c)
     Condition and (Condition c)
     Condition negate ()
+
+    String getName()
+    void setName (String name)
+    String getDescription()
+    void setDescription(String description)
 }
