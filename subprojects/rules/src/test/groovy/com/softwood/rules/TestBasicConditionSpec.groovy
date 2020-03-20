@@ -6,7 +6,7 @@ import com.softwood.rules.core.BasicCondition
 import spock.lang.Specification
 
 class TestBasicConditionSpec extends Specification {
-
+/*
     def "test BasicCondition with updated dynamicTest" () {
         given: "two conditions that take an arg as input, test equality in the closure"
         String param = "william"
@@ -61,7 +61,7 @@ class TestBasicConditionSpec extends Specification {
         res1OrRes2 == true
         res1AndRes2 == false
     }
-
+*/
     def "test a condition where an explicit upper and lower bound have been set "(){
         given: "a conditions set with upper and lower bounds, a measure set but not used   "
         Condition condition = RuleFactory.newCondition(name: "arg is between 5 and 10", description : "my first condition", upperLimit:10, lowerLimit:5, measure:8){it >= lowerLimit && it < upperLimit}

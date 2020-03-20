@@ -18,5 +18,6 @@ interface Condition extends Predicate {
     void setMeasure (def measure)
     def getMeasure ()
     Condition setConditionTest (Predicate test)
+    Condition setConditionTest (Closure test)
 
 }

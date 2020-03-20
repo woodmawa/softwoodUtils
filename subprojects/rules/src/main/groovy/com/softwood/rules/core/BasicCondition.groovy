@@ -32,10 +32,19 @@ class BasicCondition implements Condition {
     //this setter will NOT be called by default map constructor when creating BasicCondition -
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
     //it generates a new instance of Condition with the new predicate set
+    Condition setConditionTest (Closure closurePredicate) {
+        assert closurePredicate
+        dynamicTest =  closurePredicate.clone() as Closure
+        dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
+        dynamicTest.delegate = this
+        this
+    }
+
     Condition setConditionTest (Predicate predicate) {
         assert predicate
         dynamicTest =  predicate::test
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
+        dynamicTest.delegate = this
         this
     }
 

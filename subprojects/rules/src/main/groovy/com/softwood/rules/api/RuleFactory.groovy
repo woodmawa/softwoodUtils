@@ -49,7 +49,7 @@ class RuleFactory {
      * @param predicate - a class that implements Predicate
      * @return
      */
-    static Condition newCondition (ConditionType type, Map initMap=null, Predicate predicate) {
+    static Condition newCondition (ConditionType type, Map initMap=null,  @DelegatesTo (Condition) predicate) {
         def klazz = conditionFactory.get(type.toString())
         Class<Condition> factoryConditionClazz = klazz
 
@@ -76,25 +76,15 @@ class RuleFactory {
             }
             //if there is an explicit closure it takes precedence
             if (predicate)
-                condition.setConditionTest (predicate::test)
+                condition.setConditionTest (predicate)
         }
 
-        String name = (initMap?.name) ?: "anonymous condition"
+      String name = (initMap?.name) ?: "anonymous condition"
         condition.setName(name)
         String description = (initMap?.description) ?: "description: anonymous condition"
         condition.setDescription(description)
         condition
 
-    }
-
-    static Condition newCondition (ConditionType type, Map initMap, Closure predicateClos) {
-
-        predicateClos.delegate = this
-        predicateClos.resolveStrategy = Closure.DELEGATE_FIRST
-
-        Predicate predicate = predicateClos as Predicate
-        println "new cond : set delegate on clos pred"
-        newCondition(type, initMap, predicate)
     }
 
         /**
@@ -107,6 +97,10 @@ class RuleFactory {
         newCondition(ConditionType.Default, initMap, predicate)
     }
 
+    static Condition newCondition (Map initMap, Closure predicateClos) {
+        newCondition(ConditionType.Default, initMap, predicateClos)
+
+    }
         /**
      * create a new action
      * @param type

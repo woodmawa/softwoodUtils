@@ -150,7 +150,34 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     //expect this doesnt work
     @Override
     Condition setConditionTest(Predicate predicate) {
-        ConditionClosure.from (predicate::test)
+        ConditionClosure condition = ConditionClosure.from (predicate::test)
+        //having created a condition from the predicate, essentially clone the current into the new, and return new conditionClosure
+        condition.name = name
+        condition.description = name
+        condition.lowerLimit = lowerLimit
+        condition.upperLimit = upperLimit
+        condition.measure = measure
+
+
+        condition.delegate = condition
+        condition.resolveStrategy = Closure.DELEGATE_FIRST
+        condition
+    }
+
+    @Override
+    Condition setConditionTest(Closure closurePredicate) {
+        ConditionClosure condition = ConditionClosure.from (closurePredicate)
+        //having created a condition from the predicate, essentially clone the current into the new, and return new conditionClosure
+        condition.name = name
+        condition.description = name
+        condition.lowerLimit = lowerLimit
+        condition.upperLimit = upperLimit
+        condition.measure = measure
+
+
+        condition.delegate = condition
+        condition.resolveStrategy = Closure.DELEGATE_FIRST
+        condition
     }
 
     public Object clone() {
