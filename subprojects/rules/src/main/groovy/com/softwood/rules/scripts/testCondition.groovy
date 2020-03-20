@@ -6,6 +6,8 @@ import com.softwood.rules.core.BasicCondition
 import com.softwood.rules.core.ConditionClosure
 import org.codehaus.groovy.runtime.ComposedClosure
 
+import java.util.function.Predicate
+
 /*
 Closure myClos = {
     println "myClos this: $this, super: $this.class.superclass \n owners metaclass is: $owner.metaClass.class \nowner: $owner, super: $owner.class.superclass,  \ndelegate: $delegate"
@@ -15,6 +17,19 @@ println "\t>>>with thisObject as: $myClos.thisObject, and class as: $myClos.this
 myClos("hi william")
 */
 
+def res
+Condition testNegate = ConditionClosure.from{false}
+assert  testNegate.negate().test() == true
+
+assert ({false} as Predicate).negate().test() == true
+
+Condition lessThanTen = ConditionClosure.from ({it < 10} )
+Condition greaterThanFive = ConditionClosure.from {it > 5}
+Condition composite = lessThanTen.and (greaterThanFive)
+
+res = lessThanTen.test (8)
+assert composite.test(3 )  == false
+assert composite.test(7 )  == true
 
 
 Closure std = {println "std was called with '$it'"; true}
@@ -50,7 +65,7 @@ num = composed2 (2)
 println "composed2 (2) == $num"
 assert num == 9
 
-System.exit(1)
+
 
 def param = "william"
 Closure tes1 = {5 > 10}

@@ -6,12 +6,14 @@ import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
 import org.codehaus.groovy.reflection.stdclasses.CachedClosureClass
 import org.codehaus.groovy.runtime.ComposedClosure
+import org.codehaus.groovy.runtime.ConvertedClosure
+import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.function.Predicate
 
 @MapConstructor
 @Slf4j
-@CompileStatic
+//@CompileStatic
 class ConditionClosure<V> extends Closure<V> implements Condition {
 
     /**
@@ -21,8 +23,16 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
      *
      */
     static Condition from (Predicate predicate) {
+         new ConditionClosure (predicate, predicate)
+    }
+
+    static Condition from (Closure closPredicate) {
         //could clone here
-        new ConditionClosure (predicate, predicate)
+        new ConditionClosure (closPredicate, closPredicate)
+    }
+
+    static Condition from (MethodClosure methodReference) {
+        new ConditionClosure (methodReference, methodReference)
     }
 
     /*
@@ -54,15 +64,23 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     }
 
     /**
-     * implement a doCall on this class. call() on inherited Closure will route to this doCall()
+     * implement a doCall on this class. call() on inherited Closure will route to this doCall() here
      * @param args
      * @return
      */
 
     def doCall( args) {
-        Closure clos = (Closure) getOwner()
-        def result = clos.call(args)
-        println "return result as $result"
+
+        def result
+        if (args) {
+            if (maximumNumberOfParameters > 0)
+                result = owner.call(args)  //todo should this be delegate ?
+            else
+                result = owner.call()
+        }
+        else
+            result = owner.call()
+
         result
     }
 
@@ -70,33 +88,40 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     boolean test (fact = null) {
         log.debug "evaluated test with <$fact> as input to the test"
         if (fact) {
-            if (maximumNumberOfParameters > 0)
-               return call (fact)
-            else
-                return call()
+            def result = call (fact)
          }
         else
             return call()    //just invoke the no args test
     }
 
-    Condition and (final Condition other) {
-        Closure combined = {this.test(it) && other.test(it)}
+    Condition and (Condition other) {
+        Closure combined = {test(it) && other.test(it)}
         Condition condition =  ConditionClosure<Boolean>.from (combined)
-        condition.name = "($name & $other.name)"
+        String thisName, otherName, compositeName
+        thisName = getName()
+        otherName = other.getName()
+        condition.name = ( name == "unnamed" && other.name=="unnamed") ?"(unnamed)": "($name & $other.name)"
         condition.description = "logical AND"
         condition
     }
 
-    /* todo fix logic - just use default for now
-    Boolean  negate(param =null) {
-        return !test (param)
+
+    /**
+     * generate a condition from the inverse of the current closure logic
+     * @return
+     */
+    Condition  negate() {
+        Condition negative =  ConditionClosure.from {!test ()}
+        negative.name = "(NOT $name)"
+        negative.description = "Negate $description"
+        negative
     }
-*/
+
     Condition or (final Condition other) {
         //return super.or(other)
-        Closure combined = {this.test(it) || other.test(it)}
+        Closure combined = {test(it) || other.test(it)}
         Condition condition =  ConditionClosure<Boolean>.from (combined)
-        condition.name = "($name & $other.name)"
+        condition.name = ( name == "unnamed" && other.name=="unnamed") ?"(unnamed)": "($name & $other.name)"
         condition.description = "logical OR"
         condition
     }
@@ -120,6 +145,7 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         "${this.getClass().name} ($name, $description)"
     }
 
+    //expect this doesnt work
     @Override
     void setConditionTest(Predicate test) {
         setDelegate (test as Object)

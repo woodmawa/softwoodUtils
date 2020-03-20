@@ -6,6 +6,7 @@ import com.softwood.rules.core.BasicRule
 import com.softwood.rules.core.ConditionClosure
 import com.softwood.rules.core.DefaultRuleEngine
 import groovy.transform.CompileStatic
+import org.codehaus.groovy.runtime.MethodClosure
 
 import java.lang.reflect.Constructor
 import java.util.function.Predicate
@@ -45,18 +46,19 @@ class RuleFactory {
      * handle the variances
      * @param type - Default or Closure
      * @param initMap - initialisation map if provided
-     * @param predicate - a test closure
+     * @param predicate - a class that implements Predicate 
      * @return
      */
     static Condition newCondition (ConditionType type, Map initMap=null, Predicate predicate=null) {
-        Class<Condition> factoryConditionClazz = conditionFactory.get(type.toString()) as Condition
+        def klazz = conditionFactory.get(type.toString())
+        Class<Condition> factoryConditionClazz = klazz
 
         Constructor<Condition> mapConstructor = factoryConditionClazz.getDeclaredConstructor(Map)
         Condition condition
 
         if (type == ConditionType.Closure) {
             if (predicate)
-                condition = ConditionClosure.from (predicate::test)
+                condition = ConditionClosure.from (predicate::test as MethodClosure)
             else
                 condition = ConditionClosure.from ((initMap?.dynamicTest as Predicate)::test  ?: {})
         } else if (type == ConditionType.Default) {
