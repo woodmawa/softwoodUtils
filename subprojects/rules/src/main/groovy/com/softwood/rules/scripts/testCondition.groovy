@@ -17,7 +17,9 @@ println "\t>>>with thisObject as: $myClos.thisObject, and class as: $myClos.this
 myClos("hi william")
 */
 
+
 def res
+
 Condition testNegate = ConditionClosure.from{false}
 assert  testNegate.negate().test() == true
 
@@ -35,9 +37,13 @@ assert composite.test(7 )  == true
 Closure std = {println "std was called with '$it'"; true}
 println "std dump is  " + std.dump()
 
+Map m = [name:'myCondition']
+Condition conClos3 = RuleFactory.newCondition(RuleFactory.ConditionType.Closure, m, std )
+Condition conClos4 = conClos3.setConditionTest({println "changed : $it"; false})
+res = conClos4( 10)
 
-Condition conClos = RuleFactory.newCondition(RuleFactory.ConditionType.Closure, [name:'myCondition'], std )
-//conClos << {println " added some : $it"; true}
+Condition conClos = RuleFactory.newCondition(RuleFactory.ConditionType.Closure, m, std )
+
 println "conClos dump is " +  conClos.dump()
 println ">>now invoke the closure "
 boolean result = conClos.test ("hi william")
@@ -72,7 +78,7 @@ Closure tes1 = {5 > 10}
 Closure tes2 = {20 > 10}
 
 //not setting private attribute dynamicTest
-Condition c1 = new BasicCondition(name: "c1#", description : "my first condition ", conditionTest: tes1)
+Condition c1 = new BasicCondition(name: "c1#", description : "my first Basic condition ", conditionTest: tes1)
 c1.conditionTest = tes1  //this actually does the required set of the default
 
 //factory now handles setting the dynamic test from map input

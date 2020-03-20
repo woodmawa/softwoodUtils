@@ -5,7 +5,7 @@ import com.softwood.rules.api.RuleFactory
 import com.softwood.rules.core.BasicCondition
 import spock.lang.Specification
 
-class TestConditionSpec extends Specification {
+class TestBasicConditionSpec extends Specification {
 
     def "test BasicCondition with updated dynamicTest" () {
         given: "two conditions that take an arg as input, test equality in the closure"

@@ -23,18 +23,20 @@ class BasicCondition implements Condition {
     def measure = 0
 
     //A condition can have a name, and a description
-    String name = "unnamed"
-    String description = "unnamed"
+    final String UNNAMED = "unnamed"
+    String name = UNNAMED
+    String description = UNNAMED
 
     Closure dynamicTest = {fact -> println "default condition evaluated $fact, returning false"; return false}
 
     //this setter will NOT be called by default map constructor when creating BasicCondition -
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
-    void setConditionTest (Predicate predicate) {
+    //it generates a new instance of Condition with the new predicate set
+    Condition setConditionTest (Predicate predicate) {
         assert predicate
         dynamicTest =  predicate::test
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
-        dynamicTest.delegate = this
+        this
     }
 
     Closure getConditionTest () {
@@ -54,22 +56,27 @@ class BasicCondition implements Condition {
     }
 
     Condition and (Condition other) {
-        Closure combined = {this.test(it) && other.test(it)}
-        BasicCondition condition =  new BasicCondition (name: "($name & $other.name)", description: "logical AND")
-        condition.conditionTest = combined
+        Closure combined = {test(it) && other.test(it)}
+        String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name | $other.name)"
+        BasicCondition condition =  new BasicCondition (name: "$combinedName", description: "logical AND")
+        condition.setConditionTest (combined as Predicate)
         condition
     }
 
-    /*  todo fix logic - for now just just default in Predicate
-    Condition negate() {
-        return ConditionClosure.from(!getOwner())
-    }*/
+   Condition negate() {
+       BasicCondition condition = this.clone() as BasicCondition
+       condition.dynamicTest = {! dynamicTest(it)}
+       condition.name = "(Not $name)"
+
+       return condition
+    }
 
     Condition or (Condition other) {
         //return super.or(other)
-        Closure combined = {this.test(it) || other.test(it)}
-        BasicCondition condition =  new BasicCondition (name: "($name | $other.name)", description: "logical OR")
-        condition.conditionTest = combined
+        Closure combined = {test(it) || other.test(it)}
+        String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name | $other.name)"
+        BasicCondition condition =  new BasicCondition (name: "$combinedName", description: "logical OR")
+        condition.setConditionTest (combined as Predicate)
         condition
     }
 
@@ -91,4 +98,5 @@ class BasicCondition implements Condition {
     String toString() {
         "${this.getClass().name} ($name, $description)"
     }
+
 }

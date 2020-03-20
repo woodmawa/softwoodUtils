@@ -17,6 +17,6 @@ interface Condition extends Predicate {
     def getUpperLimit()
     void setMeasure (def measure)
     def getMeasure ()
-    void setConditionTest (Predicate test)
+    Condition setConditionTest (Predicate test)
 
 }

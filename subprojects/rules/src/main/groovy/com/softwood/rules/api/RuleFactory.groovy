@@ -17,12 +17,12 @@ import java.util.function.Predicate
  * returns instance of api interface class for the user to use
  *
  */
-@CompileStatic
+//@CompileStatic
 class RuleFactory {
     private static Map actionFactory = [(ActionType.Default.toString()): BasicAction]
     private static Map ruleFactory = [(RuleType.Default.toString()): BasicRule]
     private static Map ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
-    private static Map conditionFactory = [(ConditionType.Default.toString()): BasicCondition,
+    private static Map<String, Condition> conditionFactory = [(ConditionType.Default.toString()): BasicCondition,
                                            (ConditionType.Closure.toString()) : ConditionClosure]
 
     static enum ActionType {
@@ -46,10 +46,10 @@ class RuleFactory {
      * handle the variances
      * @param type - Default or Closure
      * @param initMap - initialisation map if provided
-     * @param predicate - a class that implements Predicate 
+     * @param predicate - a class that implements Predicate
      * @return
      */
-    static Condition newCondition (ConditionType type, Map initMap=null, Predicate predicate=null) {
+    static Condition newCondition (ConditionType type, Map initMap=null, Predicate predicate) {
         def klazz = conditionFactory.get(type.toString())
         Class<Condition> factoryConditionClazz = klazz
 
@@ -66,10 +66,17 @@ class RuleFactory {
                 condition = mapConstructor.newInstance(initMap)
             else
                 condition = factoryConditionClazz.newInstance()
-            if (initMap.test)
-                condition.setConditionTest (predicate)
-            else
-                condition.setConditionTest( (initMap?.dynamicTest as Predicate) ?: {false} as Predicate)
+            if (initMap.test) {
+                Predicate pred = initMap.test as Predicate
+                condition.setConditionTest(pred::test)
+            }
+            else if (initMap?.dynamicTest) {
+                Predicate pred = initMap.dynamicTest as Predicate
+                condition.setConditionTest(pred::test)
+            }
+            //if there is an explicit closure it takes precedence
+            if (predicate)
+                condition.setConditionTest (predicate::test)
         }
 
         String name = (initMap?.name) ?: "anonymous condition"
@@ -80,7 +87,27 @@ class RuleFactory {
 
     }
 
-    /**
+    static Condition newCondition (ConditionType type, Map initMap, Closure predicateClos) {
+
+        predicateClos.delegate = this
+        predicateClos.resolveStrategy = Closure.DELEGATE_FIRST
+
+        Predicate predicate = predicateClos as Predicate
+        println "new cond : set delegate on clos pred"
+        newCondition(type, initMap, predicate)
+    }
+
+        /**
+     * if untyped use BasicCondition as default, and call the generic factory method
+     * @param initMap
+     * @param predicate
+     * @return
+     */
+    static Condition newCondition (Map initMap, Predicate predicate=null) {
+        newCondition(ConditionType.Default, initMap, predicate)
+    }
+
+        /**
      * create a new action
      * @param type
      * @param initMap
@@ -89,7 +116,7 @@ class RuleFactory {
 
     static Action newAction (ActionType type, Map initMap=null) {
 
-        Class<Action> factoryActionClazz = actionFactory.get(type.toString())
+        Class<Action> factoryActionClazz = actionFactory.get(type.toString()) as Action
 
         Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
 
@@ -149,7 +176,7 @@ class RuleFactory {
      */
     static RuleEngine newRuleEngine (RuleEngineType type, Map initMap=null) {
 
-        Class<RuleEngine> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
+        Class<RuleEngine> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString()) as RuleEngine
 
         /*
          * cant call getDeclaredConstructor(Map) if theres only default constructor, throws an exception!

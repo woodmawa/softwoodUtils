@@ -46,8 +46,10 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     def measure = 0
 
     //A condition can have a name, and a description
-    String name = "unnamed"
-    String description = "unnamed"
+    final String UNNAMED = "unnamed"
+
+    String name = UNNAMED
+    String description = "anonymous"
 
     ConditionClosure(Object owner, Object thisObject ) {
         super(owner, thisObject)
@@ -74,12 +76,12 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         def result
         if (args) {
             if (maximumNumberOfParameters > 0)
-                result = owner.call(args)  //todo should this be delegate ?
+                result = delegate.call(args)  //todo should this be delegate ?
             else
-                result = owner.call()
+                result = delegate.call()
         }
         else
-            result = owner.call()
+            result = delegate.call()
 
         result
     }
@@ -100,7 +102,7 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         String thisName, otherName, compositeName
         thisName = getName()
         otherName = other.getName()
-        condition.name = ( name == "unnamed" && other.name=="unnamed") ?"(unnamed)": "($name & $other.name)"
+        condition.name = ( name == UNNAMED && other.name==UNNAMED) ?"($UNNAMED)": "($name & $other.name)"
         condition.description = "logical AND"
         condition
     }
@@ -121,7 +123,7 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         //return super.or(other)
         Closure combined = {test(it) || other.test(it)}
         Condition condition =  ConditionClosure<Boolean>.from (combined)
-        condition.name = ( name == "unnamed" && other.name=="unnamed") ?"(unnamed)": "($name & $other.name)"
+        condition.name = ( name == UNNAMED && other.name==UNNAMED) ?"($UNNAMED)": "($name & $other.name)"
         condition.description = "logical OR"
         condition
     }
@@ -147,7 +149,15 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
 
     //expect this doesnt work
     @Override
-    void setConditionTest(Predicate test) {
-        setDelegate (test as Object)
+    Condition setConditionTest(Predicate predicate) {
+        ConditionClosure.from (predicate::test)
+    }
+
+    public Object clone() {
+        try {
+            return super.clone()
+        } catch (final CloneNotSupportedException e) {
+            return null
+        }
     }
 }
