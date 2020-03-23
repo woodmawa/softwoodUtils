@@ -3,6 +3,7 @@ package com.softwood.rules
 import com.softwood.rules.api.Condition
 import com.softwood.rules.api.RuleFactory
 import com.softwood.rules.core.ConditionClosure
+import org.codehaus.groovy.runtime.ComposedClosure
 import spock.lang.Specification
 
 class TestConditionClosureSpec extends Specification {
@@ -21,9 +22,9 @@ class TestConditionClosureSpec extends Specification {
         //have to use getName as Closure implements getProperty, and defaults to getPropertyOwnerFirst(property) and will ignore any added properties you provide
         condition.name == "c1#"
         condition.description == "my first condition"
-        (condition.lowerLimit).is Optional.ofNullable(null)
-        (condition.upperLimit).is Optional.ofNullable(null)
-        (condition.measure).is Optional.ofNullable(null)
+        condition.lowerLimit == 0
+        condition.upperLimit == 0
+        condition.measure == 0
 
     }
 
@@ -32,18 +33,23 @@ class TestConditionClosureSpec extends Specification {
         ConditionClosure addOne = RuleFactory.newCondition(RuleFactory.ConditionType.Closure,  [name: "c1#", description : "my first condition"]) {it +1 }
         ConditionClosure timesTwo = RuleFactory.newCondition(RuleFactory.ConditionType.Closure,  [name: "c1#", description : "my first condition"]) {it * 2 }
 
+        //as this is a closure it inherits << and >> and returns ComposedClosure
+        ComposedClosure ls_combined = addOne << timesTwo //x2 then + 1
+        ComposedClosure rs_combined = addOne >> timesTwo //+1 then x2
 
-        expect:
-        def ls_result = addOne
-        def rs_result
+        when:
+        def addOne_result = addOne.call(1)
+        def timesTwoResult = timesTwo.call(2)
+        def rs_result = rs_combined.call (2)
+        def ls_result = ls_combined.call (2)
 
-        //have to use getName as Closure implements getProperty, and defaults to getPropertyOwnerFirst(property) and will ignore any added properties you provide
-        condition.name == "c1#"
-        condition.description == "my first condition"
-        (condition.lowerLimit).is Optional.ofNullable(null)
-        (condition.upperLimit).is Optional.ofNullable(null)
-        (condition.measure).is Optional.ofNullable(null)
 
+                //have to use getName as Closure implements getProperty, and defaults to getPropertyOwnerFirst(property) and will ignore any added properties you provide
+        then:
+        addOne_result == 2
+        timesTwoResult == 4
+        ls_result == 5
+        rs_result == 6
     }
     def "test BasicCondition with updated dynamicTest" () {
         given: "two conditions that take an arg as input, test equality in the closure"

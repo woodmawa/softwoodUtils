@@ -12,6 +12,30 @@ import org.codehaus.groovy.runtime.*;
 
 import java.util.function.Predicate
 
+/**
+ *
+ * this is an alternative try out approach to embedding a closure - and making the Condition a closure in its own right.
+ * This has been a bit experimental fiddling with closures but sure we get enough benefit to warrant real use
+ * Stick with BasicCondition as the default for now.
+ *
+ * problem is there is still nothing that lets you access the internally generated anonymous code block.
+ * what happens by default is that call () just delegates to the metaClass doCall() method which is where the
+ * hidden magic must all be being generated.
+ *
+ * not sure the purpose of the thisObject is in the abstract base class see
+ * https://github.com/groovy/groovy-core/blob/master/src/main/groovy/lang/Closure.java
+ *
+ * I've addded some static methods to generate a ConditionClosure from an existing closure, as i cant intercept/access
+ * internal method to reset it in any practical way
+ *
+ * when calling the setConditionTest () on ConditionClosure i essentially have a return a whole new clone with the
+ * new logic, whereas the BasicCondition will actually update the dynamicTest closure reference in situ and return
+ * the same condition instance
+ *
+ *
+ * @param <V>
+ */
+
 @MapConstructor
 @Slf4j
 //@CompileStatic
@@ -41,6 +65,10 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
      * used in the test closure
      *
      * measure can be set as absolute value to test against
+     *
+     * todo : what we could do is make this an inner class and then allow that to be the delegate when
+     *  trying to provide access to lowerLimit etc.  this would overcome the problem of recursion when trying to
+     *  set self as delegate - as BasicCondition  is working not sure of the value of trying this overall
      */
     def lowerLimit  = 0
     def upperLimit = 0
@@ -60,11 +88,6 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         super(owner, null)
     }
 
-    public  Closure leftShift(final Closure other) {
-        ComposedClosure composed =  new ComposedClosure(other, this)
-        System.out.println "return composedClosure ${composed.toString()}  from ${other.toString()}"
-        composed
-    }
 
     /**
      * implement a doCall on this class. call() on inherited Closure will route to this doCall() here

@@ -50,7 +50,7 @@ class BasicRule implements Rule, Comparable {
     //set action to an action that does nothing - returns "Do nothing action" by default
     Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
-    Collection <MethodClosure> postActionEffects = new ConcurrentLinkedQueue<>()
+    Collection<Closure> postActionEffects = new ConcurrentLinkedQueue<>()
 
     void addAllPreConditions(Collection<Condition> conditions) {
         assert conditions
@@ -71,7 +71,7 @@ class BasicRule implements Rule, Comparable {
         preConditions.clear()
     }
 
-    List<MethodClosure> getEffectsList () {
+    List<Closure> getEffectsList () {
         postActionEffects.toList()
     }
 

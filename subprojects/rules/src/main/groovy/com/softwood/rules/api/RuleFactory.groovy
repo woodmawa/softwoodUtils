@@ -49,7 +49,12 @@ class RuleFactory {
      * @param predicate - a class that implements Predicate
      * @return new Condition (either BasicCondition or ConditionClosure type)
      */
-    static Condition newCondition (ConditionType reqType, Map initMap,  Closure predicate) {
+    static Condition newCondition (ConditionType reqType, final Map map=null,  final Closure predicate) {
+
+        Map initMap = [:]
+        if (map)
+            initMap.putAll (map)
+
         def klazz = conditionFactory.get(reqType.toString())
         Class<Condition> factoryConditionClazz = klazz
 
@@ -106,7 +111,7 @@ class RuleFactory {
      * @param predicate
      * @return new BasicCondition
      */
-    static Condition newCondition (Map initMap, Predicate predicate=null) {
+    static Condition newCondition (final Map initMap, final Predicate predicate=null) {
         newCondition(ConditionType.Default, initMap, predicate)
     }
 
@@ -116,55 +121,29 @@ class RuleFactory {
      * @param predicateClos - (one that returns true or false)
      * @return new BasicCondition
      */
-    static Condition newCondition (Map initMap=null, Closure predicateClos) {
+    static Condition newCondition (final Map initMap=null, final Closure predicateClos) {
         newCondition(ConditionType.Default, initMap, predicateClos)
     }
 
 
+
     /**
-     * most generic factory type, expects, the type of action to create, expects an init map, and expects a closure
-     * @param type
-     * @param initMap
-     * @param actionClosure
-     * @return
-     */
-    static Action newAction (ActionType type, Map initMap, actionClosure) {
-        Class<Action> factoryActionClazz = actionFactory.get(type.toString()) as Action
-
-        Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
-
-        Action newAction
-        if (mapConstructor && initMap)
-            newAction = mapConstructor.newInstance(initMap)
-        else
-        //actionFactory.get(type.toString()).getConstructor().newInstance()
-            newAction = factoryActionClazz.newInstance()
-
-        newAction.name = (initMap?.name) ?: "anonymous action"
-        newAction.description = (initMap?.description) ?: "description: anonymous action, does nothing"
-        if (initMap.action)
-            newAction.action = initMap.action as Closure
-
-        //if not null then set the closure for this Action, this takes priority over any action defined
-        //in inthe initMap
-        if (actionClosure instanceof Closure) {
-            newAction.setAction {actionClosure}
-        }
-        newAction
-
-    }
-        /**
      * create a new action
      * @param type
      * @param initMap
      * @return
      */
 
-    static Action newAction (ActionType type, Map initMap) {
+    static Action newAction (ActionType type, final Map map) {
 
-        Class<Action> factoryActionClazz = actionFactory.get(type.toString()) as Action
+        Map initMap = [:]
+        if (map)
+            initMap.putAll (map)
 
-        Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
+
+        def factoryActionClazz = actionFactory.get(type.toString())
+
+        Constructor mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
 
         Action newAction
         if (mapConstructor && initMap)
@@ -180,20 +159,33 @@ class RuleFactory {
         newAction
     }
 
-    static Action newAction (Map initMap =null, @DelegatesTo (Action) Closure newAct) {
+    /**
+     * if just closure assigned
+     * @param initMap
+     * @param newAct
+     * @return
+     */
+    static Action newAction (final Map map =null, final Closure newAct) {
+        Map initMap = [:]
+        if (map)
+            initMap.putAll (map)
         if (newAct)
-            initMap << [action: newAct]
+            initMap << [action: newAct]  //add newAct as action for constructor
         newAction (ActionType.Default, initMap)
     }
 
-    static Action newAction (Map initMap =null) {
-        if (initMap == null)
-            initMap = []
+    static Action newAction (final Map map =null) {
+        Map initMap = [:]
+        if (map)
+            initMap.putAll (map)
         newAction (ActionType.Default, initMap)
     }
 
 
-    static Rule newRule (RuleType type, Map initMap=null) {
+    static Rule newRule (RuleType type, final Map map=null) {
+        Map initMap = [:]
+        if (map)
+            initMap.putAll (map)
 
         Class<Rule> factoryRuleClazz = ruleFactory.get(type.toString())
 
@@ -204,6 +196,12 @@ class RuleFactory {
             return factoryRuleClazz.newInstance()
     }
 
+    /**
+     * if no declared action type assumes the Default - and at present there is only one type coded for.
+     *
+     * @param initMap
+     * @return
+     */
     static Rule newRule (Map initMap =null) {
         newRule (RuleType.Default, initMap)
     }
@@ -225,7 +223,7 @@ class RuleFactory {
      */
     static RuleEngine newRuleEngine (RuleEngineType type, Map initMap=null) {
 
-        Class<RuleEngine> factoryRuleEngineClazz = ruleEngineFactory.get(type.toString()) as RuleEngine
+        def factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
 
         /*
          * cant call getDeclaredConstructor(Map) if theres only default constructor, throws an exception!
@@ -236,7 +234,7 @@ class RuleFactory {
         Constructor[] cons = factoryRuleEngineClazz.constructors
         Class[] cTypes = cons[0].parameterTypes
         if (cTypes.contains(Map)){
-            Constructor<RuleEngine> mapConstructor = factoryRuleEngineClazz.getDeclaredConstructor(Map)
+            Constructor mapConstructor = factoryRuleEngineClazz.getDeclaredConstructor(Map)
             if (mapConstructor && initMap)
                 return mapConstructor.newInstance(initMap)
         }
