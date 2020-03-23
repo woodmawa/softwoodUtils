@@ -48,6 +48,8 @@ class BasicRule implements Rule, Comparable {
     Collection<Predicate> preConditions = new ConcurrentLinkedDeque<>()
 
     //set action to an action that does nothing - returns "Do nothing action" by default
+    //Todo - should we permit multiple actions for a given rule ?
+    // at the moment its 1 rule : 1 action but many post action effects
     Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
     Collection<Closure> postActionEffects = new ConcurrentLinkedQueue<>()
@@ -71,11 +73,22 @@ class BasicRule implements Rule, Comparable {
         preConditions.clear()
     }
 
-    List<Closure> getEffectsList () {
+
+    /**
+     * effects processing methods for a Rule
+     */
+    List<Closure> getPostActionEffectsList () {
         postActionEffects.toList()
     }
 
-    void setAction (@DelegatesTo (Action) Closure task) {
+    void clearPostActionEffects() {
+        postActionEffects.clear()
+    }
+
+    /**
+     * processing the action methods
+     */
+    void setAction (Closure task) {
         assert task
         action = RuleFactory.newAction (name:"anonymousAction", description:"anonymous action", task )
     }
@@ -148,9 +161,10 @@ class BasicRule implements Rule, Comparable {
             }
             catch (Exception e) {
                 log.debug "rule execute : threw exception, no post action effects were run   " + e.stackTrace
-                return "threw exception"
+                return "rethrew exception from rule execution "
             }
 
+            //rule must execute without exception before we can apply effects
             applyPostActionEffects(arg)
             result
         } else {
