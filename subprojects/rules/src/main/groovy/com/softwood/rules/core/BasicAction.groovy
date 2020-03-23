@@ -24,7 +24,10 @@ import java.util.concurrent.ConcurrentHashMap
 @CompileStatic
 class BasicAction implements Action {
 
-    String name = ""
+    static final ANONYMOUS_ACTION = "Anonymous Action"
+    static final ANONYMOUS_DESCRIPTION = "Description: Anonymous Action"
+
+    String name = ANONYMOUS_ACTION
     String description = ""
     Closure doAction = {arg -> "Default Action: No Action"}  //do nothing
 

@@ -152,8 +152,8 @@ class RuleFactory {
             //actionFactory.get(type.toString()).getConstructor().newInstance()
             newAction = factoryActionClazz.newInstance()
 
-        newAction.name = (initMap?.name) ?: "anonymous action"
-        newAction.description = (initMap?.description) ?: "description: anonymous action, does nothing"
+        newAction.name = (initMap?.name) ?: factoryActionClazz.ANONYMOUS_ACTION
+        newAction.description = (initMap?.description) ?: factoryActionClazz.ANONYMOUS_DESCRIPTION
         if (initMap.action)
             newAction.setAction (initMap.action as Closure)
         newAction

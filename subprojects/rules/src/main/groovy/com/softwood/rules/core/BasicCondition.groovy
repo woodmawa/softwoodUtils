@@ -12,6 +12,8 @@ import java.util.function.Predicate
 @CompileStatic
 class BasicCondition implements Condition {
 
+    static final String UNNAMED = "unnamed"
+
     /*
      * lowerLimit, upperLimit and measure are values that be for a condition and
      * used in the test closure
@@ -26,7 +28,6 @@ class BasicCondition implements Condition {
 
 
     //A condition can have a name, and a description
-    final String UNNAMED = "unnamed"
     String name = UNNAMED
     String description = UNNAMED
 
