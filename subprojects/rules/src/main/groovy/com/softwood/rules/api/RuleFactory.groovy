@@ -91,9 +91,9 @@ class RuleFactory {
         condition.setName(name)
         String description = (initMap?.description) ?: "description: anonymous condition"
         condition.setDescription(description)
-        condition.setLowerLimit ( (initMap?.lowerLimit) ?: Optional.ofNullable(null) )
-        condition.setUpperLimit ( (initMap?.upperLimit) ?: Optional.ofNullable(null) )
-        condition.setMeasure ( (initMap?.measure) ?: Optional.ofNullable(null) )
+        condition.setLowerLimit ( (initMap?.lowerLimit) ?: 0 )
+        condition.setUpperLimit ( (initMap?.upperLimit) ?: 0 )
+        condition.setMeasure ( (initMap?.measure) ?: 0 )
 
         condition
 

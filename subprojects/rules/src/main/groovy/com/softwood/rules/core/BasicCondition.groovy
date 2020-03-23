@@ -17,16 +17,20 @@ class BasicCondition implements Condition {
      * used in the test closure
      *
      * measure can be set as absolute value to test against
+     *
+     *
      */
     def lowerLimit  = 0
     def upperLimit = 0
     def measure = 0
+
 
     //A condition can have a name, and a description
     final String UNNAMED = "unnamed"
     String name = UNNAMED
     String description = UNNAMED
 
+    //basic version just embeds a closure as proxy to invoke when test() is called - returns false by default
     Closure dynamicTest = {fact -> log.debug "default condition evaluated $fact, returning false"; return false}
 
     //this setter will NOT be called by default map constructor when creating BasicCondition -
@@ -66,13 +70,13 @@ class BasicCondition implements Condition {
 
     Condition and (Condition other) {
         Closure combined = {test(it) && other.test(it)}
-        String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name | $other.name)"
+        String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name & $other.name)"
         BasicCondition condition =  new BasicCondition (name: "$combinedName", description: "logical AND")
         condition.setConditionTest (combined as Predicate)
         condition
     }
 
-   Condition negate() {
+    Condition negate() {
        BasicCondition condition = this.clone() as BasicCondition
        condition.dynamicTest = {! dynamicTest(it)}
        condition.name = "(Not $name)"

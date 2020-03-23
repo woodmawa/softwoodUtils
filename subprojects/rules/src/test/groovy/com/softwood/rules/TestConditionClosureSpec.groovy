@@ -7,6 +7,44 @@ import spock.lang.Specification
 
 class TestConditionClosureSpec extends Specification {
 
+    def "check returned closure from factory " () {
+        given:
+        Closure input = {it == "william"}
+        ConditionClosure condition = RuleFactory.newCondition(RuleFactory.ConditionType.Closure,  [name: "c1#", description : "my first condition"], input)
+
+        expect:
+        condition.hasProperty("name")
+        condition.owner.is input
+        condition.delegate.is input
+        condition.thisObject.is input
+
+        //have to use getName as Closure implements getProperty, and defaults to getPropertyOwnerFirst(property) and will ignore any added properties you provide
+        condition.name == "c1#"
+        condition.description == "my first condition"
+        (condition.lowerLimit).is Optional.ofNullable(null)
+        (condition.upperLimit).is Optional.ofNullable(null)
+        (condition.measure).is Optional.ofNullable(null)
+
+    }
+
+    def "check returned closure from factory supports right shift and left shift chaining " () {
+        given:
+        ConditionClosure addOne = RuleFactory.newCondition(RuleFactory.ConditionType.Closure,  [name: "c1#", description : "my first condition"]) {it +1 }
+        ConditionClosure timesTwo = RuleFactory.newCondition(RuleFactory.ConditionType.Closure,  [name: "c1#", description : "my first condition"]) {it * 2 }
+
+
+        expect:
+        def ls_result = addOne
+        def rs_result
+
+        //have to use getName as Closure implements getProperty, and defaults to getPropertyOwnerFirst(property) and will ignore any added properties you provide
+        condition.name == "c1#"
+        condition.description == "my first condition"
+        (condition.lowerLimit).is Optional.ofNullable(null)
+        (condition.upperLimit).is Optional.ofNullable(null)
+        (condition.measure).is Optional.ofNullable(null)
+
+    }
     def "test BasicCondition with updated dynamicTest" () {
         given: "two conditions that take an arg as input, test equality in the closure"
         String param = "william"
@@ -22,13 +60,17 @@ class TestConditionClosureSpec extends Specification {
         def  resultNew = newCondition.test(param)
 
         def  result2 = condition2.test(param)
+        def same = newCondition.is condition1
 
         then:
         condition1.getName()  == "c1#"
         condition1.getDescription() == "my first condition"
         result1 == true
 
+
+
         and:
+        !same
         newCondition.getName()  == "c1#"
         newCondition.getDescription() == "my first condition"
         result1 == true

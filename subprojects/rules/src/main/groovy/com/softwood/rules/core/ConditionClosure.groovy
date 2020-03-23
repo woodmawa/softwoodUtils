@@ -8,6 +8,7 @@ import org.codehaus.groovy.reflection.stdclasses.CachedClosureClass
 import org.codehaus.groovy.runtime.ComposedClosure
 import org.codehaus.groovy.runtime.ConvertedClosure
 import org.codehaus.groovy.runtime.MethodClosure
+import org.codehaus.groovy.runtime.*;
 
 import java.util.function.Predicate
 
@@ -107,7 +108,6 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         condition
     }
 
-
     /**
      * generate a condition from the inverse of the current closure logic
      * @return
@@ -184,5 +184,38 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         } catch (final CloneNotSupportedException e) {
             return null
         }
+    }
+
+    /**
+     *because abstract parent implements getProperty - we have to overide to add our new properties
+     */
+    @Override
+    public Object getProperty(final String property) {
+        if ("name".equals(property)) {
+            return getName();
+        } else if ("description".equals(property)) {
+            return getDescription();
+        } else if ("lowerLimit".equals(property)) {
+            return getLowerLimit();
+        } else if ("upperLimit".equals(property)) {
+            return getUpperLimit();
+        } else if ("measure".equals(property)) {
+            return getMeasure();
+        } else super.getProperty(property )
+    }
+
+    @Override
+    public void setProperty(final String property, Object newValue) {
+        if ("name".equals(property)) {
+            setName (newValue);
+        } else if ("description".equals(property)) {
+             setDescription(newValue);
+        } else if ("lowerLimit".equals(property)) {
+             getLowerLimit(Optional.ofNullable(newValue));
+        } else if ("upperLimit".equals(property)) {
+             getUpperLimit(Optional.ofNullable(newValue));
+        } else if ("measure".equals(property)) {
+             getMeasure(Optional.ofNullable(newValue));
+        } else super.setProperty(property, newValue )
     }
 }
