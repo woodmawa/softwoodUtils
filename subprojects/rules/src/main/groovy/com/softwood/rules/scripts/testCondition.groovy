@@ -82,7 +82,7 @@ Condition c1 = new BasicCondition(name: "c1#", description : "my first Basic con
 c1.conditionTest = tes1  //this actually does the required set of the default
 
 //factory now handles setting the dynamic test from map input
-Condition c2 = RuleFactory.newCondition(name:'c2#', description: "my 2nd condition", dynamicTest: tes2)
+Condition c2 = RuleFactory.newCondition(name:'c2#', description: "my 2nd condition" /*, dynamicTest: tes2*/) {20 > 10}
 
 def res1 = c1.test(param)
 def res2 = c2.test(param)

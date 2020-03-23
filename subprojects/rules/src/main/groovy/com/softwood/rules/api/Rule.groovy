@@ -34,6 +34,19 @@ interface Rule extends Comparable<Rule> {
          */
         int getPriority()
 
+        /**
+         * methods for adding and removing preCondition guards before actioning a rule
+         * @return
+         */
+
+        void addAllPreConditions (Collection<Condition> conditions)
+
+        void AddPreCondition (Condition condition)
+
+        void removePreCondition (Condition condition)
+
+        void clearAllPreConditions ()
+
         /*
          * get the collection of preConditions
          */

@@ -27,7 +27,7 @@ class BasicCondition implements Condition {
     String name = UNNAMED
     String description = UNNAMED
 
-    Closure dynamicTest = {fact -> println "default condition evaluated $fact, returning false"; return false}
+    Closure dynamicTest = {fact -> log.debug "default condition evaluated $fact, returning false"; return false}
 
     //this setter will NOT be called by default map constructor when creating BasicCondition -
     //the groovy logic directly tries to find public attribute - but this is a method so its not called

@@ -38,30 +38,38 @@ class RuleFactory {
     }
 
     static enum ConditionType {
-        Default,Closure
+        Default, Closure
     }
 
     /**
      * we have two implementations of Condition, one as BasicCondition , the other as a ConditionClosure
-     * handle the variances
-     * @param type - Default or Closure
+     * handles the variances based on the runtime type of the predicate
+     * @param reqType - Default or Closure
      * @param initMap - initialisation map if provided
      * @param predicate - a class that implements Predicate
-     * @return
+     * @return new Condition (either BasicCondition or ConditionClosure type)
      */
-    static Condition newCondition (ConditionType type, Map initMap=null,  @DelegatesTo (Condition) predicate) {
-        def klazz = conditionFactory.get(type.toString())
+    static Condition newCondition (ConditionType reqType, Map initMap,  Closure predicate) {
+        def klazz = conditionFactory.get(reqType.toString())
         Class<Condition> factoryConditionClazz = klazz
 
         Constructor<Condition> mapConstructor = factoryConditionClazz.getDeclaredConstructor(Map)
+        //instance to api interface definition
         Condition condition
 
-        if (type == ConditionType.Closure) {
-            if (predicate)
-                condition = ConditionClosure.from (predicate::test as MethodClosure)
-            else
-                condition = ConditionClosure.from ((initMap?.dynamicTest as Predicate)::test  ?: {})
-        } else if (type == ConditionType.Default) {
+        if (reqType == ConditionType.Closure) {
+            //If ConditionClosure type requested, build Condition using the static from methods on ConditionClosure
+            if (predicate) {
+                if (predicate instanceof Predicate)
+                    condition = ConditionClosure.from(predicate::test as MethodClosure)
+                else
+                    condition  = ConditionClosure.from(predicate as Closure)
+            }
+            else {
+                //no predicate passed so look for one in the initMap
+                condition = ConditionClosure.from((initMap?.dynamicTest as Predicate)::test ?: {})
+            }
+         } else if (reqType == ConditionType.Default) {
             if (mapConstructor && initMap)
                 condition = mapConstructor.newInstance(initMap)
             else
@@ -79,26 +87,70 @@ class RuleFactory {
                 condition.setConditionTest (predicate)
         }
 
-      String name = (initMap?.name) ?: "anonymous condition"
+        String name = (initMap?.name) ?: "anonymous condition"
         condition.setName(name)
         String description = (initMap?.description) ?: "description: anonymous condition"
         condition.setDescription(description)
+        condition.setLowerLimit ( (initMap?.lowerLimit) ?: Optional.ofNullable(null) )
+        condition.setUpperLimit ( (initMap?.upperLimit) ?: Optional.ofNullable(null) )
+        condition.setMeasure ( (initMap?.measure) ?: Optional.ofNullable(null) )
+
         condition
 
     }
 
-        /**
+    /**
      * if untyped use BasicCondition as default, and call the generic factory method
+     * this version accepts a java Functional Predicate interface
      * @param initMap
      * @param predicate
-     * @return
+     * @return new BasicCondition
      */
     static Condition newCondition (Map initMap, Predicate predicate=null) {
         newCondition(ConditionType.Default, initMap, predicate)
     }
 
-    static Condition newCondition (Map initMap, Closure predicateClos) {
+    /**
+     * Simplist factory, expects an optional initialisation map and a predicate closure
+     * @param (optional) initMap, initialisation map including name & description keys
+     * @param predicateClos - (one that returns true or false)
+     * @return new BasicCondition
+     */
+    static Condition newCondition (Map initMap=null, Closure predicateClos) {
         newCondition(ConditionType.Default, initMap, predicateClos)
+    }
+
+
+    /**
+     * most generic factory type, expects, the type of action to create, expects an init map, and expects a closure
+     * @param type
+     * @param initMap
+     * @param actionClosure
+     * @return
+     */
+    static Action newAction (ActionType type, Map initMap, actionClosure) {
+        Class<Action> factoryActionClazz = actionFactory.get(type.toString()) as Action
+
+        Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
+
+        Action newAction
+        if (mapConstructor && initMap)
+            newAction = mapConstructor.newInstance(initMap)
+        else
+        //actionFactory.get(type.toString()).getConstructor().newInstance()
+            newAction = factoryActionClazz.newInstance()
+
+        newAction.name = (initMap?.name) ?: "anonymous action"
+        newAction.description = (initMap?.description) ?: "description: anonymous action, does nothing"
+        if (initMap.action)
+            newAction.action = initMap.action as Closure
+
+        //if not null then set the closure for this Action, this takes priority over any action defined
+        //in inthe initMap
+        if (actionClosure instanceof Closure) {
+            newAction.setAction {actionClosure}
+        }
+        newAction
 
     }
         /**
@@ -108,28 +160,24 @@ class RuleFactory {
      * @return
      */
 
-    static Action newAction (ActionType type, Map initMap=null) {
+    static Action newAction (ActionType type, Map initMap) {
 
         Class<Action> factoryActionClazz = actionFactory.get(type.toString()) as Action
 
         Constructor<Action> mapConstructor = factoryActionClazz.getDeclaredConstructor(Map)
 
-        Action action
+        Action newAction
         if (mapConstructor && initMap)
-              action = mapConstructor.newInstance(initMap)
+              newAction = mapConstructor.newInstance(initMap)
         else
             //actionFactory.get(type.toString()).getConstructor().newInstance()
-            action = factoryActionClazz.newInstance()
+            newAction = factoryActionClazz.newInstance()
 
-        action.name = (initMap?.name) ?: "anonymous action"
-        action.description = (initMap?.description) ?: "description: anonymous action, does nothing"
+        newAction.name = (initMap?.name) ?: "anonymous action"
+        newAction.description = (initMap?.description) ?: "description: anonymous action, does nothing"
         if (initMap.action)
-            action.action = initMap.action as Closure
-        action
-    }
-
-    static Action newAction (Map initMap =null) {
-        newAction (ActionType.Default, initMap)
+            newAction.setAction (initMap.action as Closure)
+        newAction
     }
 
     static Action newAction (Map initMap =null, @DelegatesTo (Action) Closure newAct) {
@@ -137,6 +185,13 @@ class RuleFactory {
             initMap << [action: newAct]
         newAction (ActionType.Default, initMap)
     }
+
+    static Action newAction (Map initMap =null) {
+        if (initMap == null)
+            initMap = []
+        newAction (ActionType.Default, initMap)
+    }
+
 
     static Rule newRule (RuleType type, Map initMap=null) {
 

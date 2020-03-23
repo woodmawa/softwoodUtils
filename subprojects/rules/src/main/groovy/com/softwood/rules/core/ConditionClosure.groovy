@@ -102,8 +102,8 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         String thisName, otherName, compositeName
         thisName = getName()
         otherName = other.getName()
-        condition.name = ( name == UNNAMED && other.name==UNNAMED) ?"($UNNAMED)": "($name & $other.name)"
-        condition.description = "logical AND"
+        condition.setName ( ( name == UNNAMED && other.getName()==UNNAMED) ?"($UNNAMED)": "($name & ${other.getName()})" )
+        condition.setDescription  ("logical AND")
         condition
     }
 
@@ -114,8 +114,8 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
      */
     Condition  negate() {
         Condition negative =  ConditionClosure.from {!test ()}
-        negative.name = "(NOT $name)"
-        negative.description = "Negate $description"
+        negative.setName ( "(NOT $name)" )
+        negative.setDescription ("Negate $description")
         negative
     }
 
@@ -123,8 +123,8 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
         //return super.or(other)
         Closure combined = {test(it) || other.test(it)}
         Condition condition =  ConditionClosure<Boolean>.from (combined)
-        condition.name = ( name == UNNAMED && other.name==UNNAMED) ?"($UNNAMED)": "($name & $other.name)"
-        condition.description = "logical OR"
+        condition.setName ( ( name == UNNAMED && other.getName()==UNNAMED) ?"($UNNAMED)": "($name | ${other.getName()})" )
+        condition.setDescription ("logical OR")
         condition
     }
 
@@ -168,14 +168,12 @@ class ConditionClosure<V> extends Closure<V> implements Condition {
     Condition setConditionTest(Closure closurePredicate) {
         ConditionClosure condition = ConditionClosure.from (closurePredicate)
         //having created a condition from the predicate, essentially clone the current into the new, and return new conditionClosure
-        condition.name = name
-        condition.description = name
-        condition.lowerLimit = lowerLimit
-        condition.upperLimit = upperLimit
-        condition.measure = measure
+        condition.setName(name)
+        condition.setDescription (description)
+        condition.setLowerLimit (lowerLimit)
+        condition.setUpperLimit (upperLimit)
+        condition.setMeasure (measure)
 
-
-        condition.delegate = condition
         condition.resolveStrategy = Closure.DELEGATE_FIRST
         condition
     }

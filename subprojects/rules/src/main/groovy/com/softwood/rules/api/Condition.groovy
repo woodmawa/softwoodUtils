@@ -13,7 +13,7 @@ interface Condition extends Predicate {
     void setDescription(String description)
     void setLowerLimit (def lowerBound)
     def getLowerLimit()
-    void setUpperLimit (def lowerBound)
+    void setUpperLimit (def upperBound)
     def getUpperLimit()
     void setMeasure (def measure)
     def getMeasure ()

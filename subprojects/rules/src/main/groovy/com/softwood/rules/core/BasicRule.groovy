@@ -2,6 +2,7 @@ package com.softwood.rules.core
 
 
 import com.softwood.rules.api.Action
+import com.softwood.rules.api.Condition
 import com.softwood.rules.api.Fact
 import com.softwood.rules.api.Facts
 import com.softwood.rules.api.Rule
@@ -50,6 +51,25 @@ class BasicRule implements Rule, Comparable {
     Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
 
     Collection <MethodClosure> postActionEffects = new ConcurrentLinkedQueue<>()
+
+    void addAllPreConditions(Collection<Condition> conditions) {
+        assert conditions
+        preConditions.addAll(conditions)
+    }
+
+    void AddPreCondition(Condition condition) {
+        assert condition
+        preConditions.add condition
+    }
+
+    void removePreCondition(Condition condition) {
+        if (preConditions.contains(condition))
+            preConditions.remove(condition)
+    }
+
+    void clearAllPreConditions (){
+        preConditions.clear()
+    }
 
     List<MethodClosure> getEffectsList () {
         postActionEffects.toList()
