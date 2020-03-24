@@ -65,22 +65,30 @@ class ConcreteClosure extends Closure {
     }
 
 
-    def doCall() {
+    def doCall(arg) {
         //println "call() called, invoke metaClass docall() " + InvokerHelper.invokeMethod(this, "doCall", null)
-        cc()
+        def result
+        switch (arg) {
+            case "mc" :
+                print "call mc.call(): "
+                result = mc()
+                break
+            case "cc" :
+                print "call cc.call(): "
+                result = cc()
+                break
+            default: "println do nothing"
+        }
 
     }
 }
 
 def constructorClos = {"return with, my concrete Closure, with this = $this, and owner = $owner, and name = ${name}"}
-constructorClos.delegate = aInst
-constructorClos.resolveStrategy= Closure.DELEGATE_FIRST
-//this will resolve a - if we set first, however if we set delegate inside Concrete closure it fails to resolve name!
-// is this because you have to set the super() first, and then updating after makes no difference?
 
-ConcreteClosure cc = new ConcreteClosure (constructorClos, constructorClos)
+ConcreteClosure cc = new ConcreteClosure (constructorClos, constructorClos, aInst)
 
-println cc.call()
+println cc.call('mc')
+println cc.call('cc')
 
 MethodClosure aMc = aInst::greeting
 aMc()
