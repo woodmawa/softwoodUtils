@@ -23,13 +23,18 @@ class ConcreteClosure extends Closure {
 
 
     MethodClosure mc
+    Closure cc
 
     ConcreteClosure(Object owner, Object thisObject, ctx) {
         super(owner, thisObject)
         mc = (Closure) owner::doCall
+        cc = owner
         if (ctx){
             mc.delegate = ctx
             mc.resolveStrategy= Closure.DELEGATE_FIRST
+            cc.delegate = ctx
+            cc.resolveStrategy= Closure.DELEGATE_FIRST
+
         }
         assert mc
     }
@@ -37,12 +42,16 @@ class ConcreteClosure extends Closure {
     ConcreteClosure(Object owner, Object thisObject) {
         super(owner, thisObject)
         mc = (Closure) owner::doCall
+        cc = owner
+
         assert mc
     }
 
     ConcreteClosure(Object owner) {
         super(owner)
         mc = (Closure) owner::doCall
+        cc = owner
+
         assert mc
 
     }
@@ -51,11 +60,14 @@ class ConcreteClosure extends Closure {
         mc
     }
 
+    MethodClosure getCc() {
+        cc
+    }
 
 
     def doCall() {
         //println "call() called, invoke metaClass docall() " + InvokerHelper.invokeMethod(this, "doCall", null)
-        mc()
+        cc()
 
     }
 }
@@ -64,6 +76,7 @@ def constructorClos = {"return with, my concrete Closure, with this = $this, and
 constructorClos.delegate = aInst
 constructorClos.resolveStrategy= Closure.DELEGATE_FIRST
 //this will resolve a - if we set first, however if we set delegate inside Concrete closure it fails to resolve name!
+// is this because you have to set the super() first, and then updating after makes no difference?
 
 ConcreteClosure cc = new ConcreteClosure (constructorClos, constructorClos)
 
@@ -110,3 +123,4 @@ scriptClos = {println "William "}
 //codeClone.doMethodInvoke(clos, [])
 mr()
 scriptClos()
+
