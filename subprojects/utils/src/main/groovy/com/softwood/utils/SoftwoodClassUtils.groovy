@@ -1,15 +1,12 @@
-package playpen
+package com.softwood.utils
 
-import org.apache.commons.lang.ArrayUtils
-import org.apache.commons.lang3.ClassUtils
-import org.apache.tools.ant.types.selectors.SelectSelector
 
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 
-class GroovyClassUtils {
+class SoftwoodClassUtils {
 
     /**
      *
@@ -45,7 +42,7 @@ class GroovyClassUtils {
      * @param args, optional args to pass a constructor that matches
      * @return Optional<T> creates instance of constructed object, or empty optional if cant find a match
      */
-    static <T> Optional<T> instanceOf (Class<T> clazz,  Object[] args) {
+    static <T> Optional<T> instanceOf (Class<T> clazz, Object[] args) {
         assert clazz
 
         final Object<?>[] EMPTY_ARGS = [].toArray()
@@ -104,9 +101,6 @@ class GroovyClassUtils {
                     Long.class, long.class,
                     Short.class, short.class)
 
-    /**
-     *
-     */
 
     /**
      * checks whether class instance is a wrapper for the primative type

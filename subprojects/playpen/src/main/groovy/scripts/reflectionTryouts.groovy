@@ -9,6 +9,7 @@ class Empty{}
 def stdMeth = Empty.metaClass.methods.name
 def stdProp = Empty.metaClass.properties.name
 
+
 class A {
     static String ref = "ref "
     String name
@@ -28,21 +29,13 @@ class B {
     }
 }
 
-/*
-Integer[] iArray = [new Integer(10)]
-int[] primArray = [20]
-List  list = [[new Integer(10)],primArray]
-
-ArrayList<Object> mixedArray = list.toArray()
-mixedArray.each {println it.getClass().simpleName}
-*/
 
 def methList = A.metaClass.methods.name
 def aPropList = A.metaClass.properties.name
 
 def metaMethList = A.metaClass.metaMethods.name
 
-//List staticPropNames = GroovyClassUtils.getStaticProperties(A)
+List staticPropNames = GroovyClassUtils.getStaticProperties(A)
 
 
 def isWrapperOf = GroovyClassUtils.isPrimitiveWrapperOf(Integer, int.class)
@@ -50,6 +43,7 @@ def canbeAssigned = GroovyClassUtils.isAssignableTo(Integer, int.class )
 //just use apache library for this
 def newB // = ConstructorUtils.invokeConstructor(B, 20)
 
+//now working
 newB = GroovyClassUtils.instanceOf (B, 30, "will")
 assert newB
 
