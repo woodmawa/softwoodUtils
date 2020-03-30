@@ -8,6 +8,10 @@ enum Direction {
     forward,
     backward
 }
+
+
+println this.getBinding().properties
+
 def left = Direction.left
 
 //ok the format here is that the spread opeator in the key position acts to spread/flatten the entries in an iterable to fold them
