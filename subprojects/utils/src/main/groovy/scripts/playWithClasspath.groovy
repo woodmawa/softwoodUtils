@@ -25,5 +25,5 @@ URL res4 = ClasspathHelper.getUrlFromResource("testfile.config")
 
 println ClasspathHelper.getStreamFromResource("testfile.config").text
 
-
-
+println "classes CP : " + ClasspathHelper.getProjectClassesClasspath()
+println "classes resources CP : " + ClasspathHelper.getProjectResourcesClasspath()
