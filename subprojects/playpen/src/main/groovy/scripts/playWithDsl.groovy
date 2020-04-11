@@ -9,6 +9,8 @@ enum Direction {
     backward
 }
 
+//use spread map operator *:
+this.binding.properties << Direction.values().collectEntries {[(it.name()): it]}
 
 println this.getBinding().properties
 
