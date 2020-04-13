@@ -9,7 +9,7 @@ import java.util.function.Predicate
 
 @MapConstructor
 @Slf4j
-@CompileStatic
+//@CompileStatic
 class BasicCondition implements Condition {
 
     static final String UNNAMED = "unnamed"

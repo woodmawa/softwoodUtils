@@ -4,18 +4,15 @@ import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
 import groovy.util.logging.Slf4j
-import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
-
-import java.util.concurrent.ConcurrentLinkedQueue
 
 import static groovyx.gpars.dataflow.Dataflow.task
 
 @Slf4j
-class TaskAction extends AbstractFlowNode{
+class PowerShellAction extends AbstractFlowNode {
     def debug = false
 
-    static TaskAction newAction (name = null,  Closure closure) {
+    static PowerShellAction newPowerShellAction (name = null, Closure closure) {
         /*
          *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
          * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
@@ -31,7 +28,7 @@ class TaskAction extends AbstractFlowNode{
             ctx = FlowContext.newFreeStandingContext()
         }
 
-        def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        def ta = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
         if (ta.ctx?.flow)
             ta.ctx?.flow.defaultSubflow.flowNodes << ta
@@ -43,7 +40,7 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
-    static TaskAction newAction (name = null,  long delay, Closure closure) {
+    static PowerShellAction newPowerShellAction (name = null, long delay, Closure closure) {
         def ctx
         def owner = closure.owner
         def delegate = closure.delegate
@@ -55,7 +52,7 @@ class TaskAction extends AbstractFlowNode{
             ctx = FlowContext.newFreeStandingContext()
         }
 
-        def ta = new TaskAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        def ta = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
         if (ta.ctx?.flow)
             ta.ctx?.flow.defaultSubflow.flowNodes << ta
@@ -73,11 +70,15 @@ class TaskAction extends AbstractFlowNode{
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def run (args = null, Closure errHandler = null) {
+    def run (Object[] args, Closure errHandler = null) {
         doRun (null, args, errHandler)
     }
 
-    def run (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+    def run (Closure errHandler = null) {
+        doRun (null, null, errHandler)
+    }
+
+    def run (AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
         doRun (previousNode, args, errHandler)
     }
     def delayedRun (int delay, args = null, Closure errHandler = null) {
@@ -94,7 +95,7 @@ class TaskAction extends AbstractFlowNode{
      * @param errHandler
      * @return
      */
-    private def doRun  (AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
+    private def doRun  (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
         //println " doRun: made it to action task with previousTask $previousNode, and args as $args, and errHandler $errHandler"
         if (taskDelay == 0)
             status = FlowNodeStatus.running
@@ -106,8 +107,9 @@ class TaskAction extends AbstractFlowNode{
         ta
     }
 
-    private def actionTask (TaskAction previousNode, AbstractFlowNode step,  Object[] args, Closure errHandler = null) {
+    private def actionTask (PowerShellAction previousNode, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
         try {
+
             def cloned  = step.action.clone()
             cloned.delegate = step.ctx
             cloned.resolveStrategy = Closure.DELEGATE_FIRST
@@ -125,26 +127,19 @@ class TaskAction extends AbstractFlowNode{
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
 
+            //args can get padded with null arg at the end of the list.  So if see the null, then strip it off
+            def size = args.size()
+            if (args?[size-1] == null)
+                args = args.toList().subList(0, size-1)
+
             Promise promise  = task {
-                //println "in task() with step $step.name, has previousResult as $previousTaskResult and has closure with params with types $cloned.parameterTypes"
-                def ans
-                if (cloned.maximumNumberOfParameters == 2 &&
-                        (cloned.parameterTypes[1] == Promise || cloned.parameterTypes[1] == DataflowVariable)) {
-                    ans = cloned(step.ctx, previousNode.result)  //expecting result from this flowNode
-                }
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == AbstractFlowNode)
-                    ans = cloned(step.ctx, previousNode)
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object[])
-                    ans = cloned(step.ctx, args)
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object)
-                    ans = cloned(step.ctx, args)
-                else if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters > 2  )
-                    ans = cloned(step.ctx, *args)
-                else if (cloned.maximumNumberOfParameters == 1)
-                    ans = cloned(step.ctx)
-                else
-                    ans = cloned()
-                ans
+                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", *args)
+                def process = processBldr.start()
+                def ans = process.text
+                int exitCode = process.waitFor();
+                //todo throw exception if we see error code ?
+
+                exitCode == 0 ? ans : exitCode
 
             }
             step.result = promise
@@ -163,7 +158,7 @@ class TaskAction extends AbstractFlowNode{
                     }
                 }
 
-                log.debug "actionTask(): promise was bound with $it, removed promise $promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
+                log.debug "PowerShell actionTask(): promise was bound, removed the promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
 
             }
 
@@ -196,9 +191,9 @@ class TaskAction extends AbstractFlowNode{
 
     String toString () {
         if (debug == false)
-            "Action (name:$name, status:$status)"
+            "CmdShellAction (name:$name, status:$status)"
         else
-            "Action (name:$name, status:$status, action:${action.toString()})"
+            "CmdShellAction (name:$name, status:$status, action:${action.toString()})"
     }
 }
 

@@ -71,17 +71,17 @@ class Flow extends AbstractFlow {
 
         if (sflow.hasTasks()) {
             //build list of promises from each task, present back in subsequent task runs()
-            ConcurrentLinkedQueue<AbstractFlowNode> previousFlowNode = new ConcurrentLinkedQueue ()
+            ConcurrentLinkedQueue<AbstractFlowNode> previousFlowNodes = new ConcurrentLinkedQueue ()
             sflow.flowNodes.toList().eachWithIndex{ AbstractFlowNode ta, int idx ->
                 if (idx == 0) {
                     //if args pass to the first task, the rest will be maintained in the ctx
                     ta.run(args)
-                    previousFlowNode << ta
+                    previousFlowNodes << ta
                 }
                 else {
-                    def previousNode = previousFlowNode[idx-1]
+                    def previousNode = previousFlowNodes[idx-1]
                     ta.run(previousNode)
-                    previousFlowNode << ta
+                    previousFlowNodes << ta
                 }
             }
 
@@ -98,24 +98,7 @@ class Flow extends AbstractFlow {
         }
 
     }
-
-    def rightShift (TaskAction firstAction, args = null ) {
-
-        firstAction.name =  "initial action"
-        println "cflow rightShift on first action $firstAction.name "
-
-        Closure cloned  = firstAction.action.clone()
-
-        cloned.delegate = ctx
-        firstAction.ctx = ctx
-        firstAction.status = FlowNodeStatus.running
-
-        def ta = firstAction.run (args)
-        promises << promise
-
-        ta
-    }
-
+    
     def leftShift (Subflow sflow) {
         subflows << sflow
         sflow.parent = this as AbstractFlow
