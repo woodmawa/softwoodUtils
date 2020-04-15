@@ -2,6 +2,7 @@ package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.nodes.AbstractFlowNode
 import com.softwood.flow.core.nodes.FlowNodeStatus
+import com.softwood.flow.core.support.CallingStackContext
 import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -31,10 +32,14 @@ class Subflow extends AbstractFlow {
         Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos)
         sflow.flowType = FlowType.Subflow
 
+        List frames = CallingStackContext.getContext()
+        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+
         //add to list of newly created objects
-        ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-
-
+        //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+        //only add to newInClosure if its called within a closure
+        if (isCalledInClosure)
+            ctx.newInClosure sflow
 
         sflow
 

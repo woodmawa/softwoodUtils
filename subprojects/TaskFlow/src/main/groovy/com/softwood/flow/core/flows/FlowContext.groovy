@@ -29,7 +29,7 @@ class FlowContext extends Expando {
         ctx.promises = new ConcurrentLinkedDeque<>()
         ctx.taskActions = new ConcurrentLinkedQueue<>()
         ctx.newInClosureMap = new ConcurrentHashMap()
-        ctx.newInClosure = new ConcurrentHashMap<>()
+        ctx.newInClosure = new ConcurrentLinkedQueue<>()
         ctx.flow = null
         ctx.type = FlowType.FreeStanding
         ctx
@@ -41,7 +41,7 @@ class FlowContext extends Expando {
         taskActions = new ConcurrentLinkedQueue<>()
         flowListeners = new ConcurrentLinkedQueue<FlowListener>()
         newInClosureMap = new ConcurrentHashMap()
-        newInClosure = new ConcurrentHashMap<>()
+        newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
 

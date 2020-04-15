@@ -52,7 +52,7 @@ class CallingStackContext {
                             clazzInst = clazzParts[1]*/
 
                     def type = calleeIsGenerated ? 'generated' : 'native'
-                    def rets = "class: '${stackFrame.getClassName()}' of type ${clazz} inst $clazzClosureParts,  invoked [$type${isClosure ? ' type of closure' : ""}] method: [$methodName] at  line:$line"
+                    def rets = "class: '${stackFrame.getClassName()}' of type ${clazz} ${clazzClosureParts == null ? '': 'inst ' +  clazzClosureParts},  invoked [$type${isClosure ? ' type of closure' : ""}] method: [$methodName] at  line:$line"
                     CallingContextInfo info = new CallingContextInfo()
                     info.with {
                         methodType =  type

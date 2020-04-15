@@ -3,6 +3,7 @@ package com.softwood.flow.core.nodes
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
+import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
@@ -37,8 +38,6 @@ class TaskAction extends AbstractFlowNode{
             ta.ctx?.flow.defaultSubflow.flowNodes << ta
 
 
-        if (ta.ctx.newInClosure != null)
-            ta.ctx.newInClosure << ta  //add to items generated within the running closure
         ta
 
     }
@@ -54,9 +53,17 @@ class TaskAction extends AbstractFlowNode{
         if (ta.ctx?.flow)
             ta.ctx?.flow.defaultSubflow.flowNodes << ta
 
+        if (ta.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
-        if (ta.ctx.newInClosure != null)
-            ta.ctx.newInClosure << ta  //add to items generated within the running closure
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        }
+
         ta
 
     }
