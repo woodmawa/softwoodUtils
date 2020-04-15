@@ -14,12 +14,39 @@ class Subflow extends AbstractFlow {
     protected AbstractFlow parent
     protected ConcurrentLinkedDeque<Promise> subFlowPromises = new ConcurrentLinkedDeque<>()
     protected ConcurrentLinkedDeque<AbstractFlowNode> flowNodes = new ConcurrentLinkedQueue<>()
+    def selectTag //todo make an optional??
+    Closure subflowClosure
 
+    static Subflow newSubflow (String subFlowName = null, Closure clos)  {
 
-    static Subflow newSubflow (flowName = null, Closure clos)  {
-
-        Subflow sflow = new Subflow (name: flowName)
+        Subflow sflow = new Subflow (name: subFlowName, subflowClosure: clos)
         sflow.flowType = FlowType.Subflow
+
+         sflow
+
+    }
+
+    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Closure clos)  {
+
+        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos)
+        sflow.flowType = FlowType.Subflow
+
+        //add to list of newly created objects
+        ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+
+
+
+        sflow
+
+    }
+
+    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, selectTag,   Closure clos)  {
+
+        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, selectTag: selectTag, subflowClosure: clos)
+        sflow.flowType = FlowType.Subflow
+
+        //add to list of newly created objects
+        ctx?.newInClosure << sflow
 
         sflow
 
@@ -27,6 +54,37 @@ class Subflow extends AbstractFlow {
 
     boolean hasTasks () {
         flowNodes.size () > 0
+    }
+
+    def run (args = null) {
+        doRun (args)
+    }
+
+    private def doRun(args) {
+
+        Closure cloned = subflowClosure
+        cloned.delegate = ctx
+        cloned.resolveStrategy = Closure.DELEGATE_FIRST
+
+        cloned(args)
+
+        def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
+        if (newIns)  {
+            flowNodes.addAll (ctx.newInClosure)
+        }
+        flowNodes.each {node ->
+            def promise = node.run ()
+            promises << promise
+            subFlowPromises << promise
+
+        }
+
+        ctx.newInClosure.clear()
+        this
+    }
+
+    def leftShift (AbstractFlowNode firstStep) {
+        //todo
     }
 
     def rightShift (AbstractFlowNode firstStep ) {
@@ -52,7 +110,7 @@ class Subflow extends AbstractFlow {
         ctx.activePromises << promise
         promises << promise
         subFlowPromises << promise
-        firstStep.@result = promise
+        firstStep.result = promise
 
         firstStep
     }

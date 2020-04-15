@@ -22,38 +22,18 @@ class Condition implements Predicate {
         condition
     }
 
-    static Condition newCondition(itemToTest, Closure conditionClosure) {
+    static Condition newCondition(condArg, Closure conditionClosure) {
         Condition condition
         condition = new Condition ()
         if (conditionClosure != null)
             condition.dynamicTest =  conditionClosure
 
-        if (itemToTest)
-            condition.defaultItemToTest = itemToTest
+        if (condArg)
+            condition.defaultItemToTest = condArg
         condition
     }
 
-    //Made this a closure so that the whens delegate can be set, and we can resolve newInClosure
-    static def when = {Condition condition, itemToTest = null,  Closure toDo ->
 
-        //try and resolve newInClosure list on FlowContext delegate
-        List nicl
-        if (delegate.hasProperty('newInClosure')) {
-            nicl = delegate?.newInClosure
-            nicl.add (condition)
-        }
-        if (itemTotest != null){
-            if (condition && condition.test (itemToTest)) {
-                toDo (args)
-            } else {
-                if (condition && condition.test ())
-                toDo (args)
-            }
-        }
-        else
-            false       //fail as default
-
-    }
 
     /*static boolean when ( Condition condition, itemToTest,  Closure toDo) {
 
@@ -64,17 +44,12 @@ class Condition implements Predicate {
             false       //fail as default
     }*/
 
-    static def when (Predicate predicate, itemToTest,  Closure toDo) {
-        if (predicate && predicate.test (itemToTest)) {
-            toDo ()
-    }
-
     Closure dynamicTest = { false}
 
     Condition () {}
 
-    boolean test(Object itemToTest) {
-        def yesNo =  dynamicTest (itemToTest)
+    boolean test(Object item) {
+        def yesNo =  dynamicTest (item)
         yesNo
     }
 
@@ -82,5 +57,7 @@ class Condition implements Predicate {
         def yesNo =  dynamicTest (this.defaultItemToTest)
         yesNo
     }
+
+
 
 }

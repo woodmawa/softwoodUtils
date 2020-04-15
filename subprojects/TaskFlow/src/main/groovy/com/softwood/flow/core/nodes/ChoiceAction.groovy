@@ -4,13 +4,18 @@ import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowStatus
 import com.softwood.flow.core.flows.FlowType
+import com.softwood.flow.core.flows.Subflow
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.Promise
+
+import java.util.concurrent.ConcurrentLinkedQueue
 
 import static groovyx.gpars.dataflow.Dataflow.task
 
 @Slf4j
 class ChoiceAction extends AbstractFlowNode {
+
+    ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
 
     static ChoiceAction newChoiceAction(name = null, Closure closure) {
         /*
@@ -37,6 +42,19 @@ class ChoiceAction extends AbstractFlowNode {
 
     }
 
+    static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
+        /*
+         * injected ctx to use
+         */
+
+        def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
+        choice.ctx?.taskActions << choice
+
+        if (choice.ctx.newInClosure != null)
+            choice.ctx.newInClosure << choice  //add to items generated within the running closure
+        choice
+
+    }
 
     /**
      * run the closure as task, by invoking private doRun().  result holds the answer as a DF promise
@@ -108,6 +126,18 @@ class ChoiceAction extends AbstractFlowNode {
 
             }
 
+            List newIns = ctx.newInClosure.toList()
+            def newSubflows = newIns.grep {it.class == Subflow}
+            if (ctx.flow) {
+                newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
+            }
+            choiceSubflows.addAll (newSubflows)
+            ctx.newInClosure.clear()
+            def preChoiceResult = previousNode.result.val
+            def selected = choiceSubflows.grep {subflowSelector(it, preChoiceResult)}
+
+            assert selected.size() == 1 //we are expecting at match
+
             step
         } catch (Exception e) {
             if (errHandler) {
@@ -117,5 +147,10 @@ class ChoiceAction extends AbstractFlowNode {
             }
             step
         }
+    }
+
+    //default selector logic for a choice
+    def subflowSelector (Object previousResult, Subflow sflow) {
+        sflow.selectTag == previousResult
     }
 }

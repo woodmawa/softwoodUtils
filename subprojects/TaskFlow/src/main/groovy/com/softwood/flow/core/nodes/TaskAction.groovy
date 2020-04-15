@@ -43,6 +43,24 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
+    static TaskAction newAction (FlowContext ctx, name = null,  Closure closure) {
+        /*
+         * here we are injected with ctx to start
+         */
+
+
+        def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        ta.ctx?.taskActions << ta
+        if (ta.ctx?.flow)
+            ta.ctx?.flow.defaultSubflow.flowNodes << ta
+
+
+        if (ta.ctx.newInClosure != null)
+            ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        ta
+
+    }
+
     static TaskAction newAction (name = null,  long delay, Closure closure) {
         def ctx
         def owner = closure.owner

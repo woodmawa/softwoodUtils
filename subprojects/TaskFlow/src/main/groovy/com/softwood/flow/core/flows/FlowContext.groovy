@@ -1,5 +1,6 @@
 package com.softwood.flow.core.flows
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -8,7 +9,9 @@ class FlowContext extends Expando {
     ConcurrentLinkedDeque promises
     ConcurrentLinkedQueue taskActions
     ConcurrentLinkedQueue flowListeners
-    List newInClosure
+    ConcurrentLinkedQueue newInClosure
+    ConcurrentHashMap newInClosureMap
+
     Flow flow
     FlowType type
     Object[] initialArgs
@@ -25,7 +28,8 @@ class FlowContext extends Expando {
         ctx.activePromises = new ConcurrentLinkedDeque<>()
         ctx.promises = new ConcurrentLinkedDeque<>()
         ctx.taskActions = new ConcurrentLinkedQueue<>()
-        ctx.newInClosure = []
+        ctx.newInClosureMap = new ConcurrentHashMap()
+        ctx.newInClosure = new ConcurrentHashMap<>()
         ctx.flow = null
         ctx.type = FlowType.FreeStanding
         ctx
@@ -36,9 +40,37 @@ class FlowContext extends Expando {
         promises = new ConcurrentLinkedDeque<>()
         taskActions = new ConcurrentLinkedQueue<>()
         flowListeners = new ConcurrentLinkedQueue<FlowListener>()
-        newInClosure = []
+        newInClosureMap = new ConcurrentHashMap()
+        newInClosure = new ConcurrentHashMap<>()
         flow = null
         type = FlowType.Process
 
     }
+
+    void saveClosureNewIns (clos, newInItem) {
+        def key = getLogicalAddress (clos)
+        ConcurrentLinkedQueue newIns = newInClosureMap.computeIfAbsent (key, {k -> new ConcurrentLinkedQueue()})
+        newIns << newInItem
+        newInClosureMap.put (key, newIns)
+    }
+
+    ConcurrentLinkedQueue retrieveClosureNewIns (clos) {
+        def key = getLogicalAddress (clos)
+
+        newInClosureMap.computeIfAbsent (key, {k -> new ConcurrentLinkedQueue()})
+    }
+
+    def completedClosureNewIns (clos) {
+        newInClosureMap.remove(getLogicalAddress (clos))
+    }
+
+    String  getLogicalAddress (ofItem) {
+        String address = Integer.toHexString (ofItem.hashCode())
+        "${ofItem.getClass()}@$address"
+    }
+
+    boolean isRunningInClosure (someObject) {
+        someObject.hasProperty ('owner')
+    }
+
 }
