@@ -74,17 +74,7 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
-    static TaskAction newAction (name = null,  long delay, Closure closure) {
-        def ctx
-        def owner = closure.owner
-        def delegate = closure.delegate
-        if (owner instanceof Closure &&
-                delegate instanceof Closure &&
-                delegate?.delegate instanceof FlowContext) {
-            ctx = closure.delegate.delegate
-        } else {
-            ctx = FlowContext.newFreeStandingContext()
-        }
+    static TaskAction newAction (FlowContext ctx, name = null,  long delay, Closure closure) {
 
         def ta = new TaskAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta

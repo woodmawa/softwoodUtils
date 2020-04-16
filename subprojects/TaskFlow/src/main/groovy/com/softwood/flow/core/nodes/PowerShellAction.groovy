@@ -14,20 +14,14 @@ class PowerShellAction extends AbstractFlowNode {
     def debug = false
 
     static PowerShellAction newPowerShellAction (name = null, Closure closure) {
-        /*
-         *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
-         * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
-         */
-        def ctx
-        def owner = closure.owner
-        def delegate = closure.delegate
-        if (owner instanceof Closure &&
-            delegate instanceof Closure &&
-            delegate?.delegate instanceof FlowContext) {
-            ctx = closure.delegate.delegate
-        } else {
-            ctx = FlowContext.newFreeStandingContext()
-        }
+        FlowContext ctx = FlowContext.newFreeStandingContext()
+
+        newPowerShellAction (ctx, name, closure)
+
+
+    }
+
+    static PowerShellAction newPowerShellAction (FlowContext ctx, name = null, Closure closure) {
 
         def ta = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
@@ -46,17 +40,7 @@ class PowerShellAction extends AbstractFlowNode {
         ta
     }
 
-    static PowerShellAction newPowerShellAction (name = null, long delay, Closure closure) {
-        def ctx
-        def owner = closure.owner
-        def delegate = closure.delegate
-        if (owner instanceof Closure &&
-                delegate instanceof Closure &&
-                delegate?.delegate instanceof FlowContext) {
-            ctx = closure.delegate.delegate
-        } else {
-            ctx = FlowContext.newFreeStandingContext()
-        }
+    static PowerShellAction newPowerShellAction (FlowContext ctx, name = null, long delay, Closure closure) {
 
         def ta = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta

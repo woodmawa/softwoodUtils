@@ -67,7 +67,7 @@ Closure choiceClos = {choiceRunArgs ->
     //need this to set the FlowContext delegate on the 'when' closure.
     //todo - in flow class we'll neeed to set this explicitly in there before we use
     when.delegate = delegate
-    when (condition (choiceRunArgs) {
+    when (condition (delegate, choiceRunArgs) {
         def ans = "william" == it;
         println "in condition closure recived $it,  returning : $ans";
         ans}, "with these ToDo args") {
@@ -75,7 +75,7 @@ Closure choiceClos = {choiceRunArgs ->
         }
 }
 
-//ChoiceAction choice = choice ('my choice', choiceClos)
+//ChoiceAction split = choice ('my choice', choiceClos)
 
 //make ctx visible before running
 //externalisedCtx = choice.ctx
@@ -89,7 +89,7 @@ Subflow defSubflow= subflow (externalisedCtx, 'default subflow') {
     println "subflow closure - create two actions "
     action (externalisedCtx, 'main1') {println "hello act1 "; 1}
     action (externalisedCtx, 'main2') {println "hello act2 "; 2}
-
+    choice (externalisedCtx,'my choice', choiceClos)
     return 0
     //action (externalisedCtx, 'main2') {'opt1'}
 }

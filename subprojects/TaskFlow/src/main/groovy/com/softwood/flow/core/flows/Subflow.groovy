@@ -18,15 +18,6 @@ class Subflow extends AbstractFlow {
     def selectTag //todo make an optional??
     Closure subflowClosure
 
-    static Subflow newSubflow (String subFlowName = null, Closure clos)  {
-
-        Subflow sflow = new Subflow (name: subFlowName, subflowClosure: clos)
-        sflow.flowType = FlowType.Subflow
-
-         sflow
-
-    }
-
     static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Closure clos)  {
 
         Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos)
@@ -39,7 +30,7 @@ class Subflow extends AbstractFlow {
         //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
         //only add to newInClosure if its called within a closure
         if (isCalledInClosure)
-            ctx.newInClosure sflow
+            ctx.newInClosure << sflow
 
         sflow
 
@@ -50,8 +41,14 @@ class Subflow extends AbstractFlow {
         Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, selectTag: selectTag, subflowClosure: clos)
         sflow.flowType = FlowType.Subflow
 
+        List frames = CallingStackContext.getContext()
+        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+
         //add to list of newly created objects
-        ctx?.newInClosure << sflow
+        //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+        //only add to newInClosure if its called within a closure
+        if (isCalledInClosure)
+            ctx.newInClosure << sflow
 
         sflow
 

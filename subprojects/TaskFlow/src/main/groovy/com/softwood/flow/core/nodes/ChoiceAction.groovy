@@ -18,12 +18,15 @@ class ChoiceAction extends AbstractFlowNode {
 
     ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
 
-    static ChoiceAction newChoiceAction(name = null, Closure closure) {
+    //static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
         /*
          *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
          * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
          */
-        def ctx
+        /*List frames = CallingStackContext.getContext()
+        boolean isCalledInClosure = frames ?[1].callingContextIsClosure */
+
+        /*def ctx
         def owner = closure.owner
         def delegate = closure.delegate
         if (owner instanceof Closure &&
@@ -31,15 +34,17 @@ class ChoiceAction extends AbstractFlowNode {
                 delegate?.delegate instanceof FlowContext) {
             ctx = closure.delegate.delegate
         } else {
-            ctx = FlowContext.newFreeStandingContext()
-        }
+            if (isCalledInClosure) {
+                //get context ??
+            } else
+                ctx = FlowContext.newFreeStandingContext()
+        }*/
 
+        /*
         def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         choice.ctx?.taskActions << choice
 
         if (choice.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
             //add to list of newly created objects
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
@@ -47,9 +52,9 @@ class ChoiceAction extends AbstractFlowNode {
             if (isCalledInClosure)
                 choice.ctx.newInClosure << choice  //add to items generated within the running closure
         }
-        choice
+        choice*/
 
-    }
+    //}
 
     static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
         /*
@@ -92,13 +97,13 @@ class ChoiceAction extends AbstractFlowNode {
      * @param errHandler
      * @return
      */
-    private def doRun(AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
+    private def doRun(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
 
         def choice = choiceTask(previousNode, this, args, errHandler)
         choice
     }
 
-    private def choiceTask(TaskAction previousNode, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
+    private def choiceTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
             def cloned = step.action.clone()
             cloned.delegate = step.ctx
@@ -110,7 +115,7 @@ class ChoiceAction extends AbstractFlowNode {
             step.status = FlowNodeStatus.running
 
             //if we find padded nul then striup this off
-            if (args) {
+            if (args.size() > 1) {
                 if (args[-1] == null) {
                     args = args.toList().subList(0, args.size() - 1)
                 }
