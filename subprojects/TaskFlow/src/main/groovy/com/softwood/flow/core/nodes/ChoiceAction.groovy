@@ -5,6 +5,7 @@ import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowStatus
 import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
+import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.Promise
 
@@ -36,8 +37,16 @@ class ChoiceAction extends AbstractFlowNode {
         def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         choice.ctx?.taskActions << choice
 
-        if (choice.ctx.newInClosure != null)
-            choice.ctx.newInClosure << choice  //add to items generated within the running closure
+        if (choice.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                choice.ctx.newInClosure << choice  //add to items generated within the running closure
+        }
         choice
 
     }
@@ -50,8 +59,16 @@ class ChoiceAction extends AbstractFlowNode {
         def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         choice.ctx?.taskActions << choice
 
-        if (choice.ctx.newInClosure != null)
-            choice.ctx.newInClosure << choice  //add to items generated within the running closure
+        if (choice.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                choice.ctx.newInClosure << choice  //add to items generated within the running closure
+        }
         choice
 
     }

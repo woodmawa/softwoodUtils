@@ -26,15 +26,15 @@ class Flow extends AbstractFlow {
         cloned?.delegate = flow.ctx
         cloned?.resolveStrategy = Closure.DELEGATE_FIRST
 
-        //captures any objects created in the closure
-        flow.ctx.newInClosure = []
-
         if (cloned)
             cloned ()
 
-        //process logic for any new instances added when closure was run
-        flow.ctx.newInClosure.each {
+        flow.ctx?.newInClosure.each {action ->
+            //process logic for any new instances added when closure was run
+            if (action instanceof AbstractFlowNode)
+                flow << action     //add the newIns actions to the defaultSubFlow
         }
+        flow.ctx?.newInClosure.clear()
 
         flow
     }
@@ -43,12 +43,12 @@ class Flow extends AbstractFlow {
      * constructor for flow
      */
     Flow () {
-        def defaultFlow = new Subflow (name:'default subflow')
+        ctx = FlowContext.newProcessContext(this)  //create initialised context for whole flow and flow nodes
+        def defaultFlow = new Subflow (name:'default subflow', ctx: ctx)
         defaultFlow.flowType = FlowType.DefaultSubflow
         defaultFlow.parent = this
         defaultSubflow = defaultFlow
         subflows << defaultFlow
-        ctx = FlowContext.newProcessContext(this)  //create initialised context for whole flow and flow nodes
         this
     }
 
@@ -108,7 +108,7 @@ class Flow extends AbstractFlow {
         sflow
     }
 
-    def leftShift (Subflow subflow = null, AbstractFlowNode step) {
+    def leftShift (Subflow subflow = null,  AbstractFlowNode step) {
         Subflow sflow = subflow ?: defaultSubflow
 
         sflow.flowNodes << step

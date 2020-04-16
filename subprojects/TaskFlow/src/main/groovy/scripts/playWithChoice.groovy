@@ -88,7 +88,9 @@ externalisedCtx = FlowContext.newFreeStandingContext()
 Subflow defSubflow= subflow (externalisedCtx, 'default subflow') {
     println "subflow closure - create two actions "
     action (externalisedCtx, 'main1') {println "hello act1 "; 1}
-    0
+    action (externalisedCtx, 'main2') {println "hello act2 "; 2}
+
+    return 0
     //action (externalisedCtx, 'main2') {'opt1'}
 }
 
@@ -96,5 +98,5 @@ Subflow defSubflow= subflow (externalisedCtx, 'default subflow') {
 defSubflow.run ('start')
 
 
-//sleep 1000
+sleep 1000
 choice

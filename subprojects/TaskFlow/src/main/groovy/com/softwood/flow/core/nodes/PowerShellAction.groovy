@@ -3,6 +3,7 @@ package com.softwood.flow.core.nodes
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
+import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.Promise
 
@@ -30,14 +31,19 @@ class PowerShellAction extends AbstractFlowNode {
 
         def ta = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
-        if (ta.ctx?.flow)
-            ta.ctx?.flow.defaultSubflow.flowNodes << ta
 
+        if (ta.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
-        if (ta.ctx.newInClosure != null)
-            ta.ctx.newInClosure << ta  //add to items generated within the running closure
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        }
+
         ta
-
     }
 
     static PowerShellAction newPowerShellAction (name = null, long delay, Closure closure) {
@@ -54,13 +60,19 @@ class PowerShellAction extends AbstractFlowNode {
 
         def ta = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
-        if (ta.ctx?.flow)
-            ta.ctx?.flow.defaultSubflow.flowNodes << ta
-        if (ta.ctx.newInClosure != null)
-            ta.ctx.newInClosure << ta  //add to items generated within the running closure
+
+        if (ta.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        }
 
         ta
-
     }
 
 

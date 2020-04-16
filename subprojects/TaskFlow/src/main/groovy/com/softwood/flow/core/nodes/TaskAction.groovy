@@ -34,9 +34,17 @@ class TaskAction extends AbstractFlowNode{
 
         def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
-        if (ta.ctx?.flow)
-            ta.ctx?.flow.defaultSubflow.flowNodes << ta
 
+        if (ta.ctx.newInClosure != null) {
+            List frames = CallingStackContext.getContext()
+            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+
+            //add to list of newly created objects
+            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+            //only add to newInClosure if its called within a closure
+            if (isCalledInClosure)
+                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        }
 
         ta
 
@@ -50,8 +58,6 @@ class TaskAction extends AbstractFlowNode{
 
         def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
-        if (ta.ctx?.flow)
-            ta.ctx?.flow.defaultSubflow.flowNodes << ta
 
         if (ta.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
@@ -119,7 +125,7 @@ class TaskAction extends AbstractFlowNode{
      * @param errHandler
      * @return
      */
-    private def doRun  (AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
+    private def doRun  (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
         //println " doRun: made it to action task with previousTask $previousNode, and args as $args, and errHandler $errHandler"
         if (taskDelay == 0)
             status = FlowNodeStatus.running
@@ -131,7 +137,7 @@ class TaskAction extends AbstractFlowNode{
         ta
     }
 
-    private def actionTask (TaskAction previousNode, AbstractFlowNode step,  Object[] args, Closure errHandler = null) {
+    private def actionTask (TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
             def cloned  = step.action.clone()
             cloned.delegate = step.ctx
@@ -159,9 +165,9 @@ class TaskAction extends AbstractFlowNode{
                 }
                 else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == AbstractFlowNode)
                     ans = cloned(step.ctx, previousNode)
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object[])
-                    ans = cloned(step.ctx, args)
                 else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object)
+                    ans = cloned(step.ctx, args)
+                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object[])
                     ans = cloned(step.ctx, args)
                 else if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters > 2  )
                     ans = cloned(step.ctx, *args)
