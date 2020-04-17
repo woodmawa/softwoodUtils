@@ -14,7 +14,7 @@ class Subflow extends AbstractFlow {
 
     protected AbstractFlow parent
     protected ConcurrentLinkedDeque<Promise> subFlowPromises = new ConcurrentLinkedDeque<>()
-    protected ConcurrentLinkedDeque<AbstractFlowNode> flowNodes = new ConcurrentLinkedQueue<>()
+    protected ConcurrentLinkedDeque<AbstractFlowNode> subflowFlowNodes = new ConcurrentLinkedQueue<>()
     def selectTag //todo make an optional??
     Closure subflowClosure
 
@@ -55,7 +55,7 @@ class Subflow extends AbstractFlow {
     }
 
     boolean hasTasks () {
-        flowNodes.size () > 0
+        subflowFlowNodes.size () > 0
     }
 
     def run (args = null) {
@@ -72,10 +72,14 @@ class Subflow extends AbstractFlow {
 
         def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
         if (newIns)  {
-            flowNodes.addAll (ctx.newInClosure)
+            subflowFlowNodes.addAll (ctx.newInClosure)
         }
-        flowNodes.each {node ->
-            def promise = node.run ()
+        subflowFlowNodes.eachWithIndex { node, idx ->
+            def promise
+            if (idx == 0){
+                promise = node.run (args)
+            } else
+                promise = node.run ()
             promises << promise
             subFlowPromises << promise
 

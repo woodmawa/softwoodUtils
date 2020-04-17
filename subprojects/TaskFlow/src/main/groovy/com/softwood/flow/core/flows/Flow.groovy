@@ -1,18 +1,10 @@
 package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.nodes.AbstractFlowNode
-import com.softwood.flow.core.nodes.FlowNodeStatus
-import com.softwood.flow.core.nodes.TaskAction
-import groovyx.gpars.dataflow.DataflowVariable
-import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.TimeUnit
-
-import static groovyx.gpars.dataflow.Dataflow.task
-
-import com.softwood.flow.core.flows.Subflow
 
 class Flow extends AbstractFlow {
     protected ConcurrentLinkedDeque subflows = new ConcurrentLinkedDeque<>()
@@ -72,7 +64,7 @@ class Flow extends AbstractFlow {
         if (sflow.hasTasks()) {
             //build list of promises from each task, present back in subsequent task runs()
             ConcurrentLinkedQueue<AbstractFlowNode> previousFlowNodes = new ConcurrentLinkedQueue ()
-            sflow.flowNodes.toList().eachWithIndex{ AbstractFlowNode ta, int idx ->
+            sflow.subflowFlowNodes.toList().eachWithIndex{ AbstractFlowNode ta, int idx ->
                 if (idx == 0) {
                     //if args pass to the first task, the rest will be maintained in the ctx
                     ta.run(args)
@@ -111,7 +103,7 @@ class Flow extends AbstractFlow {
     def leftShift (Subflow subflow = null,  AbstractFlowNode step) {
         Subflow sflow = subflow ?: defaultSubflow
 
-        sflow.flowNodes << step
+        sflow.subflowFlowNodes << step
         this
     }
 

@@ -115,7 +115,7 @@ class ChoiceAction extends AbstractFlowNode {
             step.status = FlowNodeStatus.running
 
             //if we find padded nul then striup this off
-            if (args.size() > 1) {
+            if (args?.size() > 1) {
                 if (args[-1] == null) {
                     args = args.toList().subList(0, args.size() - 1)
                 }
@@ -126,7 +126,9 @@ class ChoiceAction extends AbstractFlowNode {
             Promise promise = task {
                 def ans
 
-                ans = cloned(*args)
+                //todo  - where should the calculator live ?  here or in the original closure
+                def selector = subflowSelector (previousNode?.result.val, args)
+                ans = cloned(selector, *args)  //(calculated selector discrimator, args...)
             }
             step.result = promise
             step.ctx.activePromises << promise
@@ -156,9 +158,8 @@ class ChoiceAction extends AbstractFlowNode {
             choiceSubflows.addAll (newSubflows)
             ctx.newInClosure.clear()
             def preChoiceResult = previousNode.result.val
-            def selected = choiceSubflows.grep {subflowSelector(it, preChoiceResult)}
-
-            assert selected.size() == 1 //we are expecting at match
+            //def selected = choiceSubflows.grep {subflowSelector(it, preChoiceResult)}
+            //assert selected.size() == 1 //we are expecting a match
 
             step
         } catch (Exception e) {
@@ -172,7 +173,11 @@ class ChoiceAction extends AbstractFlowNode {
     }
 
     //default selector logic for a choice
-    def subflowSelector (Object previousResult, Subflow sflow) {
-        sflow.selectTag == previousResult
+    def subflowSelector (def previousResult, args) {
+        previousResult      //default 'null logic' position
+    }
+
+    String toString () {
+        "Choice (name:$name, status:$status) with # of subflows ${choiceSubflows.size()}"
     }
 }

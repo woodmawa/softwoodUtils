@@ -15,7 +15,7 @@ MethodClosure choice = ChoiceAction::newChoiceAction
 MethodClosure condition = Condition::newCondition
 MethodClosure subflow = Subflow::newSubflow
 
-def externalisedCtx
+FlowContext freeStandingCtx
 
 //Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
 def when = {Condition conditionArg, toDoArgs,  Closure toDo ->
@@ -52,15 +52,15 @@ def res2 = c1.test('william')
 
 
 // try building a choice
-Closure choiceClos = {choiceRunArgs ->
+Closure choiceClos = {ctx, choiceRunArgs ->
     println "choice closure got arg : $choiceRunArgs"
 
-    def ctx = delegate
-    subflow (ctx, 'csf#1', 'opt1') {
-        action('sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+    subflow (delegate, 'csf#1', 'opt1') {
+        action(delegate, 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
     }
-    subflow (ctx, 'csf#2', 'opt2') {
-        action('sf2Act1#') { println "subflow 2, action 1, returnining 1.2"; 1.2 }
+
+    subflow (delegate, 'csf#2', 'opt2') {
+        action(delegate, 'sf2Act1#') { println "subflow 2, action 1, returnining 1.2"; 1.2 }
 
     }
 
@@ -75,21 +75,22 @@ Closure choiceClos = {choiceRunArgs ->
         }
 }
 
-//ChoiceAction split = choice ('my choice', choiceClos)
+freeStandingCtx = FlowContext.newFreeStandingContext()
 
-//make ctx visible before running
-//externalisedCtx = choice.ctx
+ChoiceAction split = choice (freeStandingCtx, 'my choice', choiceClos)
+split.run('william')
 
-//choice.run('william')
+split
 
-externalisedCtx = FlowContext.newFreeStandingContext()
+System.exit (0)
 
+freeStandingCtx = FlowContext.newFreeStandingContext()
 //choice (externalisedCtx, 'my choice', choiceClos)
-Subflow defSubflow= subflow (externalisedCtx, 'default subflow') {
+Subflow defSubflow= subflow (freeStandingCtx, 'default subflow') {
     println "subflow closure - create two actions "
-    action (externalisedCtx, 'main1') {println "hello act1 "; 1}
-    action (externalisedCtx, 'main2') {println "hello act2 "; 2}
-    choice (externalisedCtx,'my choice', choiceClos)
+    action (delegate, 'main1') {println "hello act1 "; 1}
+    action (delegate, 'main2') {println "hello act2 "; 2}
+    choice (freeStandingCtx,'my choice', choiceClos)
     return 0
     //action (externalisedCtx, 'main2') {'opt1'}
 }

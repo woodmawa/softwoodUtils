@@ -1,11 +1,10 @@
 package com.softwood.flow.core.support
 
-import groovy.transform.MapConstructor
 
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
-class CallingContextInfo {
+class StackFrameContextInfo {
     String methodType
     int line
     String method
@@ -22,7 +21,7 @@ class CallingContextInfo {
 class CallingStackContext {
 
     static List<String> fetchLines(Stream<StackWalker.StackFrame> stream) {
-        List<CallingContextInfo> callingStackList = stream
+        List<StackFrameContextInfo> callingStackList = stream
         //filter for doCall at line equals -1
                 .filter {stackFrame ->
                     //if line number is -1 then its the method that calls the stackTrace
@@ -53,7 +52,7 @@ class CallingStackContext {
 
                     def type = calleeIsGenerated ? 'generated' : 'native'
                     def rets = "class: '${stackFrame.getClassName()}' of type ${clazz} ${clazzClosureParts == null ? '': 'inst ' +  clazzClosureParts},  invoked [$type${isClosure ? ' type of closure' : ""}] method: [$methodName] at  line:$line"
-                    CallingContextInfo info = new CallingContextInfo()
+                    StackFrameContextInfo info = new StackFrameContextInfo()
                     info.with {
                         methodType =  type
                         line = line
@@ -71,9 +70,9 @@ class CallingStackContext {
     }
 
 
-    static  List<CallingContextInfo> getContext() {
+    static  List<StackFrameContextInfo> getContext() {
 
-        List<CallingContextInfo> lines = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(this::fetchLines)
+        List<StackFrameContextInfo> frames = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(this::fetchLines)
 
     }
 
