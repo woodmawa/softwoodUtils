@@ -18,22 +18,16 @@ MethodClosure subflow = Subflow::newSubflow
 FlowContext freeStandingCtx
 
 //Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
-def when = {Condition conditionArg, toDoArgs,  Closure toDo ->
+def when = {Condition someCondition, toDoArgs,  Closure toDo ->
 
     toDo.delegate = delegate
     toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
-    // assert delegate.is (externalisedCtx)  - worked
-
-    //try and resolve newInClosure list on FlowContext delegate
-    List nicl
-    if (delegate?.newInClosure) {
-        nicl = delegate.newInClosure
-        nicl.add (conditionArg)
-    }
-
-    if (conditionArg && conditionArg.test ()) {
-        toDo (toDoArgs)
+    if (someCondition && someCondition.test ()) {
+        if (toDoArgs && toDoArgs instanceof Object[] )
+            toDo (*toDoArgs)
+        else
+            toDo (toDoArgs)
     } else
         false       //fail as default
 
@@ -52,34 +46,47 @@ def res2 = c1.test('william')
 
 
 // try building a choice
-Closure choiceClos = {ctx, choiceRunArgs ->
+Closure choiceClos = {def selectorValue, choiceRunArgs ->
     println "choice closure got arg : $choiceRunArgs"
 
-    subflow (delegate, 'csf#1', 'opt1') {
-        action(delegate, 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+    def sf1, sf2
+    Condition cond = condition (selectorValue) {it == 'opt1'}
+    //if (cond.test()) {
+    when.delegate = delegate
+    when (cond, selectorValue) {selVal ->
+        println "inside when condition (opt1) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
+        sf1 = subflow(delegate, 'csf#1', 'opt1') {
+            action(delegate, 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+        }
     }
 
-    subflow (delegate, 'csf#2', 'opt2') {
-        action(delegate, 'sf2Act1#') { println "subflow 2, action 1, returnining 1.2"; 1.2 }
+    if (selectorValue == 'opt2') {
+        println "inside when condition (opt2) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
 
+        sf2 = subflow(delegate, 'csf#2', 'opt2') {
+            action(delegate, 'sf2Act1#') { println "subflow 2, action 1, returnining 1.2"; 1.2 }
+
+        }
     }
 
     //need this to set the FlowContext delegate on the 'when' closure.
     //todo - in flow class we'll neeed to set this explicitly in there before we use
-    when.delegate = delegate
+    /*when.delegate = delegate
     when (condition (delegate, choiceRunArgs) {
         def ans = "william" == it;
-        println "in condition closure recived $it,  returning : $ans";
+        println "in condition closure received $it,  returning : $ans";
         ans}, "with these ToDo args") {
             println "when: called with it = '$it' >> hello there $choiceRunArgs"
-        }
+        }*/
+
 }
 
 freeStandingCtx = FlowContext.newFreeStandingContext()
 
 ChoiceAction split = choice (freeStandingCtx, 'my choice', choiceClos)
-split.run('william')
+split.run('opt1')
 
+sleep 1000
 split
 
 System.exit (0)
@@ -101,3 +108,26 @@ defSubflow.run ('start')
 
 sleep 1000
 choice
+
+/* <!---------------------------> */
+//Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
+/*def when = {Condition someCondition, toDoArgs,  Closure toDo ->
+
+    toDo.delegate = delegate
+    toDo.resolveStrategy = Closure.DELEGATE_FIRST
+
+    // assert delegate.is (externalisedCtx)  - worked
+
+    //try and resolve newInClosure list on FlowContext delegate
+    List nicl
+    if (delegate?.newInClosure) {
+        nicl = delegate.newInClosure
+        nicl.add (someCondition)
+    }
+
+    if (someCondition && someCondition.test ()) {
+        toDo (toDoArgs)
+    } else
+        false       //fail as default
+
+}*/

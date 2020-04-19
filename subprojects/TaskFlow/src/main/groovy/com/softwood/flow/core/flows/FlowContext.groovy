@@ -11,6 +11,7 @@ class FlowContext extends Expando {
     ConcurrentLinkedQueue flowListeners
     ConcurrentLinkedQueue newInClosure
     ConcurrentHashMap newInClosureMap
+    ConcurrentHashMap flowNodeResults
 
     Flow flow
     FlowType type
@@ -29,6 +30,7 @@ class FlowContext extends Expando {
         ctx.promises = new ConcurrentLinkedDeque<>()
         ctx.taskActions = new ConcurrentLinkedQueue<>()
         ctx.newInClosureMap = new ConcurrentHashMap()
+        ctx.flowNodeResults = new ConcurrentHashMap()
         ctx.newInClosure = new ConcurrentLinkedQueue<>()
         ctx.flow = null
         ctx.type = FlowType.FreeStanding
@@ -41,6 +43,7 @@ class FlowContext extends Expando {
         taskActions = new ConcurrentLinkedQueue<>()
         flowListeners = new ConcurrentLinkedQueue<FlowListener>()
         newInClosureMap = new ConcurrentHashMap()
+        flowNodeResults = new ConcurrentHashMap()
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process

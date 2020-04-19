@@ -7,6 +7,7 @@ import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
+import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -17,44 +18,6 @@ import static groovyx.gpars.dataflow.Dataflow.task
 class ChoiceAction extends AbstractFlowNode {
 
     ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
-
-    //static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
-        /*
-         *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
-         * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
-         */
-        /*List frames = CallingStackContext.getContext()
-        boolean isCalledInClosure = frames ?[1].callingContextIsClosure */
-
-        /*def ctx
-        def owner = closure.owner
-        def delegate = closure.delegate
-        if (owner instanceof Closure &&
-                delegate instanceof Closure &&
-                delegate?.delegate instanceof FlowContext) {
-            ctx = closure.delegate.delegate
-        } else {
-            if (isCalledInClosure) {
-                //get context ??
-            } else
-                ctx = FlowContext.newFreeStandingContext()
-        }*/
-
-        /*
-        def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
-        choice.ctx?.taskActions << choice
-
-        if (choice.ctx.newInClosure != null) {
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                choice.ctx.newInClosure << choice  //add to items generated within the running closure
-        }
-        choice*/
-
-    //}
 
     static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
         /*
@@ -112,56 +75,50 @@ class ChoiceAction extends AbstractFlowNode {
             step.ctx?.flowListeners.each { listener ->
                 listener.beforeFlowNodeExecuteState(step.ctx, this)
             }
-            step.status = FlowNodeStatus.running
 
             //if we find padded nul then striup this off
-            if (args?.size() > 1) {
+            if (args instanceof Object[] && args?.size() > 1) {
                 if (args[-1] == null) {
                     args = args.toList().subList(0, args.size() - 1)
+                    //args = args.grep{it}
                 }
             }
 
-            //schedule task and receive the future and store it
-            //pass promise from this into new closure in the task
-            Promise promise = task {
-                def ans
+            step.status = FlowNodeStatus.running
 
-                //todo  - where should the calculator live ?  here or in the original closure
-                def selector = subflowSelector (previousNode?.result.val, args)
-                ans = cloned(selector, *args)  //(calculated selector discrimator, args...)
-            }
-            step.result = promise
-            step.ctx.activePromises << promise
+            //as this is a choice node - no point running as a task
+           //todo  - where should the calculator live ?  here or in the original closure
+            def selector = subflowSelector (previousNode, args)
+            //cloned delegate is the FlowContext so no point passing as a parameter
+            if (args instanceof Object[])
+                step.result << cloned(selector, *args)  //(calculated selector discriminator, args...)
+            else
+                step.result << cloned(selector, args)
+
             //when DF is bound remove promise from ctx.activePromises
-            promise.whenBound {
-                status = FlowNodeStatus.completed
-                boolean yesNo = step.ctx?.activePromises.remove(promise)
-                assert yesNo
-
-                step.ctx?.flowListeners.each { listener ->
-                    listener.afterFlowNodeExecuteState(ctx, this)
-                    if (ctx.type = FlowType.Process) {
-                        FlowEvent fe = new FlowEvent<>(flow: ctx.flow, message: "completed task #$sequence with '$name' ", referencedObject: this)
-                        listener.flowEventUpdate(ctx, fe)
-                    }
+            status = FlowNodeStatus.completed
+            step.ctx?.flowListeners.each { listener ->
+                listener.afterFlowNodeExecuteState(ctx, this)
+                if (ctx.type = FlowType.Process) {
+                    FlowEvent fe = new FlowEvent<>(flow: ctx.flow, message: "completed choice node (#$sequence) with '$name' ")
+                    listener.flowEventUpdate(ctx, fe)
                 }
-
-                log.debug "choiceTask(): promise was bound with $it, removed promise $promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
-
             }
 
             List newIns = ctx.newInClosure.toList()
             def newSubflows = newIns.grep {it.class == Subflow}
             if (ctx.flow) {
-                newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
+                    newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
             }
             choiceSubflows.addAll (newSubflows)
             ctx.newInClosure.clear()
-            def preChoiceResult = previousNode.result.val
-            //def selected = choiceSubflows.grep {subflowSelector(it, preChoiceResult)}
-            //assert selected.size() == 1 //we are expecting a match
+            //for each subflow declared in the choice closure execute each subflow and its nodes
+            choiceSubflows.each {sflow ->
+                //for each flow that makes it run each flow
+                sflow.run (ctx.flowNodeResults)
+            }
 
-            step
+           step
         } catch (Exception e) {
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"
@@ -172,12 +129,20 @@ class ChoiceAction extends AbstractFlowNode {
         }
     }
 
-    //default selector logic for a choice
-    def subflowSelector (def previousResult, args) {
-        previousResult      //default 'null logic' position
+    //default selector logic for a choiceAction
+    def subflowSelector (DataflowVariable previousNode, args) {
+
+        def previousResult
+        if (previousNode) {
+            previousResult = previousNode.result.val
+        }
+        else
+            previousResult  = args    //default 'null logic' position
     }
 
     String toString () {
-        "Choice (name:$name, status:$status) with # of subflows ${choiceSubflows.size()}"
+        int sz = choiceSubflows.size()
+        String insertTxt = "with # of subflows ${choiceSubflows.size()}"
+        "Choice (name:$name, status:$status) ${sz ? insertTxt : ''}"
     }
 }
