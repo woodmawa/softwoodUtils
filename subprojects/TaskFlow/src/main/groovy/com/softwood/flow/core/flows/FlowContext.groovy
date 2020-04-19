@@ -1,5 +1,7 @@
 package com.softwood.flow.core.flows
 
+import com.softwood.flow.core.languageElements.Condition
+
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -47,6 +49,24 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
+
+
+        when.delegate = this
+    }
+
+    //Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
+    def when = { Condition someCondition, toDoArgs, Closure toDo ->
+
+        toDo.delegate = delegate
+        toDo.resolveStrategy = Closure.DELEGATE_FIRST
+
+        if (someCondition && someCondition.test ()) {
+            if (toDoArgs && toDoArgs instanceof Object[] )
+                toDo (*toDoArgs)
+            else
+                toDo (toDoArgs)
+        } else
+            false       //fail as default
 
     }
 

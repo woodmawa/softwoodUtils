@@ -17,21 +17,7 @@ MethodClosure subflow = Subflow::newSubflow
 
 FlowContext freeStandingCtx
 
-//Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
-def when = {Condition someCondition, toDoArgs,  Closure toDo ->
 
-    toDo.delegate = delegate
-    toDo.resolveStrategy = Closure.DELEGATE_FIRST
-
-    if (someCondition && someCondition.test ()) {
-        if (toDoArgs && toDoArgs instanceof Object[] )
-            toDo (*toDoArgs)
-        else
-            toDo (toDoArgs)
-    } else
-        false       //fail as default
-
-}
 //<!--------------------------->
 
 // try building a condition
@@ -52,7 +38,9 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
     def sf1, sf2
     Condition cond = condition (selectorValue) {it == 'opt1'}
     //if (cond.test()) {
-    when.delegate = delegate
+
+   assert delegate == when.delegate
+
     when (cond, selectorValue) {selVal ->
         println "inside when condition (opt1) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
         sf1 = subflow(delegate, 'csf#1', 'opt1') {
