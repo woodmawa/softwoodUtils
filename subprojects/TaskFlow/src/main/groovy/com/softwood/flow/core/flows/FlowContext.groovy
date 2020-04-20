@@ -26,7 +26,7 @@ class FlowContext extends Expando {
         ctx
     }
 
-    static Expando newFreeStandingContext () {
+    static FlowContext newFreeStandingContext () {
         FlowContext ctx = new FlowContext()
         ctx.activePromises = new ConcurrentLinkedDeque<>()
         ctx.promises = new ConcurrentLinkedDeque<>()
@@ -49,29 +49,35 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
+
     }
 
-    //Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
-    //however there can only be one closure with this name - but we would like to take either a condition or
-    //a boolean.  SO we need to switch on the type of someCondition
-    def when = {  someCondition, toDoArgs, Closure toDo ->
+    /**
+     * using as closure
+     * however there can only be one closure with this name - but we would like to take either a condition or
+     * a boolean.  So we need to switch on the type of whenArg
+     **/
+    Closure  when = {  whenArg, toDoArgs, Closure toDo ->
 
         toDo.delegate = delegate
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         boolean outcome = false
-        switch (someCondition?.class) {
+        switch (whenArg?.class) {
+            //if whenArg is Condition  - run the test
             case  Condition :
-                if (someCondition )
-                    outcome = someCondition.test ()  //run the test
+                if (whenArg )
+                    outcome = whenArg.test ()  //run the test
                 else
                     outcome = false
                 break
+            //if whenArg is a closure  - use the result of the closure
             case Closure :
-                outcome = someCondition.call()
+                outcome = whenArg.call()
                 break
+            //if whenArg is a Boolean   - just use the value
             case Boolean :
-                outcome = someCondition
+                outcome = whenArg
                 break
             default:
                 outcome = false
@@ -88,7 +94,7 @@ class FlowContext extends Expando {
 
     }
 
-    def flowCondition = {argToTest, Closure condClosure ->
+    Closure<Condition> flowCondition = {argToTest, Closure condClosure ->
 
         Condition.newCondition(argToTest, condClosure)
     }

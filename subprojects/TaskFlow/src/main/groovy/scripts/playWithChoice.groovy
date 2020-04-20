@@ -12,7 +12,7 @@ import org.codehaus.groovy.runtime.MethodClosure
 
 MethodClosure action = TaskAction::newAction
 MethodClosure choice = ChoiceAction::newChoiceAction
-MethodClosure condition = Condition::newCondition
+//MethodClosure condition = Condition::newCondition
 MethodClosure subflow = Subflow::newSubflow
 
 FlowContext freeStandingCtx
@@ -21,14 +21,14 @@ FlowContext freeStandingCtx
 //<!--------------------------->
 
 // try building a condition
-Closure condClosOut = {arg ->
+/*Closure condClosOut = {arg ->
     def ans = "william" == arg;
     println "in condition closure received $arg,  returning : $ans";
     ans}
 
 Condition c1 = condition (condClosOut)
 
-def res2 = c1.test('william')
+def res2 = c1.test('william')*/
 
 
 // try building a choice
