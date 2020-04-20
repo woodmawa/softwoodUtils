@@ -1,6 +1,9 @@
 package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.languageElements.Condition
+import com.softwood.flow.core.nodes.ChoiceAction
+import com.softwood.flow.core.nodes.TaskAction
+import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -63,7 +66,7 @@ class FlowContext extends Expando {
      * @return def
      **/
 
-    def when( Condition SomeCondition, toDoArgs, Closure toDo) {
+    def when ( Condition SomeCondition, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
 
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
@@ -84,7 +87,7 @@ class FlowContext extends Expando {
 
     }
 
-    def when (boolean someBoolean, toDoArgs, Closure toDo) {
+    def when (boolean someBoolean, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -98,7 +101,7 @@ class FlowContext extends Expando {
 
     }
 
-    def when (Closure someClosure, toDoArgs, Closure toDo) {
+    def when (Closure someClosure, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -116,17 +119,11 @@ class FlowContext extends Expando {
 
     }
 
-    /**
-     *
-     * @param argToTest - value for test
-     * @param condClosure - code to run when test() is called
-     * @return a Condition
-     */
-
-    Condition flowCondition (argToTest, Closure condClosure){
-        Condition.newCondition(argToTest, condClosure)
-    }
-
+    //declares flowCondition as usable variable into the context
+    MethodClosure flowCondition = Condition::flowConditionClause
+    MethodClosure action = TaskAction::newAction
+    MethodClosure choice = ChoiceAction::newChoiceAction
+    MethodClosure subflow = Subflow::newSubflow
 
     void saveClosureNewIns (clos, newInItem) {
         def key = getLogicalAddress (clos)

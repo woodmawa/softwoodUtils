@@ -33,6 +33,16 @@ class Condition implements Predicate {
         condition
     }
 
+    /**
+     *
+     * @param argToTest - value for test
+     * @param condClosure - code to run when test() is called
+     * @return a Condition
+     */
+
+    static Condition flowConditionClause (argToTest, Closure condClosure){
+        Condition.newCondition(argToTest, condClosure)
+    }
 
 
     /*static boolean when ( Condition condition, itemToTest,  Closure toDo) {

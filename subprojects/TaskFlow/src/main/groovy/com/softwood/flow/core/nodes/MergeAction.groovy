@@ -2,32 +2,28 @@ package com.softwood.flow.core.nodes
 
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
-import com.softwood.flow.core.flows.FlowStatus
 import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
-import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
-import static groovyx.gpars.dataflow.Dataflow.task
-
 @Slf4j
-class ChoiceAction extends AbstractFlowNode {
+class MergeAction extends AbstractFlowNode {
 
-    ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
+    ConcurrentLinkedQueue<Subflow> mergeSubflows = new ConcurrentLinkedQueue<>()
 
-    static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
+    static MergeAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
         /*
          * injected ctx to use
          */
 
-        def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
-        choice.ctx?.taskActions << choice
+        def merge = new MergeAction(ctx: ctx, name: name ?: "anonymous", action: closure)
+        merge.ctx?.taskActions << merge
 
-        if (choice.ctx.newInClosure != null) {
+        if (merge.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -35,9 +31,9 @@ class ChoiceAction extends AbstractFlowNode {
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
-                choice.ctx.newInClosure << choice  //add to items generated within the running closure
+                merge.ctx.newInClosure << merge  //add to items generated within the running closure
         }
-        choice
+        merge
 
     }
 
@@ -62,11 +58,11 @@ class ChoiceAction extends AbstractFlowNode {
      */
     private def doRun(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
 
-        def choice = choiceTask(previousNode, this, args, errHandler)
-        choice
+        def merge = mergeTask(previousNode, this, args, errHandler)
+        merge
     }
 
-    private def choiceTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
+    private def mergeTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
             def cloned = step.action.clone()
             cloned.delegate = step.ctx
@@ -86,26 +82,25 @@ class ChoiceAction extends AbstractFlowNode {
 
             step.status = FlowNodeStatus.running
 
-            //as this is a choice node - no point running as a task
-           //todo  - where should the calculator live ?  here or in the original closure
-            def selector = subflowSelector (previousNode, args)
+            List toMergeSubflows = {[]}
             //cloned delegate is the FlowContext so no point passing as a parameter
             if (args instanceof Object[])
-                step.result << cloned(selector, *args)  //(calculated selector discriminator, args...)
+                step.result << cloned(toMergeSubflows, *args)  //(calculated selector discriminator, args...)
             else
-                step.result << cloned(selector, args)
+                step.result << cloned(toMergeSubflows, args)
 
             //when DF is bound remove promise from ctx.activePromises
             status = FlowNodeStatus.completed
             step.ctx?.flowListeners.each { listener ->
                 listener.afterFlowNodeExecuteState(ctx, this)
                 if (ctx.type = FlowType.Process) {
-                    FlowEvent fe = new FlowEvent<>(flow: ctx.flow, message: "completed choice node (#$sequence) with '$name' ")
+                    FlowEvent fe = new FlowEvent<>(flow: ctx.flow, message: "completed merge node (#$sequence) with '$name' ")
                     listener.flowEventUpdate(ctx, fe)
                 }
             }
 
             List newIns = ctx.newInClosure.toList()
+            //should be one subflow out
             def newSubflows = newIns.grep {it.class == Subflow}
             if (ctx.flow) {
                     newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
@@ -129,20 +124,14 @@ class ChoiceAction extends AbstractFlowNode {
         }
     }
 
-    //default selector logic for a choiceAction
-    def subflowSelector (DataflowVariable previousNode, args) {
-
-        def previousResult
-        if (previousNode) {
-            previousResult = previousNode.result.val
-        }
-        else
-            previousResult  = args    //default 'null logic' position
+    //todo - need to think what this needs to look like default selector logic for a choiceAction
+    List mergeSubflowSelector (DataflowVariable previousNode, args) {
+        []
     }
 
     String toString () {
-        int sz = choiceSubflows.size()
-        String insertTxt = "with # of subflows ${choiceSubflows.size()}"
-        "Choice (name:$name, status:$status) ${sz ? insertTxt : ''}"
+        int sz = mergeSubflows.size()
+        String insertTxt = "with # of subflows ${mergeSubflows.size()}"
+        "Merge (name:$name, status:$status) ${sz ? insertTxt : ''}"
     }
 }
