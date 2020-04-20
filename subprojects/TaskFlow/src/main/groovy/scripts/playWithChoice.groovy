@@ -36,7 +36,7 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
     println "choice closure got arg : $choiceRunArgs"
 
     def sf1, sf2
-    Condition cond = condition (selectorValue) {it == 'opt1'}
+    Condition cond = flowCondition (selectorValue) {it == 'opt1'}
     //if (cond.test()) {
 
    assert delegate == when.delegate

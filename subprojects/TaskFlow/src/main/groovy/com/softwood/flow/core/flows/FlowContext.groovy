@@ -49,26 +49,50 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
-
-
-        when.delegate = this
     }
 
     //Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
-    def when = { Condition someCondition, toDoArgs, Closure toDo ->
+    //however there can only be one closure with this name - but we would like to take either a condition or
+    //a boolean.  SO we need to switch on the type of someCondition
+    def when = {  someCondition, toDoArgs, Closure toDo ->
 
         toDo.delegate = delegate
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
-        if (someCondition && someCondition.test ()) {
+        boolean outcome = false
+        switch (someCondition?.class) {
+            case  Condition :
+                if (someCondition )
+                    outcome = someCondition.test ()  //run the test
+                else
+                    outcome = false
+                break
+            case Closure :
+                outcome = someCondition.call()
+                break
+            case Boolean :
+                outcome = someCondition
+                break
+            default:
+                outcome = false
+                break
+        }
+
+        if (outcome) {
             if (toDoArgs && toDoArgs instanceof Object[] )
                 toDo (*toDoArgs)
             else
                 toDo (toDoArgs)
         } else
-            false       //fail as default
+            outcome       //fail as default
 
     }
+
+    def flowCondition = {argToTest, Closure condClosure ->
+
+        Condition.newCondition(argToTest, condClosure)
+    }
+
 
     void saveClosureNewIns (clos, newInItem) {
         def key = getLogicalAddress (clos)
