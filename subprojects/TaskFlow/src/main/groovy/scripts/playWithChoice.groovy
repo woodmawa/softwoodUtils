@@ -39,8 +39,6 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
     Condition cond = flowCondition (selectorValue) {it == 'opt1'}
     //if (cond.test()) {
 
-   assert delegate == when.delegate
-
     when (cond, selectorValue) {selVal ->
         println "inside when condition (opt1) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
         sf1 = subflow(delegate, 'csf#1', 'opt1') {

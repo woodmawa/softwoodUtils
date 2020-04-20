@@ -53,36 +53,26 @@ class FlowContext extends Expando {
     }
 
     /**
-     * using as closure
-     * however there can only be one closure with this name - but we would like to take either a condition or
-     * a boolean.  So we need to switch on the type of whenArg
+     * thre types of when, one with condition (test it), one with closure (eval it) or with boolean
+     *
+     * if boolean truth for the when is tru then run the attached closure, with arg or spread args as appropriate
+     *
+     * @param someCondition should eval to true/false when tested
+     * @param toDoArgs - args for the closure
+     * @param workToDoClosure - if true trigger logic to run
+     * @return def
      **/
-    Closure  when = {  whenArg, toDoArgs, Closure toDo ->
 
-        toDo.delegate = delegate
+    def when( Condition SomeCondition, toDoArgs, Closure toDo) {
+
+        toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         boolean outcome = false
-        switch (whenArg?.class) {
-            //if whenArg is Condition  - run the test
-            case  Condition :
-                if (whenArg )
-                    outcome = whenArg.test ()  //run the test
-                else
-                    outcome = false
-                break
-            //if whenArg is a closure  - use the result of the closure
-            case Closure :
-                outcome = whenArg.call()
-                break
-            //if whenArg is a Boolean   - just use the value
-            case Boolean :
-                outcome = whenArg
-                break
-            default:
-                outcome = false
-                break
-        }
+        if (SomeCondition )
+            outcome = SomeCondition.test ()  //run the test
+        else
+            outcome = false
 
         if (outcome) {
             if (toDoArgs && toDoArgs instanceof Object[] )
@@ -94,8 +84,46 @@ class FlowContext extends Expando {
 
     }
 
-    Closure<Condition> flowCondition = {argToTest, Closure condClosure ->
+    def when (boolean someBoolean, toDoArgs, Closure toDo) {
+        toDo.delegate = this
+        toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
+        if (someBoolean) {
+            if (toDoArgs && toDoArgs instanceof Object[] )
+                toDo (*toDoArgs)
+            else
+                toDo (toDoArgs)
+        } else
+            false       //fail as default
+
+    }
+
+    def when (Closure someClosure, toDoArgs, Closure toDo) {
+        toDo.delegate = this
+        toDo.resolveStrategy = Closure.DELEGATE_FIRST
+
+        boolean  outcome = false
+        if (someClosure)
+            outcome = someClosure()
+
+        if (outcome) {
+            if (toDoArgs && toDoArgs instanceof Object[] )
+                toDo (*toDoArgs)
+            else
+                toDo (toDoArgs)
+        } else
+            false       //fail as default
+
+    }
+
+    /**
+     *
+     * @param argToTest - value for test
+     * @param condClosure - code to run when test() is called
+     * @return a Condition
+     */
+
+    Condition flowCondition (argToTest, Closure condClosure){
         Condition.newCondition(argToTest, condClosure)
     }
 
