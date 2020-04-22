@@ -146,6 +146,10 @@ class TaskAction extends AbstractFlowNode{
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
 
+            //if this node is declared with previous dependent tasks
+            waitForDependencies(step)
+
+
             Promise promise  = task {
                 //println "in task() with step $step.name, has previousResult as $previousTaskResult and has closure with params with types $cloned.parameterTypes"
                 def ans
@@ -211,7 +215,7 @@ class TaskAction extends AbstractFlowNode{
         super.then (nextStep, errHandler)
 
         def previousTask = this
-        actionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
+         actionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
 
     }
 

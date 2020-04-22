@@ -1,5 +1,7 @@
 package com.softwood.flow.core.flows
 
+import com.softwood.flow.core.nodes.AbstractFlowNode
+import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedDeque
@@ -22,5 +24,8 @@ abstract class AbstractFlow {
     ConcurrentLinkedDeque<Promise> promises = new ConcurrentLinkedDeque<>()
     FlowStatus status = FlowStatus.ready
     FlowType flowType
+
+
+
 
 }

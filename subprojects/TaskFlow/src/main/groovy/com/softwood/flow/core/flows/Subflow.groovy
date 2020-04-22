@@ -3,6 +3,7 @@ package com.softwood.flow.core.flows
 import com.softwood.flow.core.nodes.AbstractFlowNode
 import com.softwood.flow.core.nodes.FlowNodeStatus
 import com.softwood.flow.core.support.CallingStackContext
+import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedDeque

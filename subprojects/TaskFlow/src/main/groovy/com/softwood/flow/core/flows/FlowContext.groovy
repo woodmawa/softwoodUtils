@@ -1,8 +1,10 @@
 package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.languageElements.Condition
+import com.softwood.flow.core.nodes.AbstractFlowNode
 import com.softwood.flow.core.nodes.ChoiceAction
 import com.softwood.flow.core.nodes.TaskAction
+import groovyx.gpars.dataflow.DataflowVariable
 import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentHashMap
@@ -10,19 +12,8 @@ import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
 
 class FlowContext extends Expando {
-    ConcurrentLinkedDeque activePromises
-    ConcurrentLinkedDeque promises
-    ConcurrentLinkedQueue taskActions
-    ConcurrentLinkedQueue flowListeners
-    ConcurrentLinkedQueue newInClosure
-    ConcurrentHashMap newInClosureMap
-    ConcurrentHashMap flowNodeResults
 
-    Flow flow
-    FlowType type
-    Object[] initialArgs
-
-    static FlowContext newProcessContext (flow) {
+   static FlowContext newProcessContext (flow) {
         FlowContext ctx = new FlowContext()
         ctx.flow = flow
         ctx.type = FlowType.Process
@@ -39,8 +30,9 @@ class FlowContext extends Expando {
         ctx.newInClosure = new ConcurrentLinkedQueue<>()
         ctx.flow = null
         ctx.type = FlowType.FreeStanding
+        ctx.initialArgs = []
         ctx
-    }
+     }
 
     FlowContext() {
         activePromises = new ConcurrentLinkedDeque<>()
@@ -52,7 +44,7 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
-
+        initialArgs = []
     }
 
     /**
