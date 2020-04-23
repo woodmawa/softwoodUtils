@@ -47,6 +47,39 @@ class FlowContext extends Expando {
         initialArgs = []
     }
 
+    /* ensure that if we have this property we we use it, else just use the Expandos internal map */
+    def getProperty (String name) {
+
+        List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
+        MetaProperty prop = getMetaClass().getMetaProperty(name)
+        if (prop) {
+            prop.getProperty(this)
+        } else {
+            //if not real property - get the expando property map and try and look in there using 'name' arg as the key
+            def result
+
+            Map m = getProperties ()
+            m.get(name)
+        }
+    }
+
+    /* ensure that if we have this property we we use it, else just use the Expandos internal map */
+    void setProperty (String name, value ) {
+
+        List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
+        MetaProperty prop = getMetaClass().getMetaProperty(name)
+        if (prop) {
+            prop.setProperty(this, value)
+        } else {
+            //if not real property - get the expando property map and try and look in there using 'name' arg as the key
+            def result
+
+            Map m = getProperties ()
+            m.put(name, value)
+        }
+    }
+
+
     /**
      * thre types of when, one with condition (test it), one with closure (eval it) or with boolean
      *
