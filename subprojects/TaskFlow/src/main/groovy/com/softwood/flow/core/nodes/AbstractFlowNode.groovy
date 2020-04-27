@@ -23,6 +23,7 @@ abstract class AbstractFlowNode {
     protected AbstractFlowNode previousNode
     protected Closure cloned  //'then' clones the closure on the next Action and invokes that
     protected final sequence = sequenceGenerator.incrementAndGet()
+    protected ConcurrentLinkedQueue errors = new ConcurrentLinkedQueue()
 
     String name = "anonymous"
     FlowNodeStatus status = FlowNodeStatus.ready
@@ -53,6 +54,7 @@ abstract class AbstractFlowNode {
         result << value
     }
 
+
     //provide a version that unwraps the DF result to get the value
     def  getResultValue () {
         def val = result.getVal()     //blocking get on DF result
@@ -63,6 +65,19 @@ abstract class AbstractFlowNode {
 
     def  getResultValue (long timeout, TimeUnit unit) {
         def val = result.getVal(timeout, unit)     //blocking get on DF result
+    }
+
+    /**
+     * if you need to run the process more than once, you'll need to reset each task to permit the task to be rerun and
+     * new result set
+     *
+     */
+    void resetFlowNode () {
+        assert result.bound == true
+
+        errors.clear()
+        result = new DataflowVariable()
+        status = FlowNodeStatus.ready
     }
 
     def then (AbstractFlowNode nextStep, Closure errhandler = null) {

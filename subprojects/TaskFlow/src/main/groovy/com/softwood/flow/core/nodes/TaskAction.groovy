@@ -16,7 +16,7 @@ import static groovyx.gpars.dataflow.Dataflow.task
 class TaskAction extends AbstractFlowNode{
     def debug = false
 
-    static TaskAction newAction (name = null,  Closure closure) {
+    static TaskAction newAction (String name = null,  Closure closure) {
         /*
          *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
          * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
@@ -50,7 +50,7 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
-    static TaskAction newAction (FlowContext ctx, name = null,  Closure closure) {
+    static TaskAction newAction (FlowContext ctx, String name = null,  Closure closure) {
         /*
          * here we are injected with ctx to start
          */
@@ -94,16 +94,21 @@ class TaskAction extends AbstractFlowNode{
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
+    def run (ArrayList arrayArg, args = null, Closure errHandler = null) {
+        doRun (null, arrayArg, args, errHandler)
+    }
+
     def run (args = null, Closure errHandler = null) {
-        doRun (null, args, errHandler)
+        doRun (null, null, args, errHandler)
     }
 
     def run (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
-        doRun (previousNode, args, errHandler)
+        doRun (previousNode, null, args, errHandler)
     }
+
     def delayedRun (int delay, args = null, Closure errHandler = null) {
         taskDelay = delay
-        run (args, errHandler)
+        run (null, null, args, errHandler)
     }
 
     /**
@@ -115,7 +120,7 @@ class TaskAction extends AbstractFlowNode{
      * @param errHandler
      * @return
      */
-    private def doRun  (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+    protected def doRun  (AbstractFlowNode previousNode, ArrayList arrayArg, args = null, Closure errHandler = null) {
         //println " doRun: made it to action task with previousTask $previousNode, and args as $args, and errHandler $errHandler"
         if (taskDelay == 0)
             status = FlowNodeStatus.running
@@ -123,13 +128,13 @@ class TaskAction extends AbstractFlowNode{
             status = FlowNodeStatus.deferred
 
 
-        def ta = actionTask (previousNode, this, args, errHandler)
+        def ta = actionTask (previousNode, this, arrayArg, args, errHandler)
         ta
     }
 
-    private def actionTask (TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
+    protected def actionTask (AbstractFlowNode previousNode, AbstractFlowNode step, ArrayList arrayArg, args, Closure errHandler = null) {
         try {
-            def cloned  = step.action.clone()
+            Closure cloned  = step.action.clone()
             cloned.delegate = step.ctx
             cloned.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -153,20 +158,27 @@ class TaskAction extends AbstractFlowNode{
             Promise promise  = task {
                 //println "in task() with step $step.name, has previousResult as $previousTaskResult and has closure with params with types $cloned.parameterTypes"
                 def ans
-                if (cloned.maximumNumberOfParameters == 2 &&
-                        (cloned.parameterTypes[1] == Promise || cloned.parameterTypes[1] == DataflowVariable)) {
-                    ans = cloned(step.ctx, previousNode.result)  //expecting result from this flowNode
-                }
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == AbstractFlowNode)
-                    ans = cloned(step.ctx, previousNode)
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object)
+                if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters == 2  ){
                     ans = cloned(step.ctx, args)
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[1] == Object[])
-                    ans = cloned(step.ctx, args)
-                else if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters > 2  )
+                } else if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters > 2  ){
                     ans = cloned(step.ctx, *args)
-                else if (cloned.maximumNumberOfParameters == 1)
-                    ans = cloned(step.ctx)
+                } else if (cloned.parameterTypes[0] == Promise || cloned.parameterTypes[0] == DataflowVariable) {
+                    ans = cloned(previousNode.result)  //expecting result from this flowNode
+                }
+                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[0] == ArrayList && args.size() > 0)
+                    ans = cloned(arrayArg, args)
+                else if  (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes?[0] == FlowContext || cloned.parameterTypes?[0] == Expando)
+                    ans = cloned (step.ctx)
+                else if  (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes?[0] == Object && args == null)
+                    ans = cloned (step.ctx)
+                else if (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes[0] == Object && args != null)
+                    ans = cloned(args)
+                else if (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes[0] instanceof AbstractFlowNode)
+                    ans = cloned(previousNode)
+                else if (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes[0] == ArrayList)
+                    ans = cloned(arrayArg)
+                else if (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes[0] == Object[] && args.size() > 0)
+                    ans = cloned(*args)
                 else
                     ans = cloned()
                 ans
@@ -197,6 +209,7 @@ class TaskAction extends AbstractFlowNode{
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"
                 status = FlowNodeStatus.errors
+                this.errors = e
                 errHandler(e, this)
             }
             step

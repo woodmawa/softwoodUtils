@@ -15,7 +15,9 @@ class MergeAction extends AbstractFlowNode {
 
     ConcurrentLinkedQueue<Subflow> mergeSubflows = new ConcurrentLinkedQueue<>()
 
-    static MergeAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
+    Subflow defaultSubflow
+
+    static MergeAction newMergeAction(FlowContext ctx, name = null, Closure closure) {
         /*
          * injected ctx to use
          */
@@ -43,8 +45,8 @@ class MergeAction extends AbstractFlowNode {
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def run(args = null, Closure errHandler = null) {
-        doRun(null, args, errHandler)
+    def join(args = null, Closure errHandler = null) {
+        doJoin(null, args, errHandler)
     }
 
     /**
@@ -56,15 +58,24 @@ class MergeAction extends AbstractFlowNode {
      * @param errHandler
      * @return
      */
-    private def doRun(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+    private def doJoin(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
 
         def merge = mergeTask(previousNode, this, args, errHandler)
         merge
     }
 
-    private def mergeTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
+    /**
+     *
+     * @param args
+     * @param errhandler
+     */
+    def select (args = null, Closure errhandler = null) {
+
+    }
+
+    protected def mergeTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
-            def cloned = step.action.clone()
+            Closure cloned = step.action.clone()
             cloned.delegate = step.ctx
             cloned.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -82,12 +93,28 @@ class MergeAction extends AbstractFlowNode {
 
             step.status = FlowNodeStatus.running
 
-            List toMergeSubflows = {[]}
+            List toMergeSubflows = []
+            def closureResult
+
+            def closParamCount = cloned.maximumNumberOfParameters
+
             //cloned delegate is the FlowContext so no point passing as a parameter
-            if (args instanceof Object[])
-                step.result << cloned(toMergeSubflows, *args)  //(calculated selector discriminator, args...)
-            else
-                step.result << cloned(toMergeSubflows, args)
+            if (closParamCount == 1) {
+                closureResult = cloned(toMergeSubflows)
+            } else if (args instanceof Object[]) {
+                closureResult = cloned(toMergeSubflows, *args)  //(calculated selector discriminator, args...)
+            } else {
+                closureResult = cloned(toMergeSubflows, args)
+            }
+
+            List<AbstractFlowNode> mergedSubflowLastActions
+            if (toMergeSubflows.size() > 0 ) {
+                mergedSubflowLastActions = toMergeSubflows.collect{it.subflowFlowNodes.asList().last() }
+                if (mergedSubflowLastActions)
+                    mergedSubflowLastActions.collect {it.result}*.join()
+            }
+
+            step.result << 'merged'
 
             //when DF is bound remove promise from ctx.activePromises
             status = FlowNodeStatus.completed
@@ -102,26 +129,35 @@ class MergeAction extends AbstractFlowNode {
             List newIns = ctx.newInClosure.toList()
             //should be one subflow out
             def newSubflows = newIns.grep {it.class == Subflow}
+            def newActions = newIns.grep {it instanceof AbstractFlowNode}
             if (ctx.flow) {
                     newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
             }
-            choiceSubflows.addAll (newSubflows)
             ctx.newInClosure.clear()
-            //for each subflow declared in the choice closure execute each subflow and its nodes
-            choiceSubflows.each {sflow ->
-                //for each flow that makes it run each flow
-                sflow.run (ctx.flowNodeResults)
-            }
+
+            //subflow (ctx:ctx, name:"merge[${name}].defaultSublow" ) {}
+            defaultSubflow = newSubflows.size() > 0 ? newSubflows[0] :  new Subflow(ctx: ctx, name: "merge[${name}].defaultSublow", subflowClosure:{})
+
+            defaultSubflow.subflowFlowNodes.addAll (newActions)
+            //as input provide the list of actions you have waited on
+            if (args)
+                defaultSubflow.run (mergedSubflowLastActions, args)
+            else
+                defaultSubflow.run (mergedSubflowLastActions)
 
            step
         } catch (Exception e) {
             if (errHandler) {
-                log.debug "choiceTask()  hit exception $e"
+                log.debug "mergeTask()  hit exception $e"
                 status = FlowNodeStatus.errors
                 errHandler(e, this)
             }
             step
         }
+    }
+
+    protected selectTask () {
+
     }
 
     //todo - need to think what this needs to look like default selector logic for a choiceAction

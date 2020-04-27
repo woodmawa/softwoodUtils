@@ -63,11 +63,17 @@ class Subflow extends AbstractFlow {
         doRun (args)
     }
 
-    private def doRun(args) {
+    def run (ArrayList arrayArg, args = null) {
+        doRun (arrayArg, args)
+    }
+
+    protected def doRun(args) {
 
         Closure cloned = subflowClosure
         cloned.delegate = ctx
         cloned.resolveStrategy = Closure.DELEGATE_FIRST
+
+        status = FlowStatus.running
 
         cloned(args)
 
@@ -79,14 +85,52 @@ class Subflow extends AbstractFlow {
             def promise
             if (idx == 0){
                 promise = node.run (args)
-            } else
-                promise = node.run ()
+            } else {
+                def predessor = subflowFlowNodes[idx - 1]
+                node.previousNode = predessor
+                promise = node.run (predessor, node.name)
+            }
             promises << promise
             subFlowPromises << promise
 
         }
 
         ctx.newInClosure.clear()
+        status = FlowStatus.completed
+
+        this
+    }
+
+    protected def doRun(ArrayList arrayArg, args) {
+
+        Closure cloned = subflowClosure
+        cloned.delegate = ctx
+        cloned.resolveStrategy = Closure.DELEGATE_FIRST
+
+        status = FlowStatus.running
+
+        cloned(args)
+
+        def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
+        if (newIns)  {
+            subflowFlowNodes.addAll (ctx.newInClosure)
+        }
+        subflowFlowNodes.eachWithIndex { node, idx ->
+            def promise
+            if (idx == 0){
+                promise = node.run (arrayArg, args)
+            } else {
+                def predessor = subflowFlowNodes[idx - 1]
+                node.previousNode = predessor
+                promise = node.run (predessor, node.name)
+            }
+            promises << promise
+            subFlowPromises << promise
+
+        }
+
+        ctx.newInClosure.clear()
+        status = FlowStatus.completed
         this
     }
 

@@ -13,6 +13,12 @@ import java.util.concurrent.ConcurrentLinkedQueue
 
 class FlowContext extends Expando {
 
+    ConcurrentLinkedQueue taskActions
+    ConcurrentLinkedQueue flowListeners
+    ConcurrentLinkedQueue initialArgs
+    AbstractFlow flow
+    FlowType type
+
    static FlowContext newProcessContext (flow) {
         FlowContext ctx = new FlowContext()
         ctx.flow = flow
@@ -30,7 +36,7 @@ class FlowContext extends Expando {
         ctx.newInClosure = new ConcurrentLinkedQueue<>()
         ctx.flow = null
         ctx.type = FlowType.FreeStanding
-        ctx.initialArgs = []
+        ctx.initialArgs = new ConcurrentLinkedQueue<>()
         ctx
      }
 
@@ -44,7 +50,7 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
         type = FlowType.Process
-        initialArgs = []
+        initialArgs = new ConcurrentLinkedQueue<>()
     }
 
     /* ensure that if we have this property we we use it, else just use the Expandos internal map */
