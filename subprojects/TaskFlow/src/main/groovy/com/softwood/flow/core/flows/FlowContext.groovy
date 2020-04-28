@@ -16,11 +16,14 @@ class FlowContext extends Expando {
     ConcurrentLinkedQueue taskActions
     ConcurrentLinkedQueue flowListeners
     ConcurrentLinkedQueue initialArgs
+    ConcurrentLinkedQueue errors
+    ConcurrentLinkedDeque  newInClosureStack
     AbstractFlow flow
     FlowType type
 
    static FlowContext newProcessContext (flow) {
         FlowContext ctx = new FlowContext()
+        ctx.errors = new ConcurrentLinkedQueue<>()
         ctx.flow = flow
         ctx.type = FlowType.Process
         ctx
@@ -31,7 +34,8 @@ class FlowContext extends Expando {
         ctx.activePromises = new ConcurrentLinkedDeque<>()
         ctx.promises = new ConcurrentLinkedDeque<>()
         ctx.taskActions = new ConcurrentLinkedQueue<>()
-        ctx.newInClosureMap = new ConcurrentHashMap()
+        ctx.errors = new ConcurrentLinkedQueue<>()
+        ctx.newInClosureStack = new ConcurrentLinkedDeque()
         ctx.flowNodeResults = new ConcurrentHashMap()
         ctx.newInClosure = new ConcurrentLinkedQueue<>()
         ctx.flow = null
@@ -44,8 +48,10 @@ class FlowContext extends Expando {
         activePromises = new ConcurrentLinkedDeque<>()
         promises = new ConcurrentLinkedDeque<>()
         taskActions = new ConcurrentLinkedQueue<>()
+        errors = new ConcurrentLinkedQueue<>()
         flowListeners = new ConcurrentLinkedQueue<FlowListener>()
-        newInClosureMap = new ConcurrentHashMap()
+        newInClosureStack  = new ConcurrentLinkedDeque<>()
+
         flowNodeResults = new ConcurrentHashMap()
         newInClosure = new ConcurrentLinkedQueue<>()
         flow = null
@@ -97,28 +103,30 @@ class FlowContext extends Expando {
      * @return def
      **/
 
-    def when ( Condition SomeCondition, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
+    def when ( Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
 
-        toDo.delegate = this
+        toDo.delegate = this  //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         boolean outcome = false
-        if (SomeCondition )
-            outcome = SomeCondition.test ()  //run the test
+        if (someCondition )
+            outcome = someCondition.test ()  //run the test
         else
             outcome = false
 
         if (outcome) {
             if (toDoArgs && toDoArgs instanceof Object[] )
                 toDo (*toDoArgs)
-            else
+            else if (toDoArgs)
                 toDo (toDoArgs)
+            else if (toDoArgs == null)
+                toDo (someCondition.defaultItemToTest)  //use the condition default item as arg for the closure
         } else
             outcome       //fail as default
 
     }
 
-    def when (boolean someBoolean, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
+    def when (boolean someBoolean, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -132,7 +140,7 @@ class FlowContext extends Expando {
 
     }
 
-    def when (Closure someClosure, toDoArgs, @DelegatesTo(FlowContext) Closure toDo) {
+    def when (Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -151,7 +159,7 @@ class FlowContext extends Expando {
     }
 
     //declares flowCondition as usable variable into the context
-    MethodClosure flowCondition = Condition::flowConditionClause
+    MethodClosure flowCondition = Condition::flowCondition
     MethodClosure action = TaskAction::newAction
     MethodClosure choice = ChoiceAction::newChoiceAction
     MethodClosure subflow = Subflow::newSubflow

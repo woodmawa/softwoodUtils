@@ -27,7 +27,9 @@ sf3.run()
 def merge = MergeAction.newMergeAction(ctx, 'myMerge') {mergeSubflows ->
     mergeSubflows.addAll ([sf1, sf2])
 
-    subflow (ctx, "mergeSf#4") { action (ctx, "#act1sf1"){ArrayList mergedTasks, args -> println "mergesf4 $mergedTasks, $args"}  }
+    subflow (ctx, "mergeSf#4") {
+        action (ctx, "#act1sf1"){ArrayList mergedTasks, args -> println "mergesf4 $mergedTasks, $args"}
+    }
 
     //action (ctx, "#m-sf4-act1"){ArrayList mergedTasks, args -> println "merge-sf4 $mergedTasks, args:$args,  $delegate"}
     //action (ctx, "#m-sf4-act2"){name -> println "merge-sf4# (name:$name),  $delegate"}

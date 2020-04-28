@@ -36,34 +36,28 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
     println "choice closure got arg : $choiceRunArgs"
 
     def sf1, sf2
-    Condition cond = flowCondition (selectorValue) {it == 'opt1'}
+    //Condition cond = flowCondition (selectorValue) {it == 'opt1'}
     //if (cond.test()) {
 
-    when (cond, selectorValue) {selVal ->
+    //this will be true so one subflow will be added to the newIns
+    when (flowCondition (selectorValue) {it == 'opt1'}) {selVal ->
         println "inside when condition (opt1) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
         sf1 = subflow(delegate, 'csf#1', 'opt1') {
-            action(delegate, 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+            def a1 = action(delegate, 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+            action(delegate, 'sf1Act2#') { println "subflow 1, action 2, returnining 1.2"; 1.2 }.dependsOn (a1)
         }
     }
 
+    //this will not be true so newIns entry will be generated here
     if (selectorValue == 'opt2') {
         println "inside when condition (opt2) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
 
         sf2 = subflow(delegate, 'csf#2', 'opt2') {
-            action(delegate, 'sf2Act1#') { println "subflow 2, action 1, returnining 1.2"; 1.2 }
+            action(delegate, 'sf2Act1#') { println "subflow 2, action 1, returnining 1.1"; 1.1 }
 
         }
     }
 
-    //need this to set the FlowContext delegate on the 'when' closure.
-    //todo - in flow class we'll neeed to set this explicitly in there before we use
-    /*when.delegate = delegate
-    when (condition (delegate, choiceRunArgs) {
-        def ans = "william" == it;
-        println "in condition closure received $it,  returning : $ans";
-        ans}, "with these ToDo args") {
-            println "when: called with it = '$it' >> hello there $choiceRunArgs"
-        }*/
 
 }
 
@@ -71,27 +65,14 @@ freeStandingCtx = FlowContext.newFreeStandingContext()
 
 ChoiceAction split = choice (freeStandingCtx, 'my choice', choiceClos)
 
-split.run('opt1')
+split.fork('opt1')
 
-sleep 1000
 split
 
+freeStandingCtx.taskActions.collect {it.result}.join()
+
+
 System.exit (0)
-
-freeStandingCtx = FlowContext.newFreeStandingContext()
-//choice (externalisedCtx, 'my choice', choiceClos)
-Subflow defSubflow= subflow (freeStandingCtx, 'default subflow') {
-    println "subflow closure - create two actions "
-    action (delegate, 'main1') {println "hello act1 "; 1}
-    action (delegate, 'main2') {println "hello act2 "; 2}
-    choice (freeStandingCtx,'my choice', choiceClos)
-    return 0
-    //action (externalisedCtx, 'main2') {'opt1'}
-}
-
-//defSubflow << action ('main') {'opt1'} << choice
-defSubflow.run ('start')
-
 
 sleep 1000
 choice

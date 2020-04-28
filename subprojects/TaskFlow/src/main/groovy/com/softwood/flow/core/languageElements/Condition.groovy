@@ -22,7 +22,7 @@ class Condition implements Predicate {
         condition
     }
 
-    static Condition newCondition(condArg, Closure conditionClosure) {
+    static Condition newCondition(def condArg, Closure conditionClosure) {
         Condition condition
         condition = new Condition ()
         if (conditionClosure != null)
@@ -40,25 +40,16 @@ class Condition implements Predicate {
      * @return a Condition
      */
 
-    static Condition flowConditionClause (argToTest, Closure condClosure){
+    static Condition flowCondition (argToTest, Closure condClosure){
         Condition.newCondition(argToTest, condClosure)
     }
-
-
-    /*static boolean when ( Condition condition, itemToTest,  Closure toDo) {
-
-        //try and resolve newInClosure list on FlowContext delegate
-        if (condition && condition.test (itemToTest)) {
-            toDo (itemToTest)
-        }  else
-            false       //fail as default
-    }*/
 
     Closure dynamicTest = { false}
 
     Condition () {}
 
     boolean test(Object item) {
+        defaultItemToTest = item  //cache arg as defaultItemToTest
         def yesNo =  dynamicTest (item)
         yesNo
     }

@@ -2,17 +2,13 @@ package com.softwood.flow.core.nodes
 
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
-import com.softwood.flow.core.flows.FlowStatus
 import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
-import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedQueue
-
-import static groovyx.gpars.dataflow.Dataflow.task
 
 @Slf4j
 class ChoiceAction extends AbstractFlowNode {
@@ -47,8 +43,12 @@ class ChoiceAction extends AbstractFlowNode {
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def run(args = null, Closure errHandler = null) {
-        doRun(null, args, errHandler)
+    def fork(args = null, Closure errHandler = null) {
+        doFork(null, args, errHandler)
+    }
+
+    def fork(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+        doFork(previousNode, args, errHandler)
     }
 
     /**
@@ -60,13 +60,13 @@ class ChoiceAction extends AbstractFlowNode {
      * @param errHandler
      * @return
      */
-    private def doRun(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+    protected doFork(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
 
         def choice = choiceTask(previousNode, this, args, errHandler)
         choice
     }
 
-    private def choiceTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
+    protected def choiceTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
             def cloned = step.action.clone()
             cloned.delegate = step.ctx
@@ -86,14 +86,20 @@ class ChoiceAction extends AbstractFlowNode {
 
             step.status = FlowNodeStatus.running
 
+            ctx.newInClosureStack.push (ctx.newInClosure)
+            ctx.newInClosure = new ConcurrentLinkedQueue<>()  //setup new frame
+
             //as this is a choice node - no point running as a task
            //todo  - where should the calculator live ?  here or in the original closure
-            def selector = subflowSelector (previousNode, args)
+            def selectorValue = subflowSelector (previousNode, args)
+
             //cloned delegate is the FlowContext so no point passing as a parameter
             if (args instanceof Object[])
-                step.result << cloned(selector, *args)  //(calculated selector discriminator, args...)
+                step.result << cloned(selectorValue, *args)  //(calculated selector discriminator, args...)
+            else if (args)
+                step.result << cloned(selectorValue, args)
             else
-                step.result << cloned(selector, args)
+                step.result << cloned(selectorValue)
 
             //when DF is bound remove promise from ctx.activePromises
             status = FlowNodeStatus.completed
@@ -107,21 +113,37 @@ class ChoiceAction extends AbstractFlowNode {
 
             List newIns = ctx.newInClosure.toList()
             def newSubflows = newIns.grep {it.class == Subflow}
+            def newActions = newIns.grep {it instanceof AbstractFlowNode}
+
             if (ctx.flow) {
                     newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
             }
+            //if you dont decalre a subflow - quietly create one and add the actions into it
+            if (!newSubflows && newActions) {
+                Subflow defaultSubflow = new Subflow (ctx : ctx, name: "choice[$name].defaultSubflow")
+                defaultSubflow.parent = ctx.flow
+                defaultSubflow << newActions
+                newSubflows = [defaultSubflow]
+            }
             choiceSubflows.addAll (newSubflows)
+
             ctx.newInClosure.clear()
+            ctx.newInClosure = ctx.newInClosureStack.pop ()
+
             //for each subflow declared in the choice closure execute each subflow and its nodes
             choiceSubflows.each {sflow ->
-                //for each flow that makes it run each flow
-                sflow.run (ctx.flowNodeResults)
+                //for each flow that makes it run each flow, use choice args if set else Queue of run task actions
+                if (args)
+                    sflow.run (args)
+                else
+                    sflow.run (ctx.taskAction)
             }
 
            step
         } catch (Exception e) {
             if (errHandler) {
                 log.debug "choiceTask()  hit exception $e"
+                errors = e
                 status = FlowNodeStatus.errors
                 errHandler(e, this)
             }
@@ -129,8 +151,8 @@ class ChoiceAction extends AbstractFlowNode {
         }
     }
 
-    //default selector logic for a choiceAction
-    def subflowSelector (DataflowVariable previousNode, args) {
+    //default selector logic for a choiceAction, this can be changed for anly choice by explicitly setting the calculator
+    def subflowSelector (AbstractFlowNode previousNode, args) {
 
         def previousResult
         if (previousNode) {

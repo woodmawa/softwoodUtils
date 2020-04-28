@@ -1,7 +1,9 @@
 package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.nodes.AbstractFlowNode
+import com.softwood.flow.core.nodes.ChoiceAction
 import com.softwood.flow.core.nodes.FlowNodeStatus
+import com.softwood.flow.core.nodes.TaskAction
 import com.softwood.flow.core.support.CallingStackContext
 import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
@@ -18,6 +20,7 @@ class Subflow extends AbstractFlow {
     protected ConcurrentLinkedDeque<AbstractFlowNode> subflowFlowNodes = new ConcurrentLinkedQueue<>()
     def selectTag //todo make an optional??
     Closure subflowClosure
+    def subflowInitialArgs = []
 
     static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Closure clos)  {
 
@@ -75,7 +78,14 @@ class Subflow extends AbstractFlow {
 
         status = FlowStatus.running
 
+        //save previous newIns and start with empty list for this closure
+        ctx.newInClosureStack.push (ctx.newInClosure)
+        ctx.newInClosureStack = new ConcurrentLinkedQueue<>()
+
+        //run the attached closure
         cloned(args)
+
+        subflowInitialArgs = args
 
         def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
         if (newIns)  {
@@ -83,12 +93,31 @@ class Subflow extends AbstractFlow {
         }
         subflowFlowNodes.eachWithIndex { node, idx ->
             def promise
-            if (idx == 0){
-                promise = node.run (args)
-            } else {
-                def predessor = subflowFlowNodes[idx - 1]
-                node.previousNode = predessor
-                promise = node.run (predessor, node.name)
+            switch (node?.getClass()) {
+                case ChoiceAction :
+
+                    promise = new DataflowVariable<>()
+                    if (idx == 0){
+                        promise << (ChoiceAction) node.fork (args)
+                    } else {
+                        def predessor = subflowFlowNodes[idx - 1]
+                        node.previousNode = predessor
+                        promise << (ChoiceAction) node.fork (predessor, args)
+                    }
+                    break
+
+                case TaskAction :
+                    if (idx == 0){
+                        promise = node.run (args)
+                    } else {
+                        def predessor = subflowFlowNodes[idx - 1]
+                        node.previousNode = predessor
+                        promise = node.run (predessor, args)
+                    }
+                    break
+
+                default :
+                    break
             }
             promises << promise
             subFlowPromises << promise
@@ -96,6 +125,8 @@ class Subflow extends AbstractFlow {
         }
 
         ctx.newInClosure.clear()
+        ctx.newInClosure = ctx.newInClosureStack.pop ()  //return state to saved position
+
         status = FlowStatus.completed
 
         this
@@ -111,25 +142,51 @@ class Subflow extends AbstractFlow {
 
         cloned(args)
 
+        //start with a fresh newInClosure list
+        ctx.newInClosureStack.push (ctx.newInClosure)
+        ctx.newInClosure = new ConcurrentLinkedQueue()
+
         def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
         if (newIns)  {
             subflowFlowNodes.addAll (ctx.newInClosure)
         }
         subflowFlowNodes.eachWithIndex { node, idx ->
             def promise
-            if (idx == 0){
-                promise = node.run (arrayArg, args)
-            } else {
-                def predessor = subflowFlowNodes[idx - 1]
-                node.previousNode = predessor
-                promise = node.run (predessor, node.name)
+            switch (node?.getClass()) {
+                case ChoiceAction :
+                    promise = new DataflowVariable<>()
+                    if (idx == 0){
+                        promise << (ChoiceAction) node.fork (args)
+                    } else {
+                        def predessor = subflowFlowNodes[idx - 1]
+                        node.previousNode = predessor
+                        promise << (ChoiceAction) node.fork (predessor, args)
+                    }
+                    break
+
+                case TaskAction :
+                    if (idx == 0){
+                        promise = node.run (args)
+                    } else {
+                        def predessor = subflowFlowNodes[idx - 1]
+                        node.previousNode = predessor
+                        promise = node.run (predessor, args)
+                    }
+                    break
+
+                default :
+                    break
             }
+
             promises << promise
             subFlowPromises << promise
 
         }
 
         ctx.newInClosure.clear()
+        ctx.newInClosure = ctx.newInClosureStack.pop()
+
+
         status = FlowStatus.completed
         this
     }
