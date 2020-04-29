@@ -26,7 +26,7 @@ task2.dependsOn (task)
 
 task2.run()
 
-def lastTask = task2 >> action ('task3') {ctx, Promise p ->  println " how are doing, had promise of $p.val" ; 3}
+def lastTask = task2 >> action ('task3') {ctx, Promise p ->  println " used right shift >> , had promise of $p.val" ; 3}
 
 
 task.ctx.taskActions.collect{it.result}.toList()*.join()

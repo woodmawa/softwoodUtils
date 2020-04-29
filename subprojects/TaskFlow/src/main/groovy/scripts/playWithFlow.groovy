@@ -37,16 +37,10 @@ subflow = Subflow::newSubflow
 t = action ('act#1') {println "hello "; 1}
 
 Flow f = flow ('second flow') {
-    List frames = CallingStackContext.getContext()
-    println "frames from the flow closure called in newFlow()"
-    frames.each { println it.description}
-
-    def c = delegate  //should be flow ctx
-    assert c instanceof FlowContext
-    action (delegate, 'act#1') {ctx, args -> println "hello [$args]"; 1}
+    action (delegate, 'act#1') {delegate, args -> println "hello [$args]"; 1}
     //by putting DF variable in the closure you get the previous tasks result. doing the getVal() will sync on previous result
-    action (delegate, 'act#2') {ctx, DataflowVariable result ->  def ans = result.val; println "william [$ans]";2 }
-    action (delegate, 'act#3') {ctx, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
+    action (delegate, 'act#2') {delegate, DataflowVariable result ->  def ans = result.val; println "william [$ans]";2 }
+    action (delegate, 'act#3') {delegate, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
 }
 
 f.start('starting flow arg')
@@ -54,3 +48,15 @@ f.start('starting flow arg')
 println "tasks run : " + f.ctx.taskActions
 println "active promises reported as : " + f.ctx.activePromises
 //sleep (1000)
+
+/*
+
+    def c = delegate  //should be flow ctx
+    assert c instanceof FlowContext
+
+    List frames = CallingStackContext.getContext()
+    println "frames from the flow closure called in newFlow()"
+    frames.each { println it.description}
+
+
+ */
