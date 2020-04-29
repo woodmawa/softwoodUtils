@@ -203,8 +203,8 @@ class TaskAction extends AbstractFlowNode{
                 log.debug "actionTask(): promise was bound with $it, removed promise $promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
 
             }
-
             step
+
         } catch (Exception e) {
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"

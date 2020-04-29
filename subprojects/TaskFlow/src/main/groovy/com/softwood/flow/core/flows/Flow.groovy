@@ -53,7 +53,10 @@ class Flow extends AbstractFlow {
 
         if (args) {
             //store initial flow starts args  on the context
-            ctx.initialArgs = args
+            if (args.size() > 1)
+                ctx.initialArgs.addAll (args)
+            else if (arg)
+                ctx.initialArgs.add (arg)
         }
 
         FlowEvent startEvent = new FlowEvent (flow: this, messsage: "starting flow $name")

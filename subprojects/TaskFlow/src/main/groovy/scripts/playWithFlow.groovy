@@ -49,9 +49,6 @@ Flow f = flow ('second flow') {
     action (delegate, 'act#3') {ctx, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
 }
 
-f
-
-
 f.start('starting flow arg')
 
 println "tasks run : " + f.ctx.taskActions

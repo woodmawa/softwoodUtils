@@ -104,10 +104,12 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (args)
+        if (args?.size() > 0)
            result  = method (*args)
+        else if (args != null)
+            result = method(args)
         else
-            result = method()
+            result = method ()
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()

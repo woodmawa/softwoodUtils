@@ -7,6 +7,9 @@ import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
+import groovyx.gpars.dataflow.Promise
+
+import static groovyx.gpars.dataflow.Dataflow.select  as gparsSelect
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -64,14 +67,7 @@ class MergeAction extends AbstractFlowNode {
         merge
     }
 
-    /**
-     *
-     * @param args
-     * @param errhandler
-     */
-    def select (args = null, Closure errhandler = null) {
 
-    }
 
     protected def mergeTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
@@ -156,8 +152,44 @@ class MergeAction extends AbstractFlowNode {
         }
     }
 
-    protected selectTask () {
+    /**
+     * run the closure as task, by invoking private doRun().  result holds the answer as a DF promise
+     * @param args - optional Object[]
+     * @param errHandler - closure to call in case of exception being triggered
+     * @return 'this' FlowNode
+     */
+    def select (args = null, Closure errHandler = null) {
+        doSelect(null, args, errHandler)
+    }
 
+    def select (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+        doSelect (null, previousNode, args, errHandler)
+    }
+
+    /*def select (List<Subflow> selectfromSubflows, args = null, Closure errHandler = null) {
+
+        assert selectfromSubflows
+
+        List<AbstractFlowNode> nodes = selectfromSubflows.collect {sflow -> sflow.subflowFlowNodes?[-1]}
+
+        doSelect (nodes, previousNode, args, errHandler)
+    }*/
+
+    protected doSelect (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+        ctx.withNestedNewIns(this::selectAction, selectNodes, previousNode, args, errHandler)
+
+    }
+
+    protected selectAction (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+        List<Promise> promises
+
+        if (selectNodes) {
+            promises = selectNodes.collect {it.result}
+
+            Promise selectResult = gparsSelect (promises)
+
+            def firstResult = selectResult().value
+       }
     }
 
     //todo - need to think what this needs to look like default selector logic for a choiceAction

@@ -19,10 +19,14 @@ Subflow defSubflow= subflow (freeStandingCtx, 'default subflow') {
     println "subflow closure - create two actions "
     action (delegate, 'main1') {println "hello act1 "; 1}
     action (delegate, 'main2') {println "hello act2 "; 2}
-    choice (freeStandingCtx, 'my choice') {sel, args ->
+    choice (delegate, 'my choice') {sel, args ->
         when (true) {
-            action(delegate, 'subflow') { println "sublow sf-act"; 3.1}
+            action(delegate, 'subflow-act1') { println "sublow sf-act1"; 3.1}
         }
+        when (true) {
+            action(delegate, 'subflow-act2') { println "sublow sf-act2"; 3.2}
+        }
+
         'done choice'
     }
     return 0

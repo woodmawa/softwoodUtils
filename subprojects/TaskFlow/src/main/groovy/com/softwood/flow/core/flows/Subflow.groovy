@@ -40,6 +40,26 @@ class Subflow extends AbstractFlow {
 
     }
 
+    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Map sfConstMap, Closure clos)  {
+
+        assert sfConstMap
+
+        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos, *:sfConstMap)
+        sflow.flowType = FlowType.Subflow
+
+        List frames = CallingStackContext.getContext()
+        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+
+        //add to list of newly created objects
+        //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
+        //only add to newInClosure if its called within a closure
+        if (isCalledInClosure)
+            ctx.newInClosure << sflow
+
+        sflow
+
+    }
+
     static Subflow newSubflow (FlowContext ctx, String subFlowName = null, selectTag,   Closure clos)  {
 
         Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, selectTag: selectTag, subflowClosure: clos)
@@ -70,7 +90,7 @@ class Subflow extends AbstractFlow {
         ctx.withNestedNewIns (this::doRun, arrayArg, args)
     }
 
-    protected def doRun(args) {
+    protected def doRun(args = null) {
         assert subflowClosure
 
         Closure cloned = subflowClosure
@@ -82,7 +102,8 @@ class Subflow extends AbstractFlow {
         //run the attached closure
         cloned(args)
 
-        subflowInitialArgs = args
+        if (args)
+            subflowInitialArgs << args
 
         def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
         if (newIns)  {
@@ -95,8 +116,11 @@ class Subflow extends AbstractFlow {
 
                     promise = new DataflowVariable<>()
                     if (idx == 0){
-                        promise << (ChoiceAction) node.fork (args)
-                    } else {
+                        if (subflowInitialArgs.size() > 0 )
+                            promise = node.run (subflowInitialArgs, args)
+                        else
+                            promise = node.run (args)
+                   } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
                         promise << (ChoiceAction) node.fork (predessor, args)
@@ -105,7 +129,10 @@ class Subflow extends AbstractFlow {
 
                 case TaskAction :
                     if (idx == 0){
-                        promise = node.run (args)
+                        if (subflowInitialArgs.size() > 0)
+                            promise = node.run (subflowInitialArgs, args)
+                        else
+                            promise = node.run (args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
@@ -146,7 +173,10 @@ class Subflow extends AbstractFlow {
                 case ChoiceAction :
                     promise = new DataflowVariable<>()
                     if (idx == 0){
-                        promise << (ChoiceAction) node.fork (args)
+                        if (arrayArg?.size() > 0 )
+                            promise << (ChoiceAction) node.fork (arrayArg, args)
+                        else
+                            promise << (ChoiceAction) node.fork (args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
@@ -156,7 +186,10 @@ class Subflow extends AbstractFlow {
 
                 case TaskAction :
                     if (idx == 0){
-                        promise = node.run (args)
+                        if (arrayArg?.size() > 0 )
+                            promise = node.run (arrayArg, args)
+                        else
+                            promise = node.run (args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
@@ -182,7 +215,7 @@ class Subflow extends AbstractFlow {
         this
     }
 
-    def leftShift (AbstractFlowNode[] steps) {
+    def leftShift (Collection steps) {
         subflowFlowNodes.addAll (steps)
         this
     }

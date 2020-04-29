@@ -7,6 +7,7 @@ import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
+import groovyx.gpars.dataflow.Promise
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -117,7 +118,7 @@ class ChoiceAction extends AbstractFlowNode {
             def newSubflows = newIns.grep {it.class == Subflow}
             def newActions = newIns.grep {it instanceof AbstractFlowNode}
 
-            //if you dont decalre a subflow - quietly create one and add the actions into it
+            //if you dont decalare a subflow - quietly create one and add the actions into it
             if (!newSubflows && newActions) {
                 Subflow defaultSubflow = new Subflow (ctx : ctx, name: "choice[$name].defaultSubflow", subflowClosure: {"choice [$name] subflow done"})
                 defaultSubflow.parent = ctx.flow
