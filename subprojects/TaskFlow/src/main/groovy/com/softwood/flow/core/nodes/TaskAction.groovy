@@ -158,15 +158,17 @@ class TaskAction extends AbstractFlowNode{
             Promise promise  = task {
                 //println "in task() with step $step.name, has previousResult as $previousTaskResult and has closure with params with types $cloned.parameterTypes"
                 def ans
-                if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters == 2  ){
+                if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes?[0] == FlowContext  ){
                     ans = cloned(step.ctx, args)
-                } else if (cloned.parameterTypes?[0] == FlowContext && cloned.maximumNumberOfParameters > 2  ){
+                } else if (cloned.maximumNumberOfParameters > 2 && cloned.parameterTypes?[0] == FlowContext  ){
                     ans = cloned(step.ctx, *args)
-                } else if (cloned.parameterTypes[0] == Promise || cloned.parameterTypes[0] == DataflowVariable) {
+                } else if (cloned.maximumNumberOfParameters == 2  && (cloned.parameterTypes?[0] == Object || cloned.parameterTypes?[0] == FlowContext) && (cloned.parameterTypes[1] == Promise || cloned.parameterTypes[1] == DataflowVariable) ){
+                    ans = cloned(step.ctx, previousNode.result)
+                } else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[0] == ArrayList && args.size() > 0)
+                    ans = cloned(arrayArg, *args)
+                else if (cloned.parameterTypes[0] == Promise || cloned.parameterTypes[0] == DataflowVariable) {
                     ans = cloned(previousNode.result)  //expecting result from this flowNode
                 }
-                else if (cloned.maximumNumberOfParameters == 2 && cloned.parameterTypes[0] == ArrayList && args.size() > 0)
-                    ans = cloned(arrayArg, args)
                 else if  (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes?[0] == FlowContext || cloned.parameterTypes?[0] == Expando)
                     ans = cloned (step.ctx)
                 else if  (cloned.maximumNumberOfParameters == 1 && cloned.parameterTypes?[0] == Object && args == null)
@@ -228,7 +230,7 @@ class TaskAction extends AbstractFlowNode{
         super.then (nextStep, errHandler)
 
         def previousTask = this
-         actionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
+         actionTask (previousTask, nextStep, null, args ?: EMPTY_ARGS)
 
     }
 
