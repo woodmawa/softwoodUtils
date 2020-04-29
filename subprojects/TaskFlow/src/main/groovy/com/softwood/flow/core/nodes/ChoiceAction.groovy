@@ -62,7 +62,9 @@ class ChoiceAction extends AbstractFlowNode {
      */
     protected doFork(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
 
-        def choice = choiceTask(previousNode, this, args, errHandler)
+        def choice
+        choice = ctx.withNestedNewIns(this::choiceTask, previousNode, this, args, errHandler)
+        //def choice = choiceTask(previousNode, this, args, errHandler)
         choice
     }
 
@@ -86,8 +88,8 @@ class ChoiceAction extends AbstractFlowNode {
 
             step.status = FlowNodeStatus.running
 
-            ctx.newInClosureStack.push (ctx.newInClosure)
-            ctx.newInClosure = new ConcurrentLinkedQueue<>()  //setup new frame
+            //ctx.newInClosureStack.push (ctx.newInClosure)
+            //ctx.newInClosure = new ConcurrentLinkedQueue<>()  //setup new frame
 
             //as this is a choice node - no point running as a task
            //todo  - where should the calculator live ?  here or in the original closure
@@ -115,20 +117,19 @@ class ChoiceAction extends AbstractFlowNode {
             def newSubflows = newIns.grep {it.class == Subflow}
             def newActions = newIns.grep {it instanceof AbstractFlowNode}
 
-            if (ctx.flow) {
-                    newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
-            }
             //if you dont decalre a subflow - quietly create one and add the actions into it
             if (!newSubflows && newActions) {
-                Subflow defaultSubflow = new Subflow (ctx : ctx, name: "choice[$name].defaultSubflow")
+                Subflow defaultSubflow = new Subflow (ctx : ctx, name: "choice[$name].defaultSubflow", subflowClosure: {"choice [$name] subflow done"})
                 defaultSubflow.parent = ctx.flow
                 defaultSubflow << newActions
                 newSubflows = [defaultSubflow]
             }
+
             choiceSubflows.addAll (newSubflows)
 
-            ctx.newInClosure.clear()
-            ctx.newInClosure = ctx.newInClosureStack.pop ()
+            if (ctx.flow) {
+                choiceSubflows.each {it.parent = ctx.flow; ctx.flow.subflows << it}
+            }
 
             //for each subflow declared in the choice closure execute each subflow and its nodes
             choiceSubflows.each {sflow ->
@@ -136,7 +137,7 @@ class ChoiceAction extends AbstractFlowNode {
                 if (args)
                     sflow.run (args)
                 else
-                    sflow.run (ctx.taskAction)
+                    sflow.run ()  //ctx.taskActions - but this will be all including the actions in this sflow
             }
 
            step

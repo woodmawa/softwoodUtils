@@ -58,6 +58,7 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
         }
     }
 
+    return "completed choice"
 
 }
 
@@ -77,25 +78,3 @@ System.exit (0)
 sleep 1000
 choice
 
-/* <!---------------------------> */
-//Made this a closure so that the whens delegate can be set, and we can resolve 'newInClosure'
-/*def when = {Condition someCondition, toDoArgs,  Closure toDo ->
-
-    toDo.delegate = delegate
-    toDo.resolveStrategy = Closure.DELEGATE_FIRST
-
-    // assert delegate.is (externalisedCtx)  - worked
-
-    //try and resolve newInClosure list on FlowContext delegate
-    List nicl
-    if (delegate?.newInClosure) {
-        nicl = delegate.newInClosure
-        nicl.add (someCondition)
-    }
-
-    if (someCondition && someCondition.test ()) {
-        toDo (toDoArgs)
-    } else
-        false       //fail as default
-
-}*/

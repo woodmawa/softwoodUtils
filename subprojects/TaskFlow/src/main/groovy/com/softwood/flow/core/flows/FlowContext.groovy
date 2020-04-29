@@ -18,8 +18,10 @@ class FlowContext extends Expando {
     ConcurrentLinkedQueue initialArgs
     ConcurrentLinkedQueue errors
     ConcurrentLinkedDeque  newInClosureStack
+    ConcurrentLinkedQueue newInClosure
     AbstractFlow flow
     FlowType type
+
 
    static FlowContext newProcessContext (flow) {
         FlowContext ctx = new FlowContext()
@@ -91,6 +93,27 @@ class FlowContext extends Expando {
         }
     }
 
+    /**
+     * utility method to create save existing context and start fresh newInsClosure
+     * @param method
+     * @return
+     */
+    def withNestedNewIns (Closure method, Object[] args) {
+        assert method
+        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
+
+        def result
+        if (args)
+           result  = method (*args)
+        else
+            result = method()
+
+        //if necessary could process newIns here but its assumed to have been done by the method()
+        newInClosure.clear()
+        newInClosure = newInClosureStack.pop ()
+        result
+    }
 
     /**
      * thre types of when, one with condition (test it), one with closure (eval it) or with boolean

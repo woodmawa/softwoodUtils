@@ -63,24 +63,21 @@ class Subflow extends AbstractFlow {
     }
 
     def run (args = null) {
-        doRun (args)
+        ctx.withNestedNewIns(this::doRun, args)
     }
 
     def run (ArrayList arrayArg, args = null) {
-        doRun (arrayArg, args)
+        ctx.withNestedNewIns (this::doRun, arrayArg, args)
     }
 
     protected def doRun(args) {
+        assert subflowClosure
 
         Closure cloned = subflowClosure
         cloned.delegate = ctx
         cloned.resolveStrategy = Closure.DELEGATE_FIRST
 
         status = FlowStatus.running
-
-        //save previous newIns and start with empty list for this closure
-        ctx.newInClosureStack.push (ctx.newInClosure)
-        ctx.newInClosureStack = new ConcurrentLinkedQueue<>()
 
         //run the attached closure
         cloned(args)
@@ -124,9 +121,6 @@ class Subflow extends AbstractFlow {
 
         }
 
-        ctx.newInClosure.clear()
-        ctx.newInClosure = ctx.newInClosureStack.pop ()  //return state to saved position
-
         status = FlowStatus.completed
 
         this
@@ -141,10 +135,6 @@ class Subflow extends AbstractFlow {
         status = FlowStatus.running
 
         cloned(args)
-
-        //start with a fresh newInClosure list
-        ctx.newInClosureStack.push (ctx.newInClosure)
-        ctx.newInClosure = new ConcurrentLinkedQueue()
 
         def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
         if (newIns)  {
@@ -183,16 +173,18 @@ class Subflow extends AbstractFlow {
 
         }
 
-        ctx.newInClosure.clear()
-        ctx.newInClosure = ctx.newInClosureStack.pop()
-
-
         status = FlowStatus.completed
         this
     }
 
     def leftShift (AbstractFlowNode firstStep) {
-        //todo
+        subflowFlowNodes.add (firstStep)
+        this
+    }
+
+    def leftShift (AbstractFlowNode[] steps) {
+        subflowFlowNodes.addAll (steps)
+        this
     }
 
     def rightShift (AbstractFlowNode firstStep ) {
