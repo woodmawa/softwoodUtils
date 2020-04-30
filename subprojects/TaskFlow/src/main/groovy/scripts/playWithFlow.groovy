@@ -4,6 +4,8 @@ import com.softwood.flow.core.flows.Flow
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
+import com.softwood.flow.core.languageElements.Condition
+import com.softwood.flow.core.nodes.ChoiceAction
 import com.softwood.flow.core.nodes.TaskAction
 import com.softwood.flow.core.support.CallingStackContext
 import com.sun.jdi.ClassNotLoadedException
@@ -30,33 +32,42 @@ import java.util.concurrent.ConcurrentLinkedDeque
 flow = Flow::newFlow
 
 action = TaskAction::newAction
+choice = ChoiceAction::newChoiceAction
+flowCondition = Condition::newCondition
 
 subflow = Subflow::newSubflow
 
-//will generate and  use free standing context
-t = action ('act#1') {println "hello "; 1}
 
 Flow f = flow ('second flow') {
-    action (delegate, 'act#1') {delegate, args -> println "hello [$args]"; 1}
+    //action (delegate, 'act#1') {delegate, args -> println "hello [$args]"; 1}
     //by putting DF variable in the closure you get the previous tasks result. doing the getVal() will sync on previous result
-    action (delegate, 'act#2') {delegate, DataflowVariable result ->  def ans = result.val; println "william [$ans]";2 }
-    action (delegate, 'act#3') {delegate, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
+    //action (delegate, 'act#2') {delegate, DataflowVariable result ->  def ans = result.val; println "william [$ans]";2 }
+    //action (delegate, 'act#3') {delegate, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
+
+    println "subflow closure - create two actions "
+    def act = action (delegate, 'main-act#1') {println "hello main act1 "; 1}
+    action (delegate, 'main-act#2') {println "hello main act2 "; 2}
+            .dependsOn (act)
+    choice (delegate, 'my choice') {sel, args ->
+        //use a dynamic condition as expressed in the condition closure
+        when (sel, flowCondition {it == 'choiceSelect'} ) {
+            action(delegate, 'subflow-act1') { println "sublow sf-act1"; 3.1}
+        }
+        //boolean
+        when (true) {
+            action(delegate, 'subflow-act2') { println "sublow sf-act2"; 3.2}
+        }
+        //closure<boolean> test
+        when (sel, { it == 'choiceSelect' }) {
+            action(delegate, 'subflow-act3') { println "sublow sf-act3"; 3.3}
+        }
+        'done choice'
+
+    }.setSelectValue ('choiceSelect')  //directly set the sel//otherwise its the prevNode.resultValue
+
 }
 
 f.start('starting flow arg')
 
 println "tasks run : " + f.ctx.taskActions
 println "active promises reported as : " + f.ctx.activePromises
-//sleep (1000)
-
-/*
-
-    def c = delegate  //should be flow ctx
-    assert c instanceof FlowContext
-
-    List frames = CallingStackContext.getContext()
-    println "frames from the flow closure called in newFlow()"
-    frames.each { println it.description}
-
-
- */

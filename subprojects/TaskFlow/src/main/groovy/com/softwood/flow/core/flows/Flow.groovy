@@ -1,6 +1,7 @@
 package com.softwood.flow.core.flows
 
 import com.softwood.flow.core.nodes.AbstractFlowNode
+import com.softwood.flow.core.nodes.ChoiceAction
 
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -56,7 +57,7 @@ class Flow extends AbstractFlow {
             if (args.size() > 1)
                 ctx.initialArgs.addAll (args)
             else if (arg)
-                ctx.initialArgs.add (arg)
+                ctx.initialArgs.add (args)
         }
 
         FlowEvent startEvent = new FlowEvent (flow: this, messsage: "starting flow $name")
@@ -75,7 +76,11 @@ class Flow extends AbstractFlow {
                 }
                 else {
                     def previousNode = previousFlowNodes[idx-1]
-                    ta.run(previousNode)
+                    if (ta.class == ChoiceAction) {
+                        (ChoiceAction) ta.fork (previousNode)
+                    } else {
+                        ta.run(previousNode)
+                    }
                     previousFlowNodes << ta
                 }
             }

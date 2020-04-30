@@ -4,6 +4,7 @@ import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.support.CallingStackContext
+import groovy.transform.MapConstructor
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
@@ -16,7 +17,7 @@ import static groovyx.gpars.dataflow.Dataflow.task
 class TaskAction extends AbstractFlowNode{
     def debug = false
 
-    static TaskAction newAction (String name = null,  Closure closure) {
+    static TaskAction newAction (String name = null, Map initArgsMap = null, Closure closure) {
         /*
          *if we see an action declaration with closure, where the closure.owner is itself a closure, then check if the
          * closure delegate is an Expando - if so we assume that this Expando is the ctx of a parenting flow
@@ -32,7 +33,12 @@ class TaskAction extends AbstractFlowNode{
             ctx = FlowContext.newFreeStandingContext()
         }
 
-        def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        def ta
+        if (!initArgsMap)
+            ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        else
+            ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure, *:initArgsMap)
+
         ta.ctx?.taskActions << ta
 
         if (ta.ctx.newInClosure != null) {
@@ -50,13 +56,18 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
-    static TaskAction newAction (FlowContext ctx, String name = null,  Closure closure) {
+    static TaskAction newAction (FlowContext ctx, String name = null, Map initArgsMap = null, Closure closure) {
         /*
          * here we are injected with ctx to start
          */
 
+        assert ctx
+        def ta
+        if (!initArgsMap)
+            ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        else
+            ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure, *:initArgsMap)
 
-        def ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ta.ctx?.taskActions << ta
 
         if (ta.ctx.newInClosure != null) {
@@ -74,9 +85,14 @@ class TaskAction extends AbstractFlowNode{
 
     }
 
-    static TaskAction newAction (FlowContext ctx, name = null,  long delay, Closure closure) {
+    static TaskAction newAction (FlowContext ctx, name = null,  Map initArgsMap = null, long delay, Closure closure) {
 
-        def ta = new TaskAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        def ta
+        if (!initArgsMap)
+            ta = new TaskAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        else
+            ta = new TaskAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure, *:initArgsMap)
+
         ta.ctx?.taskActions << ta
         if (ta.ctx?.flow)
             ta.ctx?.flow.defaultSubflow.flowNodes << ta

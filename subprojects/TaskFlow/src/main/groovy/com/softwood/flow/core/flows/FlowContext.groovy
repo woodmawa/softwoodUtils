@@ -151,6 +151,33 @@ class FlowContext extends Expando {
 
     }
 
+    def when (conditionArgs,  Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+
+        toDo.delegate = this  //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
+        toDo.resolveStrategy = Closure.DELEGATE_FIRST
+
+        boolean outcome = false
+        if (someCondition )
+            outcome = someCondition.test (conditionArgs)  //run the test
+        else
+            outcome = false
+
+        if (outcome) {
+            if (toDoArgs && toDoArgs instanceof Object[] )
+                toDo (*toDoArgs)
+            else if (toDoArgs)
+                toDo (toDoArgs)
+            else if (toDoArgs == null) {
+                if (toDo.maximumNumberOfParameters == 1)
+                    toDo(someCondition.defaultItemToTest)  //use the condition default item as arg for the closure
+                else
+                    toDo()
+            }
+        } else
+            outcome       //fail as default
+
+    }
+
     def when (boolean someBoolean, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
@@ -176,13 +203,37 @@ class FlowContext extends Expando {
         if (outcome) {
             if (toDoArgs && toDoArgs instanceof Object[] )
                 toDo (*toDoArgs)
-            else
+            else if (toDoArgs)
                 toDo (toDoArgs)
+            else if (toDoArgs == null)
+                toDo ()  //use the condition default item as arg for the closure
         } else
             false       //fail as default
 
     }
 
+    def when (closureArgs, Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+        toDo.delegate = this
+        toDo.resolveStrategy = Closure.DELEGATE_FIRST
+
+        boolean  outcome = false
+        if (someClosure)
+            outcome = someClosure(closureArgs)
+
+        if (outcome) {
+            if (toDoArgs && toDoArgs instanceof Object[] )
+                toDo (*toDoArgs)
+            else if (toDoArgs)
+                toDo (toDoArgs)
+            else if (toDoArgs == null)
+                if (toDo.maximumNumberOfParameters == 1)
+                    toDo(closureArgs)  //use the condition default item as arg for the closure
+                else
+                    toDo()
+        } else
+            false       //fail as default
+
+    }
     //declares flowCondition as usable variable into the context
     MethodClosure flowCondition = Condition::flowCondition
     MethodClosure action = TaskAction::newAction

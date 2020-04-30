@@ -15,8 +15,13 @@ import java.util.concurrent.ConcurrentLinkedQueue
 class ChoiceAction extends AbstractFlowNode {
 
     ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
+    def selectValue
 
-    static ChoiceAction newChoiceAction(FlowContext ctx, name = null, Closure closure) {
+    def setSelectValue (def value) {
+        selectValue = value
+    }
+
+    static ChoiceAction newChoiceAction(FlowContext ctx, String name = null, Closure closure) {
         /*
          * injected ctx to use
          */
@@ -71,7 +76,7 @@ class ChoiceAction extends AbstractFlowNode {
 
     protected def choiceTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
-            def cloned = step.action.clone()
+            Closure cloned = step.action.clone()
             cloned.delegate = step.ctx
             cloned.resolveStrategy = Closure.DELEGATE_FIRST
 
@@ -99,10 +104,19 @@ class ChoiceAction extends AbstractFlowNode {
             //cloned delegate is the FlowContext so no point passing as a parameter
             if (args instanceof Object[])
                 step.result << cloned(selectorValue, *args)  //(calculated selector discriminator, args...)
-            else if (args)
-                step.result << cloned(selectorValue, args)
-            else
-                step.result << cloned(selectorValue)
+            else if (args) {
+                if (cloned.maximumNumberOfParameters == 2)
+                    step.result << cloned(selectorValue, args)
+                else
+                    step.result << cloned(selectorValue)
+            }
+            else {
+                //in case closure takes two args, but we have only one - just pass a null
+                if (cloned.maximumNumberOfParameters == 2)
+                    step.result << cloned(selectorValue, null)
+                else
+                    step.result << cloned(selectorValue)
+            }
 
             //when DF is bound remove promise from ctx.activePromises
             status = FlowNodeStatus.completed
@@ -157,11 +171,16 @@ class ChoiceAction extends AbstractFlowNode {
     def subflowSelector (AbstractFlowNode previousNode, args) {
 
         def previousResult
-        if (previousNode) {
+        //ovveride option choice
+        if (selectValue != null)
+            previousResult = selectValue
+        else if (previousNode) {
             previousResult = previousNode.result.val
         }
         else
             previousResult  = args    //default 'null logic' position
+
+        previousResult
     }
 
     String toString () {
