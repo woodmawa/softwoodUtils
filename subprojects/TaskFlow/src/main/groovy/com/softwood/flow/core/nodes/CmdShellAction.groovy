@@ -3,6 +3,7 @@ package com.softwood.flow.core.nodes
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
+import com.softwood.flow.core.languageElements.CommandWithArgumentList
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.Promise
@@ -23,11 +24,11 @@ class CmdShellAction extends AbstractFlowNode {
 
     static CmdShellAction newCmdShellAction (FlowContext ctx, name = null, Closure closure) {
 
-        def ta = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
-        ta.ctx?.taskActions << ta
+        def ca = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        ca.ctx?.taskActions << ca
 
 
-        if (ta.ctx.newInClosure != null) {
+        if (ca.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -35,17 +36,17 @@ class CmdShellAction extends AbstractFlowNode {
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
-                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+                ca.ctx.newInClosure << ca  //add to items generated within the running closure
         }
-        ta
+        ca
     }
 
     static CmdShellAction newCmdShellAction (FlowContext ctx, name = null,  long delay, Closure closure) {
 
-        def ta = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
-        ta.ctx?.taskActions << ta
+        def ca = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        ca.ctx?.taskActions << ca
 
-        if (ta.ctx.newInClosure != null) {
+        if (ca.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -53,10 +54,10 @@ class CmdShellAction extends AbstractFlowNode {
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
-                ta.ctx.newInClosure << ta  //add to items generated within the running closure
+                ca.ctx.newInClosure << ca  //add to items generated within the running closure
         }
 
-        ta
+        ca
 
     }
 
@@ -78,6 +79,7 @@ class CmdShellAction extends AbstractFlowNode {
     def run (AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
         doRun (previousNode, args, errHandler)
     }
+
     def delayedRun (int delay, args = null, Closure errHandler = null) {
         taskDelay = delay
         run (args, errHandler)
@@ -100,11 +102,11 @@ class CmdShellAction extends AbstractFlowNode {
             status = FlowNodeStatus.deferred
 
 
-        def ta = actionTask (previousNode, this, args, errHandler)
+        def ta = ctx.withNestedNewIns(this::cmdActionTask, previousNode, this, args, errHandler)
         ta
     }
 
-    private def actionTask (CmdShellAction previousNode, AbstractFlowNode step,  Object[] args, Closure errHandler = null) {
+    protected def cmdActionTask (AbstractFlowNode previousNode, CmdShellAction step,  Object[] args, Closure errHandler = null) {
         try {
 
             def cloned  = step.action.clone()
@@ -124,13 +126,31 @@ class CmdShellAction extends AbstractFlowNode {
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
 
+            cloned()
+            List cmdArgs = []
+            String command = ""
+            if (ctx.newInClosure) {
+                List<CommandWithArgumentList> cal = ctx.newInClosure.grep {it instanceof CommandWithArgumentList}.asList()
+
+                cal.each {
+                    command = it.name               //keeps overwritting the name
+                    cmdArgs.addAll(it.toList())
+                }
+            }
+
             //args can get padded with null arg at the end of the list.  So if see the null, then strip it off
-            def size = args.size()
-            if (args?[size-1] == null)
-                args = args.toList().subList(0, size-1)
+            if (args != null ) {
+                def size = args.size()
+                if (args[size - 1] == null)
+                    args = args.toList().subList(0, size - 1)
+            }
+
+            def processArgs = []
+            processArgs.addAll(cmdArgs)
+            processArgs.addAll (args ?: [])
 
             Promise promise  = task {
-                ProcessBuilder processBldr = new ProcessBuilder ("cmd", "/c", *args)
+                ProcessBuilder processBldr = new ProcessBuilder ("cmd", "/c", command, *processArgs)
                 def process = processBldr.start()
                 def ans = process.text
                 int exitCode = process.waitFor();

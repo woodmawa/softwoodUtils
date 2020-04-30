@@ -1,10 +1,11 @@
 package com.softwood.flow.core.flows
 
+
 import com.softwood.flow.core.languageElements.Condition
+import com.softwood.flow.core.languageElements.CommandWithArgumentList
 import com.softwood.flow.core.nodes.AbstractFlowNode
 import com.softwood.flow.core.nodes.ChoiceAction
 import com.softwood.flow.core.nodes.TaskAction
-import groovyx.gpars.dataflow.DataflowVariable
 import org.codehaus.groovy.runtime.MethodClosure
 
 import java.util.concurrent.ConcurrentHashMap
@@ -98,18 +99,37 @@ class FlowContext extends Expando {
      * @param method
      * @return
      */
-    def withNestedNewIns (Closure method, Object[] args) {
+    def withNestedNewIns (Closure method, AbstractFlowNode previous, AbstractFlowNode step,  Object [] args, Closure errHandler = null) {
         assert method
         newInClosureStack.push (newInClosure)       //save current context and start new one
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
         if (args?.size() > 0)
-           result  = method (*args)
+           result  = method (previous, step, *args, errHandler)
         else if (args != null)
-            result = method(args)
+            result = method(previous, step, args, errHandler)
         else
-            result = method ()
+            result = method (previous, step, errHandler)
+
+        //if necessary could process newIns here but its assumed to have been done by the method()
+        newInClosure.clear()
+        newInClosure = newInClosureStack.pop ()
+        result
+    }
+
+    def withNestedNewIns (Closure method, ArrayList arrayArgs = null,   Object [] args, Closure errHandler = null) {
+        assert method
+        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
+
+        def result
+        if (args?.size() > 0)
+            result  = method (*args, errHandler )
+        else if (args != null)
+            result = method(args, errHandler)
+        else
+            result = method (errHandler)
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
@@ -239,6 +259,17 @@ class FlowContext extends Expando {
     MethodClosure action = TaskAction::newAction
     MethodClosure choice = ChoiceAction::newChoiceAction
     MethodClosure subflow = Subflow::newSubflow
+
+    Closure cmdWithArguments = {String name, args = null ->
+        CommandWithArgumentList::newShellCommand (delegate, name, args)
+    }
+
+     Closure pshWithArguments = {String name, args = null ->
+        CommandWithArgumentList::newShellCommand (delegate, name, args)
+    }
+
+    //MethodClosure cmdArgument = CommandWithArgumentList::newCommandArgumentList
+    //MethodClosure pshArgument = CommandWithArgumentList::newCommandArgumentList
 
     void saveClosureNewIns (clos, newInItem) {
         def key = getLogicalAddress (clos)

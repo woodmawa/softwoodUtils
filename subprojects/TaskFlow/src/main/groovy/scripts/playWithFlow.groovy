@@ -6,6 +6,7 @@ import com.softwood.flow.core.flows.FlowType
 import com.softwood.flow.core.flows.Subflow
 import com.softwood.flow.core.languageElements.Condition
 import com.softwood.flow.core.nodes.ChoiceAction
+import com.softwood.flow.core.nodes.CmdShellAction
 import com.softwood.flow.core.nodes.TaskAction
 import com.softwood.flow.core.support.CallingStackContext
 import com.sun.jdi.ClassNotLoadedException
@@ -34,18 +35,16 @@ flow = Flow::newFlow
 action = TaskAction::newAction
 choice = ChoiceAction::newChoiceAction
 flowCondition = Condition::newCondition
+cmdShell = CmdShellAction::newCmdShellAction
 
 subflow = Subflow::newSubflow
 
 
 Flow f = flow ('second flow') {
-    //action (delegate, 'act#1') {delegate, args -> println "hello [$args]"; 1}
-    //by putting DF variable in the closure you get the previous tasks result. doing the getVal() will sync on previous result
-    //action (delegate, 'act#2') {delegate, DataflowVariable result ->  def ans = result.val; println "william [$ans]";2 }
-    //action (delegate, 'act#3') {delegate, DataflowVariable result ->  def ans = result.val; println "today [$ans]";3 }
 
     println "subflow closure - create two actions "
     def act = action (delegate, 'main-act#1') {println "hello main act1 "; 1}
+    cmdShell (delegate,  'cmd with arg') {cmdWithArguments ('systeminfo')}
     action (delegate, 'main-act#2') {println "hello main act2 "; 2}
             .dependsOn (act)
     choice (delegate, 'my choice') {sel, args ->

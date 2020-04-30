@@ -82,15 +82,15 @@ class Subflow extends AbstractFlow {
         subflowFlowNodes.size () > 0
     }
 
-    def run (args = null) {
-        ctx.withNestedNewIns(this::doRun, args)
+    def run (args = null, Closure errHandler = null) {
+        ctx.withNestedNewIns(this::doRun, args, errHandler)
     }
 
-    def run (ArrayList arrayArg, args = null) {
-        ctx.withNestedNewIns (this::doRun, arrayArg, args)
+    def run (ArrayList arrayArg, args = null, Closure errHandler = null) {
+        ctx.withNestedNewIns (this::doRun, arrayArg, args, errHandler )
     }
 
-    protected def doRun(args = null) {
+    protected def doRun(args = null,  Closure errhandler = null  ) {
         assert subflowClosure
 
         Closure cloned = subflowClosure
@@ -99,7 +99,7 @@ class Subflow extends AbstractFlow {
 
         status = FlowStatus.running
 
-        //run the attached closure
+        //run the subflow attached closure
         cloned(args)
 
         if (args)
