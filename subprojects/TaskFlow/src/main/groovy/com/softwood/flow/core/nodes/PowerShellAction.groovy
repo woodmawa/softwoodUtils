@@ -3,6 +3,7 @@ package com.softwood.flow.core.nodes
 import com.softwood.flow.core.flows.FlowContext
 import com.softwood.flow.core.flows.FlowEvent
 import com.softwood.flow.core.flows.FlowType
+import com.softwood.flow.core.languageElements.CommandWithArgumentList
 import com.softwood.flow.core.support.CallingStackContext
 import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.Promise
@@ -13,7 +14,7 @@ import static groovyx.gpars.dataflow.Dataflow.task
 class PowerShellAction extends AbstractFlowNode {
     def debug = false
 
-    static PowerShellAction newPowerShellAction (name = null, Closure closure) {
+    static PowerShellAction newPowerShellAction (String name = null, Closure closure) {
         FlowContext ctx = FlowContext.newFreeStandingContext()
 
         newPowerShellAction (ctx, name, closure)
@@ -21,42 +22,22 @@ class PowerShellAction extends AbstractFlowNode {
 
     }
 
-    static PowerShellAction newPowerShellAction (FlowContext ctx, name = null, Closure closure) {
+    static PowerShellAction newPowerShellAction (FlowContext ctx, String name = null, Closure closure) {
 
-        def ta = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
-        ta.ctx?.taskActions << ta
+        def psh = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        psh.ctx?.taskActions << psh
+        psh.ctx.newInClosure << psh  //add to items generated within the running closure
 
-        if (ta.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                ta.ctx.newInClosure << ta  //add to items generated within the running closure
-        }
-
-        ta
+        psh
     }
 
     static PowerShellAction newPowerShellAction (FlowContext ctx, name = null, long delay, Closure closure) {
 
-        def ta = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
-        ta.ctx?.taskActions << ta
+        def psh = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        psh.ctx?.taskActions << psh
+        psh.ctx.newInClosure << psh  //add to items generated within the running closure
 
-        if (ta.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                ta.ctx.newInClosure << ta  //add to items generated within the running closure
-        }
-
-        ta
+        psh
     }
 
 
@@ -99,11 +80,11 @@ class PowerShellAction extends AbstractFlowNode {
             status = FlowNodeStatus.deferred
 
 
-        def ta = actionTask (previousNode, this, args, errHandler)
-        ta
+        def cmd = ctx.withNestedNewIns(this::pshActionTask, previousNode, this, args, errHandler)
+        cmd
     }
 
-    private def actionTask (PowerShellAction previousNode, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
+    protected def pshActionTask (PowerShellAction previousNode, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
         try {
 
             def cloned  = step.action.clone()
@@ -123,19 +104,39 @@ class PowerShellAction extends AbstractFlowNode {
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
 
+            cloned()
+            List cmdArgs = []
+            String command = ""
+            if (ctx.newInClosure) {
+                List<CommandWithArgumentList> cal = ctx.newInClosure.grep {it instanceof CommandWithArgumentList}.asList()
+
+                cal.each {
+                    command = it.name               //keeps overwritting the name
+                    cmdArgs.addAll(it.toList())
+                }
+            }
+
             //args can get padded with null arg at the end of the list.  So if see the null, then strip it off
             def size = args.size()
             if (args?[size-1] == null)
                 args = args.toList().subList(0, size-1)
 
             Promise promise  = task {
-                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", *args)
-                def process = processBldr.start()
-                def ans = process.text
-                int exitCode = process.waitFor();
-                //todo throw exception if we see error code ?
+                def initialSize = 4096
+                ByteArrayOutputStream err = new ByteArrayOutputStream(initialSize)
+                def processError = ""
 
-                exitCode == 0 ? ans : exitCode
+
+                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", command, *args)
+                def process = processBldr.start()
+                process.consumeProcessErrorStream(err)
+                def ans = process.text
+                int exitCode = process.waitFor()
+                if (exitCode != 0) {
+                    processError = err.toString()
+                }
+
+                exitCode == 0 ? ans : processError
 
             }
             step.result = promise
@@ -181,15 +182,15 @@ class PowerShellAction extends AbstractFlowNode {
         super.then (nextStep, errHandler)
 
         def previousTask = this
-        actionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
+        pshActionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
 
     }
 
     String toString () {
         if (debug == false)
-            "CmdShellAction (name:$name, status:$status)"
+            "PowerShellAction (name:$name, status:$status)"
         else
-            "CmdShellAction (name:$name, status:$status, action:${action.toString()})"
+            "PowerShellAction (name:$name, status:$status, action:${action.toString()})"
     }
 }
 

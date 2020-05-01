@@ -5,6 +5,8 @@ import com.softwood.flow.core.languageElements.Condition
 import com.softwood.flow.core.languageElements.CommandWithArgumentList
 import com.softwood.flow.core.nodes.AbstractFlowNode
 import com.softwood.flow.core.nodes.ChoiceAction
+import com.softwood.flow.core.nodes.CmdShellAction
+import com.softwood.flow.core.nodes.PowerShellAction
 import com.softwood.flow.core.nodes.TaskAction
 import org.codehaus.groovy.runtime.MethodClosure
 
@@ -105,12 +107,21 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (args?.size() > 0)
-           result  = method (previous, step, *args, errHandler)
-        else if (args != null)
-            result = method(previous, step, args, errHandler)
-        else
-            result = method (previous, step, errHandler)
+        if (method.parameterTypes?[-1] instanceof Closure) {
+            if (args?.size() > 0)
+                result = method(previous, step, *args, errHandler)
+            else if (args != null)
+                result = method(previous, step, args, errHandler)
+            else
+                result = method(previous, step, errHandler)
+        } else {
+            if (args?.size() > 0)
+                result = method(previous, step, *args)
+            else if (args != null)
+                result = method(previous, step, args)
+            else
+                result = method(previous, step, null)
+        }
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
@@ -124,12 +135,22 @@ class FlowContext extends Expando {
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (args?.size() > 0)
-            result  = method (*args, errHandler )
-        else if (args != null)
-            result = method(args, errHandler)
-        else
-            result = method (errHandler)
+        if (method.parameterTypes?[-1] instanceof Closure) {
+            if (args?.size() > 0)
+                result = method(*args, errHandler)
+            else if (args != null)
+                result = method(args, errHandler)
+            else
+                result = method(errHandler)
+        } else {
+            if (args?.size() > 0)
+                result = method(*args)
+            else if (args != null)
+                result = method(args)
+            else
+                result = method()
+
+        }
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
@@ -254,11 +275,58 @@ class FlowContext extends Expando {
             false       //fail as default
 
     }
+
+/*    Closure action = {name = null, Closure closure ->
+        TaskAction.newAction(this, name, closure)
+    }
+
+    Closure flowCondition = {def condArg, Closure conditionClosure ->
+        Condition.newCondition(condArg, conditionClosure )
+    }*/
+    /**
+     * these are DSL methods that can be called from within a flow closure,
+     * they add this FlowContext when calling the factory classes for each task type
+     *
+     * @param Object[] args - constructor args for the factory classes
+     * @return instance : factory class instance created
+     */
+
+    def subflow (Object[] args) {
+        assert args
+        Subflow::newSubflow (this, *args)
+    }
+
+    def action (Object[] args) {
+        assert args
+        TaskAction::newAction (this, *args)
+    }
+
+    def cmdShell (Object[] args) {
+        assert args
+        CmdShellAction::newCmdShellAction (this, *args)
+    }
+
+    def pshShell (Object[] args) {
+        assert args
+        PowerShellAction::newPowerShellAction (this, *args)
+    }
+
+    def flowCondition (Object[] args) {
+        assert args
+        Condition::newCondition (*args)
+    }
+
+    def choice (Object[] args) {
+        assert args
+        ChoiceAction::newChoiceAction (this, *args)
+    }
     //declares flowCondition as usable variable into the context
-    MethodClosure flowCondition = Condition::flowCondition
-    MethodClosure action = TaskAction::newAction
-    MethodClosure choice = ChoiceAction::newChoiceAction
-    MethodClosure subflow = Subflow::newSubflow
+    //MethodClosure flowCondition = Condition::newCondition
+    //MethodClosure action = TaskAction::newAction
+    //MethodClosure cmdShell = CmdShellAction::cmdActionTask
+    //MethodClosure pshShell = PowerShellAction::pshActionTask
+    //MethodClosure choice = ChoiceAction::newChoiceAction
+    //MethodClosure subflow = Subflow::newSubflow
 
     Closure cmdWithArguments = {String name, args = null ->
         CommandWithArgumentList::newShellCommand (delegate, name, args)

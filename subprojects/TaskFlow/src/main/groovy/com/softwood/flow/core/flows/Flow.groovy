@@ -46,10 +46,14 @@ class Flow extends AbstractFlow {
     }
 
     def start (args = null) {
-        start (0, args)
+        ctx.withNestedNewIns(this::doStart, 0, args )
     }
 
-    def start (int timeoutAfter, args) {
+    def start (int timeoutAfter, args = null) {
+        ctx.withNestedNewIns (this::doStart, timeoutAfter, args)
+    }
+
+    protected def doStart (int timeoutAfter, args) {
         Subflow sflow = defaultSubflow
 
         if (args) {

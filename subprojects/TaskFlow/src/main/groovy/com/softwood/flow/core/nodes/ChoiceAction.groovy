@@ -28,8 +28,9 @@ class ChoiceAction extends AbstractFlowNode {
 
         def choice = new ChoiceAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         choice.ctx?.taskActions << choice
+        choice.ctx.newInClosure << choice  //add to items generated within the running closure
 
-        if (choice.ctx.newInClosure != null) {
+        /*if (choice.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -37,8 +38,8 @@ class ChoiceAction extends AbstractFlowNode {
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
-                choice.ctx.newInClosure << choice  //add to items generated within the running closure
-        }
+        }*/
+
         choice
 
     }

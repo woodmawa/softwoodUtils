@@ -72,7 +72,9 @@ class TaskAction extends AbstractFlowNode{
 
         if (ta.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+
+            boolean isCalledInClosure = frames?[1..3].any {it.callingContextIsClosure}
+                    //frames ?[1].callingContextIsClosure
 
             //add to list of newly created objects
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)

@@ -31,34 +31,29 @@ import java.util.concurrent.ConcurrentLinkedDeque
 
 //this creates a context for the flow, and if closure presented as arg will set the delegate to the ctx
 flow = Flow::newFlow
-
-action = TaskAction::newAction
-choice = ChoiceAction::newChoiceAction
-flowCondition = Condition::newCondition
-cmdShell = CmdShellAction::newCmdShellAction
-
 subflow = Subflow::newSubflow
 
 
 Flow f = flow ('second flow') {
 
-    println "subflow closure - create two actions "
-    def act = action (delegate, 'main-act#1') {println "hello main act1 "; 1}
-    cmdShell (delegate,  'cmd with arg') {cmdWithArguments ('systeminfo')}
-    action (delegate, 'main-act#2') {println "hello main act2 "; 2}
+    println "subflow closure - create action, cmd, (dependent) Action, and choice"
+
+    def act = action ('main-act#1') {println "hello main act1 "; 1}
+    cmdShell ('cmd with arg') {cmdWithArguments ('systeminfo')}
+    action ('main-act#2') {println "hello main act2 "; 2}
             .dependsOn (act)
-    choice (delegate, 'my choice') {sel, args ->
+    choice ('my choice') {sel, args ->
         //use a dynamic condition as expressed in the condition closure
         when (sel, flowCondition {it == 'choiceSelect'} ) {
-            action(delegate, 'subflow-act1') { println "sublow sf-act1"; 3.1}
+            action('subflow-act1') { println "sublow sf-act1"; 3.1}
         }
         //boolean
         when (true) {
-            action(delegate, 'subflow-act2') { println "sublow sf-act2"; 3.2}
+            action('subflow-act2') { println "sublow sf-act2"; 3.2}
         }
         //closure<boolean> test
         when (sel, { it == 'choiceSelect' }) {
-            action(delegate, 'subflow-act3') { println "sublow sf-act3"; 3.3}
+            action('subflow-act3') { println "sublow sf-act3"; 3.3}
         }
         'done choice'
 

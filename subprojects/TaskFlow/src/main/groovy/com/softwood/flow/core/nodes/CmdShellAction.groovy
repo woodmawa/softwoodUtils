@@ -22,13 +22,14 @@ class CmdShellAction extends AbstractFlowNode {
 
     }
 
-    static CmdShellAction newCmdShellAction (FlowContext ctx, name = null, Closure closure) {
+    static CmdShellAction newCmdShellAction (FlowContext ctx, String name = null, Closure closure) {
 
         def ca = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ca.ctx?.taskActions << ca
+        ca.ctx.newInClosure << ca  //add to items generated within the running closure
 
 
-        if (ca.ctx.newInClosure != null) {
+ /*       if (ca.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -37,16 +38,17 @@ class CmdShellAction extends AbstractFlowNode {
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
                 ca.ctx.newInClosure << ca  //add to items generated within the running closure
-        }
+        } */
+
         ca
     }
 
-    static CmdShellAction newCmdShellAction (FlowContext ctx, name = null,  long delay, Closure closure) {
+    static CmdShellAction newCmdShellAction (FlowContext ctx, String name = null,  long delay, Closure closure) {
 
         def ca = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ca.ctx?.taskActions << ca
 
-        if (ca.ctx.newInClosure != null) {
+        /*if (ca.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
             boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
@@ -55,8 +57,9 @@ class CmdShellAction extends AbstractFlowNode {
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
                 ca.ctx.newInClosure << ca  //add to items generated within the running closure
-        }
+        }*/
 
+        ca.ctx.newInClosure << ca  //add to items generated within the running closure
         ca
 
     }
@@ -102,8 +105,8 @@ class CmdShellAction extends AbstractFlowNode {
             status = FlowNodeStatus.deferred
 
 
-        def ta = ctx.withNestedNewIns(this::cmdActionTask, previousNode, this, args, errHandler)
-        ta
+        def cmd = ctx.withNestedNewIns(this::cmdActionTask, previousNode, this, args, errHandler)
+        cmd
     }
 
     protected def cmdActionTask (AbstractFlowNode previousNode, CmdShellAction step,  Object[] args, Closure errHandler = null) {
@@ -150,13 +153,20 @@ class CmdShellAction extends AbstractFlowNode {
             processArgs.addAll (args ?: [])
 
             Promise promise  = task {
+                def initialSize = 4096
+                ByteArrayOutputStream err = new ByteArrayOutputStream(initialSize)
+                def processError = ""
+
                 ProcessBuilder processBldr = new ProcessBuilder ("cmd", "/c", command, *processArgs)
                 def process = processBldr.start()
+                process.consumeProcessErrorStream(err)
                 def ans = process.text
-                int exitCode = process.waitFor();
-                //todo throw exception if we see error code ?
+                int exitCode = process.waitFor()
+                if (exitCode != 0) {
+                    processError = err.toString()
+                }
 
-                exitCode == 0 ? ans : exitCode
+                exitCode == 0 ? ans : processError
 
             }
             step.result = promise
@@ -202,7 +212,7 @@ class CmdShellAction extends AbstractFlowNode {
         super.then (nextStep, errHandler)
 
         def previousTask = this
-        actionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
+        cmdActionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
 
     }
 
