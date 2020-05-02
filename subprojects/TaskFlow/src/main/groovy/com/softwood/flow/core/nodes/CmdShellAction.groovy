@@ -26,19 +26,7 @@ class CmdShellAction extends AbstractFlowNode {
 
         def ca = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         ca.ctx?.taskActions << ca
-        ca.ctx.newInClosure << ca  //add to items generated within the running closure
-
-
- /*       if (ca.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                ca.ctx.newInClosure << ca  //add to items generated within the running closure
-        } */
+        ca.ctx?.newInClosure << ca  //add to items generated within the running closure
 
         ca
     }
@@ -47,19 +35,7 @@ class CmdShellAction extends AbstractFlowNode {
 
         def ca = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         ca.ctx?.taskActions << ca
-
-        /*if (ca.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                ca.ctx.newInClosure << ca  //add to items generated within the running closure
-        }*/
-
-        ca.ctx.newInClosure << ca  //add to items generated within the running closure
+        ca.ctx?.newInClosure << ca  //add to items generated within the running closure
         ca
 
     }
@@ -185,6 +161,16 @@ class CmdShellAction extends AbstractFlowNode {
                     }
                 }
 
+                if (resultValue instanceof Exception) {
+                    if (errHandler) {
+                        log.debug "CmdShell actionTask(): task hit exception $resultValue"
+                        status = FlowNodeStatus.errors
+                        this.errors << resultValue
+                        errHandler(resultValue, this)
+                    }
+
+                }
+
                 log.debug "CmdShell actionTask(): promise was bound, removed the promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
 
             }
@@ -194,6 +180,7 @@ class CmdShellAction extends AbstractFlowNode {
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"
                 status = FlowNodeStatus.errors
+                this.errors << e
                 errHandler(e, this)
             }
             step

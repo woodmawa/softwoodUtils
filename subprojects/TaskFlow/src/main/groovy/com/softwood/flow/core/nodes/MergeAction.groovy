@@ -27,19 +27,9 @@ class MergeAction extends AbstractFlowNode {
 
         def merge = new MergeAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         merge.ctx?.taskActions << merge
+        merge.ctx?.newInClosure << merge  //add to items generated within the running closure
 
-        if (merge.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                merge.ctx.newInClosure << merge  //add to items generated within the running closure
-        }
         merge
-
     }
 
     /**
@@ -146,6 +136,7 @@ class MergeAction extends AbstractFlowNode {
             if (errHandler) {
                 log.debug "mergeTask()  hit exception $e"
                 status = FlowNodeStatus.errors
+                errors << e
                 errHandler(e, this)
             }
             step

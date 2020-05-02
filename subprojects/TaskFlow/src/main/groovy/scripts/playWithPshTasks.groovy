@@ -7,17 +7,12 @@ import com.softwood.flow.core.nodes.PowerShellAction
 import com.softwood.flow.core.nodes.TaskAction
 import groovyx.gpars.dataflow.Promise
 
-cmdShell = CmdShellAction::newCmdShellAction
-
-/*PowerShellAction psh  = powerShell ('psh') {}
-psh.run ('dir')
-println psh.resultValue*/
+powerShell = PowerShellAction::newPowerShellAction
 
 FlowContext freeStandingCtx = FlowContext.newFreeStandingContext()
 
-CmdShellAction cmd  = cmdShell (freeStandingCtx, 'cmd') {arg ->
-    cmdWithArguments ('systeminfo') }
-//cmd.run('dir', '/w')
-cmd.run()
-println cmd.resultValue
+PowerShellAction psh  = powerShell ('psh') {cmdWithArguments ('dir') }
+psh.run ()
+println psh.resultValue
+
 

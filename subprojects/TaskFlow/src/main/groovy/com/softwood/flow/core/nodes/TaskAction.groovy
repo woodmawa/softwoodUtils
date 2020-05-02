@@ -40,17 +40,18 @@ class TaskAction extends AbstractFlowNode{
             ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure, *:initArgsMap)
 
         ta.ctx?.taskActions << ta
+        ta.ctx?.newInClosure << ta
 
-        if (ta.ctx.newInClosure != null) {
+        /*if (ta.ctx.newInClosure != null) {
             List frames = CallingStackContext.getContext()
-            boolean isCalledInClosure = frames ?[1].callingContextIsClosure
+            boolean isCalledInClosure = frames ?[1..3].any {it.callingContextIsClosure}
 
             //add to list of newly created objects
             //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
             //only add to newInClosure if its called within a closure
             if (isCalledInClosure)
                 ta.ctx.newInClosure << ta  //add to items generated within the running closure
-        }
+        }*/
 
         ta
 
@@ -69,19 +70,7 @@ class TaskAction extends AbstractFlowNode{
             ta = new TaskAction(ctx: ctx, name: name ?: "anonymous", action:closure, *:initArgsMap)
 
         ta.ctx?.taskActions << ta
-
-        if (ta.ctx.newInClosure != null) {
-            List frames = CallingStackContext.getContext()
-
-            boolean isCalledInClosure = frames?[1..3].any {it.callingContextIsClosure}
-                    //frames ?[1].callingContextIsClosure
-
-            //add to list of newly created objects
-            //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
-            //only add to newInClosure if its called within a closure
-            if (isCalledInClosure)
-                ta.ctx.newInClosure << ta  //add to items generated within the running closure
-        }
+        ta.ctx?.newInClosure << ta
 
         ta
 
@@ -98,8 +87,7 @@ class TaskAction extends AbstractFlowNode{
         ta.ctx?.taskActions << ta
         if (ta.ctx?.flow)
             ta.ctx?.flow.defaultSubflow.flowNodes << ta
-        if (ta.ctx.newInClosure != null)
-            ta.ctx.newInClosure << ta  //add to items generated within the running closure
+        ta.ctx?.newInClosure << ta  //add to items generated within the running closure
 
         ta
 
@@ -220,6 +208,15 @@ class TaskAction extends AbstractFlowNode{
                     }
                 }
 
+                if (resultValue instanceof Exception) {
+                    if (errHandler) {
+                        log.debug "doRun(), task hit exception $resultValue"
+                        status = FlowNodeStatus.errors
+                        this.errors << resultValue
+                        errHandler(resultValue, this)
+                    }
+
+                }
                 log.debug "actionTask(): promise was bound with $it, removed promise $promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
 
             }
@@ -229,7 +226,7 @@ class TaskAction extends AbstractFlowNode{
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"
                 status = FlowNodeStatus.errors
-                this.errors = e
+                this.errors << e
                 errHandler(e, this)
             }
             step

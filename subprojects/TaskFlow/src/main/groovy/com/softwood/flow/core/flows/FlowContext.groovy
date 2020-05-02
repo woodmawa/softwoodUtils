@@ -158,6 +158,35 @@ class FlowContext extends Expando {
         result
     }
 
+    def withNestedNewIns (Closure method, List<AbstractFlowNode> selectNodes, AbstractFlowNode step,  Object [] args, Closure errHandler = null) {
+        assert method
+        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
+
+        def result
+        if (method.parameterTypes?[-1] instanceof Closure) {
+            if (args?.size() > 0)
+                result = method(selectNodes, step, *args, errHandler)
+            else if (args != null)
+                result = method(selectNodes, step, args, errHandler)
+            else
+                result = method(selectNodes, step, errHandler)
+        } else {
+            if (args?.size() > 0)
+                result = method(selectNodes, step, *args)
+            else if (args != null)
+                result = method(selectNodes, step, args)
+            else
+                result = method(selectNodes, step, null)
+        }
+
+        //if necessary could process newIns here but its assumed to have been done by the method()
+        newInClosure.clear()
+        newInClosure = newInClosureStack.pop ()
+        result
+    }
+
+
     /**
      * thre types of when, one with condition (test it), one with closure (eval it) or with boolean
      *

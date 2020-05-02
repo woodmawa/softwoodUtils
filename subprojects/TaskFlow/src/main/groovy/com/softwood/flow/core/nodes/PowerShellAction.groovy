@@ -26,7 +26,7 @@ class PowerShellAction extends AbstractFlowNode {
 
         def psh = new PowerShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
         psh.ctx?.taskActions << psh
-        psh.ctx.newInClosure << psh  //add to items generated within the running closure
+        psh.ctx?.newInClosure << psh  //add to items generated within the running closure
 
         psh
     }
@@ -35,7 +35,7 @@ class PowerShellAction extends AbstractFlowNode {
 
         def psh = new PowerShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
         psh.ctx?.taskActions << psh
-        psh.ctx.newInClosure << psh  //add to items generated within the running closure
+        psh.ctx?.newInClosure << psh  //add to items generated within the running closure
 
         psh
     }
@@ -47,7 +47,7 @@ class PowerShellAction extends AbstractFlowNode {
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def run (Object[] args, Closure errHandler = null) {
+    def run (Object[] args , Closure errHandler = null) {
         doRun (null, args, errHandler)
     }
 
@@ -117,9 +117,11 @@ class PowerShellAction extends AbstractFlowNode {
             }
 
             //args can get padded with null arg at the end of the list.  So if see the null, then strip it off
-            def size = args.size()
-            if (args?[size-1] == null)
-                args = args.toList().subList(0, size-1)
+            if (args != null ) {
+                def size = args.size()
+                if (args[size - 1] == null)
+                    args = args.toList().subList(0, size - 1)
+            }
 
             Promise promise  = task {
                 def initialSize = 4096
@@ -127,7 +129,7 @@ class PowerShellAction extends AbstractFlowNode {
                 def processError = ""
 
 
-                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", command, *args)
+                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", command, *cmdArgs)
                 def process = processBldr.start()
                 process.consumeProcessErrorStream(err)
                 def ans = process.text
@@ -155,6 +157,16 @@ class PowerShellAction extends AbstractFlowNode {
                     }
                 }
 
+                if (resultValue instanceof Exception) {
+                    if (errHandler) {
+                        log.debug "PowerShell actionTask(): task hit exception $resultValue"
+                        status = FlowNodeStatus.errors
+                        this.errors << resultValue
+                        errHandler(resultValue, this)
+                    }
+
+                }
+
                 log.debug "PowerShell actionTask(): promise was bound, removed the promise from activePromises: $yesNo, and activePromises : " + ctx?.activePromises
 
             }
@@ -164,6 +176,7 @@ class PowerShellAction extends AbstractFlowNode {
             if (errHandler) {
                 log.debug "doRun()  hit exception $e"
                 status = FlowNodeStatus.errors
+                this.errors << e
                 errHandler(e, this)
             }
             step
