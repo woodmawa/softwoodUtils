@@ -174,7 +174,7 @@ class PowerShellAction extends AbstractFlowNode {
             step
         } catch (Exception e) {
             if (errHandler) {
-                log.debug "doRun()  hit exception $e"
+                log.debug "PowerShell actionTask(): hit exception $e"
                 status = FlowNodeStatus.errors
                 this.errors << e
                 errHandler(e, this)

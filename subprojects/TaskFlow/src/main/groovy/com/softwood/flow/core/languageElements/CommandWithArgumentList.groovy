@@ -9,27 +9,29 @@ public class CommandWithArgumentList {
     String name = ""
 
     static CommandWithArgumentList newShellCommand (FlowContext ctx, String name,  List arglist=null) {
-        CommandWithArgumentList argList = new CommandWithArgumentList(ctx:ctx, name:name)
-        argList.addAll(arglist ?: [])
-
-        if (argList.ctx.newInClosure != null) {
-            argList.ctx.newInClosure << argList  //add to items generated within the running closure
+        CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx:ctx, name:name)
+        arglist.each {
+            cmdWithArgList.add ("/$it")  //add to items generated within the running closure
         }
 
-        argList
+        if (cmdWithArgList.ctx.newInClosure != null) {
+            cmdWithArgList.ctx.newInClosure << cmdWithArgList  //add to items generated within the running closure
+        }
+
+        cmdWithArgList
     }
 
     static CommandWithArgumentList newShellCommand (FlowContext ctx, String name, Object item) {
 
-        CommandWithArgumentList argList = new CommandWithArgumentList(ctx: ctx, name: name)
+        CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx: ctx, name: name)
         if (item != null)
-            argList.add (item)
+            cmdWithArgList.add ("/$item")
 
-        if (argList.ctx.newInClosure != null) {
-            argList.ctx.newInClosure << argList  //add to items generated within the running closure
+        if (cmdWithArgList.ctx.newInClosure != null) {
+            cmdWithArgList.ctx.newInClosure << cmdWithArgList  //add to items generated within the running closure
         }
 
-        argList
+        cmdWithArgList
     }
 
     static CommandWithArgumentList newShellCommand (FlowContext ctx, String name, ArrayList alist) {

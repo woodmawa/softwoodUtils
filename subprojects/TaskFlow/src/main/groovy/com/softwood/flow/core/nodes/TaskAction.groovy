@@ -210,7 +210,7 @@ class TaskAction extends AbstractFlowNode{
 
                 if (resultValue instanceof Exception) {
                     if (errHandler) {
-                        log.debug "doRun(), task hit exception $resultValue"
+                        log.debug "actionTask(): task hit exception $resultValue"
                         status = FlowNodeStatus.errors
                         this.errors << resultValue
                         errHandler(resultValue, this)
@@ -224,7 +224,7 @@ class TaskAction extends AbstractFlowNode{
 
         } catch (Exception e) {
             if (errHandler) {
-                log.debug "doRun()  hit exception $e"
+                log.debug "actionTask():  hit exception $e"
                 status = FlowNodeStatus.errors
                 this.errors << e
                 errHandler(e, this)

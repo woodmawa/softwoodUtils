@@ -11,7 +11,7 @@ powerShell = PowerShellAction::newPowerShellAction
 
 FlowContext freeStandingCtx = FlowContext.newFreeStandingContext()
 
-PowerShellAction psh  = powerShell ('psh') {cmdWithArguments ('dir') }
+PowerShellAction psh  = powerShell ('psh') {cmdWithArguments ('dir', 'w') }
 psh.run ()
 println psh.resultValue
 
