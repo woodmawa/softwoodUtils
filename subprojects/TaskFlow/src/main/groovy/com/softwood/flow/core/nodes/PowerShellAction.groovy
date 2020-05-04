@@ -128,10 +128,10 @@ class PowerShellAction extends AbstractFlowNode {
                 ByteArrayOutputStream err = new ByteArrayOutputStream(initialSize)
                 def processError = ""
 
-
-                ProcessBuilder processBldr = new ProcessBuilder ("powershell", "/c", command, *cmdArgs)
-                def process = processBldr.start()
-                process.consumeProcessErrorStream(err)
+                ProcessBuilder processBldr = new ProcessBuilder ()
+                processBldr.command ("powershell.exe", "$command", *cmdArgs)
+                def process  = processBldr.start()
+               process.consumeProcessErrorStream(err)
                 def ans = process.text
                 int exitCode = process.waitFor()
                 if (exitCode != 0) {

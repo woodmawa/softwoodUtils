@@ -357,12 +357,20 @@ class FlowContext extends Expando {
     //MethodClosure choice = ChoiceAction::newChoiceAction
     //MethodClosure subflow = Subflow::newSubflow
 
-    Closure cmdWithArguments = {String name, args = null ->
-        CommandWithArgumentList::newShellCommand (delegate, name, args)
+    def cmdWithArguments (String name, args = null) {
+        CommandWithArgumentList::newShellCommand (this, name, args)
     }
 
-     Closure pshWithArguments = {String name, args = null ->
-        CommandWithArgumentList::newShellCommand (delegate, name, args)
+    def cmdWithArguments (String... args) {
+        CommandWithArgumentList::newShellCommand (this, args)
+    }
+
+    def pshWithArguments (String name, args = null) {
+        CommandWithArgumentList::newShellCommand (this, name, args)
+    }
+
+    def pshWithArguments (String... args) {
+        CommandWithArgumentList::newShellCommand (this, args)
     }
 
     //MethodClosure cmdArgument = CommandWithArgumentList::newCommandArgumentList

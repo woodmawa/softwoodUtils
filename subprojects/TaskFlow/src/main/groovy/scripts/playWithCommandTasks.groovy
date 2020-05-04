@@ -16,8 +16,9 @@ println psh.resultValue*/
 FlowContext freeStandingCtx = FlowContext.newFreeStandingContext()
 
 CmdShellAction cmd  = cmdShell (freeStandingCtx, 'cmd') {arg ->
-    cmdWithArguments ('systeminfo') }
-//cmd.run('dir', '/w')
+    cmdWithArguments ('dir', '/w')}
+//cmdWithArguments ('systeminfo') }
+
 cmd.run()
 println cmd.resultValue
 
