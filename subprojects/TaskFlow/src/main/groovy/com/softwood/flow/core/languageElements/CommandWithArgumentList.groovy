@@ -10,9 +10,6 @@ public class CommandWithArgumentList {
 
     static CommandWithArgumentList newShellCommand (FlowContext ctx, String name,  String[] arglist=null) {
 
-        //String name = arglist?[0]
-        //List cmdArgs = arglist.toList()?.sublist (1)
-
         CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx:ctx, name:name)
         //add to items generated within the running closure
         cmdWithArgList.addAll(arglist)
