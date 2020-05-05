@@ -8,11 +8,12 @@
         <option name="testRunner" value="PLATFORM" />
         <option name="distributionType" value="LOCAL" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
-        <option name="gradleHome" value="D:/dev-binaries/gradle/gradle-5.6.2" />
+        <option name="gradleHome" value="$PROJECT_DIR$/../../dev-binaries/gradle/gradle-5.6.2" />
         <option name="gradleJvm" value="11" />
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/subprojects/Benchmark" />
             <option value="$PROJECT_DIR$/subprojects/TaskFlow" />
             <option value="$PROJECT_DIR$/subprojects/playpen" />
             <option value="$PROJECT_DIR$/subprojects/rules" />
@@ -20,7 +21,6 @@
             <option value="$PROJECT_DIR$/subprojects/utils" />
           </set>
         </option>
-        <option name="useAutoImport" value="true" />
         <option name="useQualifiedModuleNames" value="true" />
       </GradleProjectSettings>
     </option>

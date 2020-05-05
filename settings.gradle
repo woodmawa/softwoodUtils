@@ -4,7 +4,9 @@ def subprojects = ['TaskFlow',
                    'rules',
         'rxJava',
         'playpen',
-        'utils']
+        'utils',
+        'Benchmark'
+]
 
 //include these as projects
 include(subprojects as String[])
