@@ -14,9 +14,9 @@ options.summaryClassFormEnabled(false)
 jsonGenerator = options.build()
 
 
-//println "encode int 2 : " + jsonGenerator.toTmfJson(2)
-//println "encode list int [1,2] : " + jsonGenerator.toTmfJson([1,2])
-//println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
+println "encode int 2 : " + jsonGenerator.toTmfJson(2)
+println "encode list int [1,2] : " + jsonGenerator.toTmfJson([1,2])
+println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
 
 class SimpleTmf {
     long id = 1
