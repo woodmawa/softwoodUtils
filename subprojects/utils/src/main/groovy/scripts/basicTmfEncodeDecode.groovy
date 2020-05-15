@@ -3,9 +3,12 @@ package scripts
 import com.softwood.utils.JsonEncodingStyle
 import com.softwood.utils.JsonUtils
 import com.softwood.utils.UuidUtil
+import groovy.transform.EqualsAndHashCode
 import io.vertx.core.json.JsonObject
 
+import java.text.SimpleDateFormat
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 JsonUtils.Options options = new JsonUtils.Options()
 options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
@@ -19,6 +22,7 @@ options.summaryClassFormEnabled(false)
 
 jsonGenerator = options.build()
 
+@EqualsAndHashCode
 class TmfTestClass {
     UUID id
     float fl
@@ -26,6 +30,8 @@ class TmfTestClass {
     Date today
     LocalDateTime ldt
     List simpleList  //works for List, Collection
+    TmfSubClass sc1
+    TmfSub2Class sc2
     Map simpleMap
     List subClassList
     Map complexMap
@@ -35,6 +41,7 @@ class TmfTestClass {
     }
 }
 
+@EqualsAndHashCode
 class TmfSubClass {
     long id
     String name
@@ -45,6 +52,7 @@ class TmfSubClass {
     }
 }
 
+@EqualsAndHashCode
 class TmfSub2Class {
     long id
     String name
@@ -63,7 +71,8 @@ tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
 tc.simpleMap = [a:1, b:true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
-
+tc.sc2 = s2c
+tc.sc1 = sc1
 
 JsonObject enc
 /*enc = jsonGenerator.toTmfJson(Date.newInstance())
@@ -91,6 +100,25 @@ println "basic decoded map is :" + mres
 enc = jsonGenerator.toTmfJson(tc)
 println "\nencoded test class as : " + enc.encodePrettily()
 
-TestClass dec = jsonGenerator.toObject(TestClass, enc, JsonEncodingStyle.tmf)
+TmfTestClass dec = jsonGenerator.toObject(TmfTestClass, enc, JsonEncodingStyle.tmf)
 
 println "decoded json as object : " + dec.dump()
+
+assert dec.id == tc.id
+assert dec.sc2.id == tc.sc2.id
+assert dec.sc2.name == tc.sc2.name
+assert dec.sc2 == tc.sc2
+assert dec.sc1 == tc.sc1
+assert dec.complexMap.a == tc.complexMap.a
+assert dec.complexMap == tc.complexMap
+assert dec.subClassList[0] == tc.subClassList[0]
+assert dec.subClassList == tc.subClassList
+assert dec.simpleList == tc.simpleList
+assert dec.ldt == tc.ldt    //works ok
+assert dec.today == tc.today  //this Date type assertion fails !!
+assert dec.fl == tc.fl
+assert dec.name == tc.name
+assert dec == tc  //hence so does this
+
+
+

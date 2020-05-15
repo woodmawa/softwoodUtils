@@ -105,7 +105,7 @@ class JsonUtils {
 
         Options () {
             //default type encoders to json text output
-            typeEncodingConverters.put(Date, {it.toString()})
+            typeEncodingConverters.put(Date, {it.toLocalDateTime().toString()})  //save in LDT format
             typeEncodingConverters.put(Calendar, {it.toString()})
             typeEncodingConverters.put(Temporal, {it.toString()})
             typeEncodingConverters.put(URI, {it.toString()})
@@ -113,9 +113,11 @@ class JsonUtils {
 
             //default type decoders from text to target type
             typeDecodingConverters.put(Date, {
-                SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
-                Date date = sdf.parse (it)
-                date}
+                //SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")  //looses precision
+                LocalDateTime ldt = LocalDateTime.parse( it, DateTimeFormatter.ISO_LOCAL_DATE_TIME )
+                Date date = ldt.toDate()
+                date
+                }
             )
             typeDecodingConverters.put(Calendar, {
                 SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
@@ -1000,6 +1002,7 @@ class JsonUtils {
                 }
                 break
             case JsonEncodingStyle.tmf:
+                def previouslyDecodedEntity
                 if (Collection.isAssignableFrom(instance.getClass()) ) {
                     if (isSimpleAttribute(collectionAtt)) {
                         //we are building a list of items, decode the collectionAtt and add to 'instance' collection
@@ -1031,7 +1034,7 @@ class JsonUtils {
                                 test
                             }
                             if (previouslyDecodedEntity)
-                                instance["$attName"].add (previouslyDecodedEntity)
+                                instance.add (previouslyDecodedEntity)
                         } else {
                             try {
                                 Class clazz = getClassForName(clazzName)
@@ -1813,7 +1816,8 @@ class JsonUtils {
             return value
         else if (value instanceof Date) { //date, Time, Timestamp
             json.put ("type", value.getClass().simpleName)
-            json.put ("value", value.toString())
+            //json.put ("value", value.toString()) - looses precision digits of time
+            json.put ("value", value.toLocalDateTime().toString()) //encode using modern LDT format
         }
         else if (value instanceof LocalDateTime || value instanceof LocalDate || value instanceof LocalTime) {
             json.put ("type", value.getClass().simpleName)
