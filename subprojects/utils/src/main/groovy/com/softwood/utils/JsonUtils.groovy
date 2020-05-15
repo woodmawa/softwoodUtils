@@ -1,10 +1,12 @@
 package com.softwood.utils
 
 import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
 import io.vertx.core.json.JsonArray
 import io.vertx.core.json.JsonObject
 
 import javax.inject.Inject
+import java.lang.annotation.Annotation
 import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -25,6 +27,7 @@ enum JsonEncodingStyle {
     tmf, softwood, jsonApi
 }
 
+@Slf4j
 class JsonUtils {
 
     List jsonEncodableStandardTypes = [Integer, Long, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
@@ -66,6 +69,7 @@ class JsonUtils {
 
         @Inject String host = "localhost" //assumed default
         @Inject int port = 8080 //assumed default
+        String apiRoot = 'tmf-api'
         boolean optionalLinks = false
         boolean includeVersion = false
         boolean compoundDocument = false
@@ -153,6 +157,11 @@ class JsonUtils {
             this
         }
 
+        Options setApiRoot (String root) {
+            apiRoot = root
+            this
+        }
+
         Options setHost (String hostname) {
             host = hostname
             this
@@ -163,7 +172,7 @@ class JsonUtils {
             this
         }
 
-        Options includeVersion  (boolean value = false) {
+        Options setIncludeVersion  (boolean value = false) {
             includeVersion = value
             this
         }
@@ -340,7 +349,7 @@ class JsonUtils {
             if (staticField && options.excludeStaticFields) //skip static fields
                 return
             if(!synthetic) {
-                    def accessible = f.isAccessible()
+                    def accessible = f.canAccess(pogo)
                     if (!accessible)
                         f.setAccessible(true)
                     //check its not in excludes category before adding to list of props to encode
@@ -721,7 +730,7 @@ class JsonUtils {
             case JsonEncodingStyle.softwood:
                 if (Number.isAssignableFrom (attType) || attType == Enum || attType == Boolean)
                     return attValue
-                else if (attType == String || attType == CharArray)
+                else if (attType == String || attType == CharSequence)
                     return attValue
                 else if (attType == byte[])
                     return attValue
@@ -791,7 +800,7 @@ class JsonUtils {
                                 instance
                             }
                         } catch (Throwable t) {
-                            println "exception in getClassForName([$clazzName]): " + t.message
+                            log.debug "exception in getClassForName([$clazzName]): " + t.message
                             def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
                             //todo - this will fail if variable is explicit type coded  - proxy is essentially an expando
                             if (proxyInstance){
@@ -808,7 +817,11 @@ class JsonUtils {
             case JsonEncodingStyle.tmf:
 
                 def attName = jsonAtt.getKey()
-                if (attName == "@type")
+                if (attName.equalsIgnoreCase("tmfEncoded"))
+                    return   //if tmfEncoded meta header record detected, skip this attribute when decoding
+                if (attName.equalsIgnoreCase("@type"))
+                    return   //skip this attribute when decoding
+                if (attName.equalsIgnoreCase ("href"))
                     return   //skip this attribute when decoding
 
                 String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
@@ -1038,13 +1051,10 @@ class JsonUtils {
                             }
                         }
                         return instance
-
                     }
-
                 }
 
                 break
-
         }
         instance
 
@@ -1193,7 +1203,7 @@ class JsonUtils {
         instance
     }
 
-    //wrapper method just invoke correct method based on default jsonStyle
+    //entry point, wrapper method just invoke correct method based on default jsonStyle
     def toJson (def pogo, String named= null, JsonEncodingStyle style = options.jsonStyle){
         def encodedResult
         switch (style) {
@@ -1212,7 +1222,7 @@ class JsonUtils {
     }
 
     /*
-     * take a pogo and encode to com.softwood json format, defaults to one layer of expansion of an object graph
+     * take a pogo and encode to tmf json format, defaults to one layer of expansion of an object graph
      */
     @CompileStatic
     def toTmfJson (def pogo, String named= null) {
@@ -1228,6 +1238,7 @@ class JsonUtils {
         }
 
         iterLevel.set (++level)
+        log.debug "toTmfJson - iteration level $level, for entity : $pogo"
 
         if (pogo == null){
             iterLevel.set (--level)
@@ -1265,6 +1276,17 @@ class JsonUtils {
                          json = encMap
                  }
         else {
+            String href, baseType = ''
+
+            Annotation tmfEntity = pogo.getClass().getAnnotation(TmfEntity)
+            if (tmfEntity) {
+                href = generateHref(tmfEntity.domain(),
+                        tmfEntity.version(),
+                        pogo as GroovyObject
+                )
+                baseType = tmfEntity.baseType()
+           }
+
             //json = new JsonObject()
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 //println "already encoded pogo $pogo so just put toString summary and stop recursing"
@@ -1274,6 +1296,9 @@ class JsonUtils {
 
                 jsonObj.put ("isPreviouslyEncoded", true)
                 jsonObj.put ("@type", pogo.getClass().canonicalName)
+                if (href) {
+                    jsonObj.put ("href", href)
+                }
                 if (pogo.hasProperty ("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass())) {
@@ -1297,7 +1322,13 @@ class JsonUtils {
             } else {
                 //first time object to encode - process type, id, & name  first ...
                 JsonObject jsonObj = (json as JsonObject)
+                if (baseType != '')
+                    jsonObj.put ("@baseType", baseType)
                 jsonObj.put ("@type", pogo.getClass().canonicalName)
+
+                if (href) {
+                    jsonObj.put ("href", href)
+                }
                 if (pogo.hasProperty ("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass())) {
@@ -1919,11 +1950,16 @@ class JsonUtils {
                             if (iterLevel.get() <= options.expandLevels)
                                 jsonEncClass = this?.toTmfJson(prop.value)
                             else {
+                                Annotation tmfEntity = prop.value.getClass().getAnnotation(TmfEntity)
                                 //check first if object has already been encoded, if so make declare it
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
                                     wrapper.put ("isPreviouslyEncoded", true)
                                     wrapper.put("@type", prop.value.getClass().canonicalName)
+                                    if (tmfEntity) {
+                                        def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                        wrapper.put("href", href)
+                                    }
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
@@ -1939,9 +1975,14 @@ class JsonUtils {
                                     wrapper.put ("shortForm", prop.value.toString())
 
                                 } else {
+
                                     //else just report we are now summarising at this level and beyond
                                     wrapper.put("isSummarised", true)
                                     wrapper.put("@type", prop.value.getClass().canonicalName)
+                                    if (tmfEntity) {
+                                        def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                        wrapper.put("href", href)
+                                    }
                                     if (prop?.value.hasProperty ("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
@@ -2018,9 +2059,15 @@ class JsonUtils {
 
                         case JsonEncodingStyle.tmf :
                             if (options.excludeClass == false) {
+                                Annotation tmfEntity = prop.value.getClass().getAnnotation(TmfEntity)
+
                                 def wrapper = new JsonObject ()
                                 wrapper.put ("isSummarised" , true )
                                 wrapper.put("@type", prop.value.getClass().canonicalName)
+                                if (tmfEntity) {
+                                    def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                    wrapper.put("href", href)
+                                }
                                 if (prop?.value.hasProperty ("id")) {
                                     def id = (prop.value as GroovyObject).getProperty("id")
                                     if (isSimpleAttribute(id.getClass()))
@@ -2359,6 +2406,11 @@ class JsonUtils {
 
     }
 
+    /**
+     * check if item is one of basic types like Integer, Float, etc
+     * @param item
+     * @return true or false
+     */
     @CompileStatic
     private boolean isSimpleAttribute (def item) {
         Class<?> clazz
@@ -2370,6 +2422,12 @@ class JsonUtils {
         simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
     }
 
+    /**
+     * determines if the class of the field attribute 'item' is one of the standard Json encodable types
+     * if its not then it must be a complex object and needs to be fully encoded
+     * @param item
+     * @return true or false
+     */
     @CompileStatic
     private boolean isJsonStandardEncodableAttribute (def item) {
 
@@ -2388,6 +2446,7 @@ class JsonUtils {
     /*
      * checks if attribute field name is excluded names or types list
      */
+    @CompileStatic
     private boolean isInExcludesCategory (String field, Class<?> clazz) {
         boolean isExcludedName = options.excludedFieldNames.find {it == "${field}".toString()}
         if (isExcludedName)
@@ -2398,5 +2457,30 @@ class JsonUtils {
         else
             false
 
+    }
+
+    /**
+     * generateHref dynamically generates the href reference for an tmf model entity
+     * annotate your model entity with @TmfEntity
+     * @param domain - model domain area e.g. 'CustomerManagement'
+     * @param baseType - if the actual type is not the base type you can specify the baseType for the actual encoded type
+     * @param pogo - object to encode
+     * @return
+     */
+    @CompileStatic
+    private String generateHref (String domain, String version,  GroovyObject pogo) {
+
+        assert pogo 
+        def id = '<no-id>'
+        if (pogo.hasProperty('id')) {
+            id = pogo.getProperty('id')
+        }
+        StringBuilder href = new StringBuilder ('https://')
+        href << options.host << ':' << options.port << '/' << options.apiRoot
+        href << '/' << domain
+        href << '/' << version
+        href << '/' << pogo.getClass().simpleName
+        href << '/' << id
+        href.toString()
     }
 }

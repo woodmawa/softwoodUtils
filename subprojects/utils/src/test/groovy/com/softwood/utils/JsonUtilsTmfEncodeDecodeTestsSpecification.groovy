@@ -40,6 +40,7 @@ public class JsonUtilsTmfEncodeDecodeTestsSpecification extends Specification {
         jsonGenerator.toTmfJson (simpleType).encode() == result
 
         where   :
+        //use parameterised spock test here - table of type and expected result
         simpleType || result
         //list
         [1,2,true,"ok"]      || /[1,2,true,"ok"]/

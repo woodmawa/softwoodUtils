@@ -1,6 +1,7 @@
 package scripts
 
 import com.softwood.utils.JsonUtils
+import com.softwood.utils.TmfEntity
 
 import java.time.LocalDateTime
 
@@ -10,23 +11,15 @@ options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(2)
 options.summaryClassFormEnabled(false)
+options.setIncludeVersion(false)
 
 jsonGenerator = options.build()
 
 
-println "encode int 2 : " + jsonGenerator.toTmfJson(2)
-println "encode list int [1,2] : " + jsonGenerator.toTmfJson([1,2])
-println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
+//println "encode int 2 : " + jsonGenerator.toTmfJson(2)
+//println "encode list int [1,2] : " + jsonGenerator.toTmfJson([1,2])
+//println "encode map [a:2, b:3] : " + jsonGenerator.toTmfJson([a:2, b:3])
 
-class SimpleTmf {
-    long id = 1
-    String name = "simpleInst"
-    Point locationRef
-    List children = new ArrayList<TmfChild>()
-    List simpleList = []
-    Map simpleMap =[:]
-    Map tmfMap = [:]
-}
 
 class Point {
     int x, y,z
@@ -36,6 +29,19 @@ class Point {
     }
 }
 
+@TmfEntity (baseType='OrgRole', domain='CustomerManagement')
+class SimpleTmf {
+    long id = 1
+    String name = "simpleInst"
+    LocalDateTime ldt = LocalDateTime.now()
+    Point locationRef
+    List children = new ArrayList<TmfChild>()
+    List simpleList = [1, '2']
+    Map simpleMap =[a:'c']
+    Map tmfMap = [:]
+}
+
+@TmfEntity ()
 class TmfChild {
     String name
     SimpleTmf parent
@@ -66,5 +72,7 @@ println "simple array : $res"
 res  = jsonGenerator.toTmfJson([a:1,C:2,c:"hello"]).encodePrettily()
 println "simple map : $res" */
 
-res  = jsonGenerator.toTmfJson([a:c1/*, b:s1*/]).encodePrettily()
-println "complex map : $res"
+//jsonGenerator.toTmfJson([a:c1/*, b:s1*/]).encodePrettily()
+res  = jsonGenerator.toTmfJson(s1).encodePrettily()
+println "encoded object representation  :"
+println "$res"
