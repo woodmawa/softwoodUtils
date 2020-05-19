@@ -557,7 +557,7 @@ class JsonUtils {
         } else {
             if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate ) {
                 if (clazz.respondsTo('now'))
-                    instance = clazz.now()  //dynamic dispatch duck typing
+                    instance = clazz.now()  //uses dynamic dispatch, duck typing
             }
             else
                 instance = getNewInstanceFromClass(clazz, json)
