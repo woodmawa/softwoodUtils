@@ -617,7 +617,7 @@ class JsonUtils {
     }
 
     /*
-     * refactored this to own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
+     * refactored this into its own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
      */
     //@CompileStatic
     private def decodeEntityToInstance (def instance, JsonObject jsonEntity, JsonEncodingStyle style) {
@@ -696,7 +696,7 @@ class JsonUtils {
                         }
                     } else {
                         //else just decode the entity
-                        def jsonAttributes = entity["attributes"]
+                        JsonObject jsonAttributes = entity["attributes"]
                         for (jsonAtt in jsonAttributes) {
                             decodeFieldAttribute(instance, jsonAtt, style)
                         }
@@ -859,7 +859,8 @@ class JsonUtils {
                 else if (attType == byte[])
                     return attValue
                 else if (attType == Date) {
-                    return  new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
+                    return LocalDateTime.parse(attValue).toDate()
+                    //return  new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
                 }
                 else if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
                     return attType.parse (attValue)
@@ -1018,7 +1019,7 @@ class JsonUtils {
 
     }
 
-    private def decodeCollectionAttribute (instance, collectionAtt, JsonEncodingStyle style) {
+    private def decodeCollectionAttribute (def instance, collectionAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
                 //starting instance is a collection class
@@ -1196,7 +1197,7 @@ class JsonUtils {
     }
 
     //@CompileStatic
-    private def decodeMapAttribute (Map instance, mapAtt, JsonEncodingStyle style) {
+    private def decodeMapAttribute (def instance, Map.Entry mapAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
                 String attName = mapAtt['key']
