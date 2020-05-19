@@ -97,10 +97,23 @@ println "basic decoded map is :" + mres
 
 //System.exit(0)
 */
+
+class SimpleClass {
+    long id
+    String name
+}
+SimpleClass simple = new SimpleClass (id : 1, name: 'fred')
+
+enc = jsonGenerator.toTmfJson(simple)
+
+println "simple class " + enc
+//def res = jsonGenerator.toObject (SimpleClass, enc, JsonEncodingStyle.tmf)
+def res = jsonGenerator.toObject (enc, JsonEncodingStyle.tmf)
+
 enc = jsonGenerator.toTmfJson(tc)
 println "\nencoded test class as : " + enc.encodePrettily()
 
-TmfTestClass dec = jsonGenerator.toObject(TmfTestClass, enc, JsonEncodingStyle.tmf)
+TmfTestClass dec = jsonGenerator.toObject(enc, JsonEncodingStyle.tmf)//jsonGenerator.toObject(TmfTestClass, enc, JsonEncodingStyle.tmf)
 
 println "decoded json as object : " + dec.dump()
 

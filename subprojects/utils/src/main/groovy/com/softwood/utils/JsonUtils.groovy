@@ -1,5 +1,6 @@
 package com.softwood.utils
 
+import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.vertx.core.json.JsonArray
@@ -397,7 +398,9 @@ class JsonUtils {
     }
 
     /*
-     * determine if the string is either com.softwood/tmf/jsonApi encoded
+     * determine if the string is one of either supported com.softwood/tmf/jsonApi encoded formats
+     * by checking for the how the entity data type has been encoded.
+     * returns false if it cant determine the encoding format
      */
     private boolean isJsonEncodedString (String json) {
         //check for metadata first - if there its encoded json string
@@ -413,6 +416,104 @@ class JsonUtils {
 
     }
 
+    /**
+     * simplified form of generic toObject.  it tries to determine the 'expected' type of object to decode to
+     * by looking at the encoding and trying to read the type out and get the class reference for that and call
+     * the generic routine to resolve the rest of the decoding
+     * @param json
+     * @param style
+     * @return decoded object
+     */
+    @CompileStatic
+    def toObject (def json, JsonEncodingStyle style = options.jsonStyle ) {
+        def clazz, jsonClass
+        def instance
+
+        String typeString
+
+        jsonClass = json.getClass()
+
+        if (jsonClass == String) {
+            String jsonString = json as String
+            //check if we have an json array format
+            if (jsonString.startsWith('[') && jsonString.endsWith(']')) {
+                clazz = Collection
+            } else if (jsonString.startsWith('{') && jsonString.endsWith('}')) {
+
+                if (!isJsonEncodedString(jsonString)) {
+                    //assume its simple map encoded into json
+                    clazz = Map
+                } else {
+                    //we have jsonObject, determine the first occurence of type and use that
+                    //warning this could be brittle for complex object graphs
+                    Map terms = new JsonSlurper().parseText(jsonString) as Map
+                    switch (style) {
+                        case JsonEncodingStyle.tmf:
+                            if (terms['@type']) {
+                                typeString = terms['@type']
+                                clazz = getClassForName(typeString)
+                            } else {
+                                log.debug "couldnt determine tmf object class to decode into, using  $json"
+                                return null
+                            }
+                            break
+                        case JsonEncodingStyle.jsonApi:
+                            if (terms['data']) {
+                                typeString = terms['data']
+                                clazz = getClassForName(typeString)
+                            } else {
+                                log.debug "couldnt determine jsonApi object class to decode into, using  $json"
+                                return null
+                            }
+                            break
+                        case JsonEncodingStyle.jsonApi:
+                            if (terms['softwoodEncoded']) {
+                                typeString = terms['softwoodEncoded']
+                                clazz = getClassForName(typeString)
+                            } else {
+                                log.debug "couldnt determine softwoodEncoded object class to decode into, using  $json"
+                                return null
+                            }
+                            break
+                        default:
+                            log.debug "couldnt determine object class to decode into from $json"
+                            return null
+                    }
+                }
+            }
+        } else if (jsonClass == JsonArray) {
+            //try decoding into Collection of objects
+            clazz = Collection
+        } else if (jsonClass == JsonObject) {
+            boolean supportedJsonEncodedFormat = isJsonEncodedString((json as JsonObject).toString())
+            if (!supportedJsonEncodedFormat) {
+                //assume its a simple, basic map type encoded object as its not an array
+                clazz = Map
+            } else {
+                //todo try and figure out the implicit type
+                switch (style) {
+                    case JsonEncodingStyle.tmf :
+                        typeString = (json as JsonObject).getValue('@type')
+                        clazz = getClassForName(typeString)
+                        break
+                    case JsonEncodingStyle.jsonApi :
+                        typeString = (json as JsonObject).getValue('data')
+                        clazz = getClassForName(typeString)
+                        break
+                    case JsonEncodingStyle.softwood:
+                        typeString = (json as JsonObject).getValue('entityData')
+                        clazz = getClassForName(typeString)
+                        break
+                    default :
+                        log.debug "cant detect implicit class type to decode into  for $json"
+                        return null
+                }
+            }
+        }
+
+         toObject (clazz, json, style  )
+
+    }
     /*
      * takes a JsonObject or JsonArray and tries to rebuild this as a graph of groovy objects.
      * where an json entry has been summarised then partially filled object (where an isSummarised variable
@@ -421,7 +522,7 @@ class JsonUtils {
      * build a proxy using an Expando, where the proxiedClassName will hold the string name of the remote class
      * as encoded into the json
      */
-    def toObject (Class<?> clazz, json, JsonEncodingStyle style = options.jsonStyle) {
+    def toObject (Class<?> clazz,json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
         def  instance
 
