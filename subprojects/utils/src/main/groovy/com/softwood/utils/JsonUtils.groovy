@@ -948,6 +948,10 @@ class JsonUtils {
                     return   //skip this attribute when decoding
                 if (attName.equalsIgnoreCase ("href"))
                     return   //skip this attribute when decoding
+                if (attName.equalsIgnoreCase ("_links"))
+                    return   //skip this attribute when decoding
+                if (attName.equalsIgnoreCase ("_self"))
+                    return   //skip this attribute when decoding
 
                 String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
                 def attValue = jsonAtt.getValue()
