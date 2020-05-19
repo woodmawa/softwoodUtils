@@ -9,6 +9,7 @@ import io.vertx.core.json.JsonObject
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentLinkedQueue
 
 JsonUtils.Options options = new JsonUtils.Options()
 options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
@@ -106,13 +107,18 @@ SimpleClass simple = new SimpleClass (id : 1, name: 'fred')
 
 enc = jsonGenerator.toTmfJson(simple)
 
+//assert [a:1] == jsonGenerator.toObject ('{"a":1}', JsonEncodingStyle.tmf)
+//assert ['a',1]  == jsonGenerator.toObject ('["a",1]', JsonEncodingStyle.tmf)
+
+
 println "simple class " + enc
 //def res = jsonGenerator.toObject (SimpleClass, enc, JsonEncodingStyle.tmf)
-def res = jsonGenerator.toObject (enc, JsonEncodingStyle.tmf)
+def res = jsonGenerator.toObject (enc.toString(), JsonEncodingStyle.tmf)
 
 enc = jsonGenerator.toTmfJson(tc)
 println "\nencoded test class as : " + enc.encodePrettily()
 
+println "simple class " + enc
 TmfTestClass dec = jsonGenerator.toObject(enc, JsonEncodingStyle.tmf)//jsonGenerator.toObject(TmfTestClass, enc, JsonEncodingStyle.tmf)
 
 println "decoded json as object : " + dec.dump()

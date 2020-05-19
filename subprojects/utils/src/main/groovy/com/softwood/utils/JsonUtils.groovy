@@ -449,7 +449,7 @@ class JsonUtils {
             String jsonString = json as String
             //check if we have an json array format
             if (jsonString.startsWith('[') && jsonString.endsWith(']')) {
-                clazz = Collection
+                clazz = List
             } else if (jsonString.startsWith('{') && jsonString.endsWith('}')) {
 
                 if (!isJsonEncodedString(jsonString)) {
@@ -566,15 +566,20 @@ class JsonUtils {
 
         if (isSimpleAttribute(json)) {
             // if strong contains an encoded json string - then try and parse it - bit of a weak test
-            if (json instanceof String && isJsonEncodedString(json)) {
+            if (json instanceof String ) {
 
                 if (instance == null)
                     instance = getNewInstanceFromClass(clazz)
 
-                //parse the json string back to json
-                JsonObject parsedJson = new JsonObject(json)
-                if (parsedJson) {
+                //try parse the json string back to json
+                def parsedJson
+                if (json.startsWith ('{')) {
+                    parsedJson = new JsonObject(json)
                     decodeEntityToInstance(instance, parsedJson, style)
+                }
+                else if (json.startsWith('[')) {
+                    parsedJson = new JsonArray(json)
+                    decodeCollectionAttribute(instance, parsedJson, style)
                 }
 
             }
@@ -614,7 +619,8 @@ class JsonUtils {
     /*
      * refactored this to own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
      */
-    private def decodeEntityToInstance (instance, jsonEntity, JsonEncodingStyle style) {
+    //@CompileStatic
+    private def decodeEntityToInstance (def instance, JsonObject jsonEntity, JsonEncodingStyle style) {
         switch (style) {
             case JsonEncodingStyle.softwood:
                 if (jsonEntity['iterable']) {
@@ -635,7 +641,7 @@ class JsonUtils {
                     def typeName = jsonEntity['type']
                     Class clazzType = classForSimpleTypesLookup["$typeName"]
                     def typeValue = jsonEntity['value']
-                    def decoder = classImplementsDecoderType(clazzType)
+                    Closure decoder = classImplementsDecoderType(clazzType)
                     def value = decoder(typeValue)
                     if (value)
                         instance = value
@@ -1124,7 +1130,17 @@ class JsonUtils {
                         //we are building a list of items, decode the collectionAtt and add to 'instance' collection
                         instance.add collectionAtt
                         return instance
-                    } else if (collectionAtt['type']) {
+                    } else if (collectionAtt instanceof JsonArray) {
+                        for (item in collectionAtt) {
+                            if (isSimpleAttribute(item)) {
+                                instance.add(item)
+                            } else {
+                                def dec = decodeEntityToInstance(instance, item, style)
+                                instance.add (dec)
+                            }
+                        }
+                    }
+                    else if (collectionAtt['type']) {
                         //found one of normal java types to encode
                         def attTypeName = collectionAtt['type']
                         def attValue = collectionAtt['value']
@@ -1180,7 +1196,7 @@ class JsonUtils {
     }
 
     //@CompileStatic
-    private def decodeMapAttribute (instance, mapAtt, JsonEncodingStyle style) {
+    private def decodeMapAttribute (Map instance, mapAtt, JsonEncodingStyle style) {
         switch (style ) {
             case JsonEncodingStyle.softwood:
                 String attName = mapAtt['key']
@@ -1227,7 +1243,7 @@ class JsonUtils {
                 }
                 def instMapAtt = instance["$attName"]
                 for (item in listOfMapEntries ) {
-                    def clazz, clazzName, value, key, mapInstance, proxy, entity, entityId, entityName, previouslyDecodedEntity
+                    def clazz, clazzName, value, key, mapInstance, proxy, entity, entityId, entityName, previouslyDecodedEntity, decodedMapValue
                     boolean isEntity = false, isPreviouslyEncoded = false
 
                     key = item['key']
@@ -2511,7 +2527,7 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private Closure classImplementsDecoderType (Class<?> clazz ) {
+    private Closure<?> classImplementsDecoderType (Class<?> clazz ) {
 
         if (clazz == null)
             return {}
@@ -2543,7 +2559,7 @@ class JsonUtils {
     }
 
     /**
-     * check if item is one of basic types like Integer, Float, etc
+     * check if class is one of basic types like Integer, Float, etc
      * @param item
      * @return true or false
      */
@@ -2551,6 +2567,7 @@ class JsonUtils {
     private boolean isSimpleType (Class<?> clazz) {
         simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
     }
+
     /**
      * determines if the class of the field attribute 'item' is one of the standard Json encodable types
      * if its not then it must be a complex object and needs to be fully encoded
