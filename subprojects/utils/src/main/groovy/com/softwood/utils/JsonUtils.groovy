@@ -54,6 +54,8 @@ class JsonUtils {
     List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
 
     protected Options options
+    Options getOptions () { options}
+
     private JsonUtils (Options options) {
         //add getAt function for array index notation on JsonObject
         JsonObject.metaClass.getAt = {String s -> delegate.getValue(s)}
@@ -64,6 +66,7 @@ class JsonUtils {
      * inner class to set options in fluent api form and then build the
      * generator with the options provided
      */
+    @CompileStatic
     class Options {
 
         ClassLoader defaultClassLoader = Thread.currentThread().getContextClassLoader()
@@ -106,48 +109,49 @@ class JsonUtils {
 
         Options () {
             //default type encoders to json text output
-            typeEncodingConverters.put(Date, {it.toLocalDateTime().toString()})  //save in LDT format
+            typeEncodingConverters.put(Date, {Date it -> it.toLocalDateTime().toString()})  //save in LDT format
             typeEncodingConverters.put(Calendar, {it.toString()})
             typeEncodingConverters.put(Temporal, {it.toString()})
             typeEncodingConverters.put(URI, {it.toString()})
             typeEncodingConverters.put(UUID, {it.toString()})
 
             //default type decoders from text to target type
-            typeDecodingConverters.put(Date, {
+            typeDecodingConverters.put(Date, {String it ->
                 //SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")  //looses precision
-                LocalDateTime ldt = LocalDateTime.parse( it, DateTimeFormatter.ISO_LOCAL_DATE_TIME )
+                LocalDateTime ldt = LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME )
                 Date date = ldt.toDate()
                 date
                 }
             )
-            typeDecodingConverters.put(Calendar, {
+            typeDecodingConverters.put(Calendar, {String it ->
                 SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
                 Date date = sdf.parse (it)
                 Calendar cal = Calendar.getInstance()
                 cal.setTime (date)
                 cal}
             )
-            typeDecodingConverters.put(LocalDate, {
+            typeDecodingConverters.put(LocalDate, {String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalDate.parse(it)
             })
-            typeDecodingConverters.put(LocalDateTime, {
+            typeDecodingConverters.put(LocalDateTime, {String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalDateTime.parse(it)
             })
-            typeDecodingConverters.put(LocalTime, {
+            typeDecodingConverters.put(LocalTime, {String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalTime.parse(it)
             })
-            typeDecodingConverters.put(URL, {new URL(it)})
-            typeDecodingConverters.put(URI, {new URI(it)})
-            typeDecodingConverters.put(UUID, {UUID.fromString(it)})
+            typeDecodingConverters.put(URL, {String it -> new URL(it)})
+            typeDecodingConverters.put(URI, {String it ->new URI(it)})
+            typeDecodingConverters.put(UUID, {String it -> UUID.fromString(it)})
 
             this
         }
 
         Options setDefaultClassLoader (ClassLoader cl) {
             defaultClassLoader = cl
+            this
         }
 
         Options setJsonEncodingStyle (JsonEncodingStyle style){
@@ -155,7 +159,7 @@ class JsonUtils {
             this
         }
 
-        Options setExpandLevels (level){
+        Options setExpandLevels (Integer level){
             expandLevels = level
             this
         }
@@ -266,38 +270,44 @@ class JsonUtils {
      * use options.defaultClassLoader to load class and return new instance
      * if throws an execption returns a proxy Expando class
      */
-    private def getNewInstanceFromClass (clazz, args=null) {
+    private def getNewInstanceFromClass (clazz, Object[] args=null) {
         def clazzName, instance
+        Class clazzRef
+
+        Constructor defaultConstructor
 
         try {
             if (clazz instanceof Class) {
                 clazzName = (clazz as Class).getCanonicalName()
- /*               def defaultConstructor
-                Constructor<?>[] constructors = clazz.getConstructors()//clazz.getDeclaredConstructor()
-                for (constructor in constructors ) {
-                    if (constructor.parameterCount == 0)
-                        defaultConstructor = constructor
-                }
-                if (defaultConstructor) {
-                    instance = clazz.newInstance()  //try default constructor
-                } else {
-                    instance = clazz.newInstance()  //try default constructor any way
-                }
-*/
             }
             else
-                clazzName = clazz.toString()
+                clazzName = clazz.getClass().toString()
 
-            if (!args)
-                instance = options.defaultClassLoader.loadClass(clazzName, true).newInstance()
-            else
-                instance = options.defaultClassLoader.loadClass(clazzName, true).newInstance(args)
+            clazzRef = Class.forName(clazzName, true, options.defaultClassLoader )
+
+            Constructor<?>[] constructors = clazzRef.getConstructors()//clazz.getDeclaredConstructor()
+            for (constructor in constructors ) {
+                if (constructor.parameterCount == 0)
+                    defaultConstructor = constructor
+            }
+            if (defaultConstructor) {
+                instance = defaultConstructor.newInstance() //try default constructor by preference
+            } else {
+                if (isSimpleType(clazzRef) && isSimpleAttribute(args?[0])) {
+                    instance = clazzRef.newInstance(args)
+                } else {
+                    if (args?[0] !instanceof JsonObject)
+                        instance = clazzRef.newInstance(*args)  //try creating instance with provided args
+                    else
+                        throw new IllegalArgumentException("illegal argument format of Type JsonObject for constructor presented $args")
+                }
+            }
             instance
         } catch (Throwable t) {
             println "getNewInstanceFromClass : cant resolve class $clazzName, returning an Expando proxy instead"
-            def proxy = options.defaultClassLoader.loadClass (Expando.canonicalName).newInstance() //new Expando ()
-            proxy.isProxy = true
-            proxy.proxiedClassName =  clazzName
+            def proxy = new Expando() //new Expando ()
+            proxy.setProperty('isProxy', true)
+            proxy.setProperty('proxiedClassName', clazzName)
             proxy
 
         }
@@ -308,10 +318,11 @@ class JsonUtils {
      * use options.defaultClassLoader to load class and return the class
      * can throw an exception - todo should i catch it ?
      */
+    @CompileStatic
     private Class<?> getClassForName (String clazzName) {
         def clazz
         try {
-            clazz = options.getDefaultClassLoader().loadClass(clazzName, true)
+            clazz = Class.forName(clazzName, true, options.getDefaultClassLoader())
         } catch (Throwable t) {
             println "getClassForName: can't load class $clazzName, message " + t.message
         }
@@ -402,6 +413,7 @@ class JsonUtils {
      * by checking for the how the entity data type has been encoded.
      * returns false if it cant determine the encoding format
      */
+    @CompileStatic
     private boolean isJsonEncodedString (String json) {
         //check for metadata first - if there its encoded json string
         if (json.contains ('"softwoodEncoded"') || json.contains ('"tmfEncoded"') || json.contains ('"jsonApiEncoded"'))
@@ -522,6 +534,7 @@ class JsonUtils {
      * build a proxy using an Expando, where the proxiedClassName will hold the string name of the remote class
      * as encoded into the json
      */
+    //@CompileStatic
     def toObject (Class<?> clazz,json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
         def  instance
@@ -542,13 +555,12 @@ class JsonUtils {
                 return
             }
         } else {
-            if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate )
-                instance = clazz.now()
-            else if (Number.isAssignableFrom(json.getClass()))
-                instance = getNewInstanceFromClass(clazz, json)
-            else {
-                instance = getNewInstanceFromClass(clazz)
+            if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate ) {
+                if (clazz.respondsTo('now'))
+                    instance = clazz.now()  //dynamic dispatch duck typing
             }
+            else
+                instance = getNewInstanceFromClass(clazz, json)
         }
 
         if (isSimpleAttribute(json)) {
@@ -572,6 +584,8 @@ class JsonUtils {
             // json passed represents an array of objects+JsonObjects
             switch (style) {
                 case JsonEncodingStyle.softwood:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
+                    break
+                case JsonEncodingStyle.jsonApi:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
                     break
                 case JsonEncodingStyle.tmf:
                     //def itemList = (json as JsonArray).asList()
@@ -2527,6 +2541,15 @@ class JsonUtils {
         simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
     }
 
+    /**
+     * check if item is one of basic types like Integer, Float, etc
+     * @param item
+     * @return true or false
+     */
+    @CompileStatic
+    private boolean isSimpleType (Class<?> clazz) {
+        simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
+    }
     /**
      * determines if the class of the field attribute 'item' is one of the standard Json encodable types
      * if its not then it must be a complex object and needs to be fully encoded
