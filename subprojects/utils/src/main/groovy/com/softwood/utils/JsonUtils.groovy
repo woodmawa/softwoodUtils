@@ -620,7 +620,7 @@ class JsonUtils {
      * refactored this into its own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
      */
     //@CompileStatic
-    private def decodeEntityToInstance (def instance, JsonObject jsonEntity, JsonEncodingStyle style) {
+    private def decodeEntityToInstance (def instance, jsonEntity, JsonEncodingStyle style) {
         switch (style) {
             case JsonEncodingStyle.softwood:
                 if (jsonEntity['iterable']) {
