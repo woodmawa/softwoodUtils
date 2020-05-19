@@ -10,5 +10,6 @@ import java.lang.annotation.Target
 @interface TmfEntity {
     String baseType () default ''
     String domain () default '<Undefined Domain>'
+    String apiName () default '<Undefined Api Name>'
     String version() default 'v1'
 }

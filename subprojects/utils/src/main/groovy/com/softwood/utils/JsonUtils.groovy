@@ -1420,7 +1420,7 @@ class JsonUtils {
 
             Annotation tmfEntity = pogo.getClass().getAnnotation(TmfEntity)
             if (tmfEntity) {
-                href = generateHref(tmfEntity.domain(),
+                href = generateHref(tmfEntity.apiName(),
                         tmfEntity.version(),
                         pogo as GroovyObject
                 )
@@ -2098,7 +2098,7 @@ class JsonUtils {
                                     wrapper.put ("isPreviouslyEncoded", true)
                                     wrapper.put("@type", prop.value.getClass().canonicalName)
                                     if (tmfEntity) {
-                                        def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                        def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                         wrapper.put("href", href)
                                     }
                                     if (prop?.value.hasProperty ("id")) {
@@ -2121,7 +2121,7 @@ class JsonUtils {
                                     wrapper.put("isSummarised", true)
                                     wrapper.put("@type", prop.value.getClass().canonicalName)
                                     if (tmfEntity) {
-                                        def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                        def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                         wrapper.put("href", href)
                                     }
                                     if (prop?.value.hasProperty ("id")) {
@@ -2206,7 +2206,7 @@ class JsonUtils {
                                 wrapper.put ("isSummarised" , true )
                                 wrapper.put("@type", prop.value.getClass().canonicalName)
                                 if (tmfEntity) {
-                                    def href = generateHref(tmfEntity.domain(), tmfEntity.version(), prop as GroovyObject)
+                                    def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                     wrapper.put("href", href)
                                 }
                                 if (prop?.value.hasProperty ("id")) {
@@ -2613,13 +2613,13 @@ class JsonUtils {
     /**
      * generateHref dynamically generates the href reference for an tmf model entity
      * annotate your model entity with @TmfEntity
-     * @param domain - model domain area e.g. 'CustomerManagement'
+     * @param apiName - model domain area e.g. 'CustomerManagement'
      * @param baseType - if the actual type is not the base type you can specify the baseType for the actual encoded type
      * @param pogo - object to encode
      * @return
      */
     @CompileStatic
-    private String generateHref (String domain, String version,  GroovyObject pogo) {
+    private String generateHref (String apiName, String version,  GroovyObject pogo) {
 
         assert pogo 
         def id = '<no-id>'
@@ -2628,7 +2628,7 @@ class JsonUtils {
         }
         StringBuilder href = new StringBuilder ('https://')
         href << options.host << ':' << options.port << '/' << options.apiRoot
-        href << '/' << domain
+        href << '/' << apiName
         href << '/' << version
         href << '/' << pogo.getClass().simpleName
         href << '/' << id

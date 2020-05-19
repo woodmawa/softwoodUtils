@@ -29,7 +29,7 @@ class Point {
     }
 }
 
-@TmfEntity (baseType='OrgRole', domain='CustomerManagement')
+@TmfEntity (baseType='OrgRole', apiName='CustomerManagement')
 class SimpleTmf {
     long id = 1
     String name = "simpleInst"
