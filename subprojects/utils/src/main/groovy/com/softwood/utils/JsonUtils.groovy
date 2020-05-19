@@ -534,7 +534,7 @@ class JsonUtils {
      * build a proxy using an Expando, where the proxiedClassName will hold the string name of the remote class
      * as encoded into the json
      */
-    //@CompileStatic
+    @CompileStatic
     def toObject (Class<?> clazz,json, JsonEncodingStyle style = options.jsonStyle) {
         int level = iterLevel.get()
         def  instance
@@ -556,9 +556,10 @@ class JsonUtils {
             }
         } else {
             if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate ) {
-                if (clazz.respondsTo('now'))
-                    instance = clazz.now()  //uses dynamic dispatch, duck typing
-            }
+                if (clazz.respondsTo('now')) {
+                    instance = clazz.invokeMethod('now', null)
+                }
+           }
             else
                 instance = getNewInstanceFromClass(clazz, json)
         }
