@@ -2,7 +2,7 @@ package scripts
 
 /** method gets wrapped up into a Script class - so we need to reference the func via 'this' instance of script
  *
- * 
+ *
  * @return
  */
 String func () {
