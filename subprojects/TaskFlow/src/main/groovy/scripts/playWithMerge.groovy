@@ -11,24 +11,23 @@ def subflow = Subflow::newSubflow
 def ctx = FlowContext.newFreeStandingContext()  //FlowContext.newProcessContext()
 
 
-def sf1 = subflow (ctx, "sf#1"){action (ctx, "#act1sf1"){println "sf1 $it"} }
-def sf2 = subflow (ctx, "sf#2"){action (ctx, "#act1sf2"){println "sf2 $it"}  }
-def sf3 = subflow (ctx, "sf#3"){action (ctx, "#act1sf3"){println "sf3 $it"}  }
+def sf1 = subflow(ctx, "sf#1") { action(ctx, "#act1sf1") { println "sf1 $it" } }
+def sf2 = subflow(ctx, "sf#2") { action(ctx, "#act1sf2") { println "sf2 $it" } }
+def sf3 = subflow(ctx, "sf#3") { action(ctx, "#act1sf3") { println "sf3 $it" } }
 
 sf1.run()
 sf2.run()
 sf3.run()
 
 
-
 //mergeWith << sf1
 //mergeWith << sf2
 
-def merge = MergeAction.newMergeAction(ctx, 'myMerge') {mergeSubflows ->
-    mergeSubflows.addAll ([sf1, sf2])
+def merge = MergeAction.newMergeAction(ctx, 'myMerge') { mergeSubflows ->
+    mergeSubflows.addAll([sf1, sf2])
 
-    subflow (ctx, "mergeSf#4") {
-        action ("#act1sf1"){ArrayList mergedTasks, args -> println "mergesf4 $mergedTasks, $args"}
+    subflow(ctx, "mergeSf#4") {
+        action("#act1sf1") { ArrayList mergedTasks, args -> println "mergesf4 $mergedTasks, $args" }
     }
 
     //action (ctx, "#m-sf4-act1"){ArrayList mergedTasks, args -> println "merge-sf4 $mergedTasks, args:$args,  $delegate"}
@@ -37,5 +36,5 @@ def merge = MergeAction.newMergeAction(ctx, 'myMerge') {mergeSubflows ->
 
 merge.join('fred')
 
-ctx.taskActions.collect{it.result}*.join()
+ctx.taskActions.collect { it.result }*.join()
 

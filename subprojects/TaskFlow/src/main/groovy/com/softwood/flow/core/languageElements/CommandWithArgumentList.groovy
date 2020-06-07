@@ -4,13 +4,13 @@ import com.softwood.flow.core.flows.FlowContext
 
 public class CommandWithArgumentList {
     @Delegate
-    List list  = []
+    List list = []
     FlowContext ctx
     String name = ""
 
-    static CommandWithArgumentList newShellCommand (FlowContext ctx, String name,  String[] arglist=null) {
+    static CommandWithArgumentList newShellCommand(FlowContext ctx, String name, String[] arglist = null) {
 
-        CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx:ctx, name:name)
+        CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx: ctx, name: name)
         //add to items generated within the running closure
         cmdWithArgList.addAll(arglist)
 
@@ -21,7 +21,7 @@ public class CommandWithArgumentList {
         cmdWithArgList
     }
 
-    static CommandWithArgumentList newShellCommand (FlowContext ctx, String... args) {
+    static CommandWithArgumentList newShellCommand(FlowContext ctx, String... args) {
 
         String name = args ?[0]
         List cmdArgs = []
@@ -33,7 +33,7 @@ public class CommandWithArgumentList {
         cmdWithArgList.addAll(cmdArgs)
 
         if (cmdWithArgList.ctx.newInClosure != null) {
-            cmdWithArgList.ctx.newInClosure.add (cmdWithArgList)  //add to items generated within the running closure
+            cmdWithArgList.ctx.newInClosure.add(cmdWithArgList)  //add to items generated within the running closure
         }
 
         cmdWithArgList
@@ -41,20 +41,20 @@ public class CommandWithArgumentList {
     }
 
 
-        static CommandWithArgumentList newShellCommand (FlowContext ctx, String name, Object item) {
+    static CommandWithArgumentList newShellCommand(FlowContext ctx, String name, Object item) {
 
         CommandWithArgumentList cmdWithArgList = new CommandWithArgumentList(ctx: ctx, name: name)
         if (item != null)
-            cmdWithArgList.add ("$item")
+            cmdWithArgList.add("$item")
 
         if (cmdWithArgList.ctx.newInClosure != null) {
-            cmdWithArgList.ctx.newInClosure.add (cmdWithArgList)  //add to items generated within the running closure
+            cmdWithArgList.ctx.newInClosure.add(cmdWithArgList)  //add to items generated within the running closure
         }
 
         cmdWithArgList
     }
 
-    static CommandWithArgumentList newShellCommand (FlowContext ctx, String name, ArrayList alist) {
-        newShellCommand (ctx, name, alist.toList())
+    static CommandWithArgumentList newShellCommand(FlowContext ctx, String name, ArrayList alist) {
+        newShellCommand(ctx, name, alist.toList())
     }
 }

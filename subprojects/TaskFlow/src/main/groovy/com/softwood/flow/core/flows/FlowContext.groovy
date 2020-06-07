@@ -20,13 +20,13 @@ class FlowContext extends Expando {
     ConcurrentLinkedQueue flowListeners
     ConcurrentLinkedQueue initialArgs
     ConcurrentLinkedQueue errors
-    ConcurrentLinkedDeque  newInClosureStack
+    ConcurrentLinkedDeque newInClosureStack
     ConcurrentLinkedQueue newInClosure
     AbstractFlow flow
     FlowType type
 
 
-   static FlowContext newProcessContext (flow) {
+    static FlowContext newProcessContext(flow) {
         FlowContext ctx = new FlowContext()
         ctx.errors = new ConcurrentLinkedQueue<>()
         ctx.flow = flow
@@ -34,7 +34,7 @@ class FlowContext extends Expando {
         ctx
     }
 
-    static FlowContext newFreeStandingContext () {
+    static FlowContext newFreeStandingContext() {
         FlowContext ctx = new FlowContext()
         ctx.activePromises = new ConcurrentLinkedDeque<>()
         ctx.promises = new ConcurrentLinkedDeque<>()
@@ -47,7 +47,7 @@ class FlowContext extends Expando {
         ctx.type = FlowType.FreeStanding
         ctx.initialArgs = new ConcurrentLinkedQueue<>()
         ctx
-     }
+    }
 
     FlowContext() {
         activePromises = new ConcurrentLinkedDeque<>()
@@ -55,7 +55,7 @@ class FlowContext extends Expando {
         taskActions = new ConcurrentLinkedQueue<>()
         errors = new ConcurrentLinkedQueue<>()
         flowListeners = new ConcurrentLinkedQueue<FlowListener>()
-        newInClosureStack  = new ConcurrentLinkedDeque<>()
+        newInClosureStack = new ConcurrentLinkedDeque<>()
 
         flowNodeResults = new ConcurrentHashMap()
         newInClosure = new ConcurrentLinkedQueue<>()
@@ -65,7 +65,8 @@ class FlowContext extends Expando {
     }
 
     /* ensure that if we have this property we we use it, else just use the Expandos internal map */
-    def getProperty (String name) {
+
+    def getProperty(String name) {
 
         List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
         MetaProperty prop = getMetaClass().getMetaProperty(name)
@@ -75,13 +76,14 @@ class FlowContext extends Expando {
             //if not real property - get the expando property map and try and look in there using 'name' arg as the key
             def result
 
-            Map m = getProperties ()
+            Map m = getProperties()
             m.get(name)
         }
     }
 
     /* ensure that if we have this property we we use it, else just use the Expandos internal map */
-    void setProperty (String name, value ) {
+
+    void setProperty(String name, value) {
 
         List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
         MetaProperty prop = getMetaClass().getMetaProperty(name)
@@ -91,7 +93,7 @@ class FlowContext extends Expando {
             //if not real property - get the expando property map and try and look in there using 'name' arg as the key
             def result
 
-            Map m = getProperties ()
+            Map m = getProperties()
             m.put(name, value)
         }
     }
@@ -101,13 +103,13 @@ class FlowContext extends Expando {
      * @param method
      * @return
      */
-    def withNestedNewIns (Closure method, AbstractFlowNode previous, AbstractFlowNode step,  Object [] args, Closure errHandler = null) {
+    def withNestedNewIns(Closure method, AbstractFlowNode previous, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
         assert method
-        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosureStack.push(newInClosure)       //save current context and start new one
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (method.parameterTypes?[-1] instanceof Closure) {
+        if (method.parameterTypes ?[-1] instanceof Closure) {
             if (args?.size() > 0)
                 result = method(previous, step, *args, errHandler)
             else if (args != null)
@@ -125,17 +127,17 @@ class FlowContext extends Expando {
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
-        newInClosure = newInClosureStack.pop ()
+        newInClosure = newInClosureStack.pop()
         result
     }
 
-    def withNestedNewIns (Closure method, ArrayList arrayArgs = null,   Object [] args, Closure errHandler = null) {
+    def withNestedNewIns(Closure method, ArrayList arrayArgs = null, Object[] args, Closure errHandler = null) {
         assert method
-        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosureStack.push(newInClosure)       //save current context and start new one
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (method.parameterTypes?[-1] instanceof Closure) {
+        if (method.parameterTypes ?[-1] instanceof Closure) {
             if (args?.size() > 0)
                 result = method(*args, errHandler)
             else if (args != null)
@@ -154,17 +156,17 @@ class FlowContext extends Expando {
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
-        newInClosure = newInClosureStack.pop ()
+        newInClosure = newInClosureStack.pop()
         result
     }
 
-    def withNestedNewIns (Closure method, List<AbstractFlowNode> selectNodes, AbstractFlowNode step,  Object [] args, Closure errHandler = null) {
+    def withNestedNewIns(Closure method, List<AbstractFlowNode> selectNodes, AbstractFlowNode step, Object[] args, Closure errHandler = null) {
         assert method
-        newInClosureStack.push (newInClosure)       //save current context and start new one
+        newInClosureStack.push(newInClosure)       //save current context and start new one
         newInClosure = new ConcurrentLinkedQueue()  //create a new empty list
 
         def result
-        if (method.parameterTypes?[-1] instanceof Closure) {
+        if (method.parameterTypes ?[-1] instanceof Closure) {
             if (args?.size() > 0)
                 result = method(selectNodes, step, *args, errHandler)
             else if (args != null)
@@ -182,7 +184,7 @@ class FlowContext extends Expando {
 
         //if necessary could process newIns here but its assumed to have been done by the method()
         newInClosure.clear()
-        newInClosure = newInClosureStack.pop ()
+        newInClosure = newInClosureStack.pop()
         result
     }
 
@@ -195,48 +197,49 @@ class FlowContext extends Expando {
      * @param someCondition should eval to true/false when tested
      * @param toDoArgs - args for the closure
      * @param workToDoClosure - if true trigger logic to run
-     * @return def
-     **/
+     * @return def* */
 
-    def when ( Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+    def when(Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
 
-        toDo.delegate = this  //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
+        toDo.delegate = this
+        //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         boolean outcome = false
-        if (someCondition )
-            outcome = someCondition.test ()  //run the test
+        if (someCondition)
+            outcome = someCondition.test()  //run the test
         else
             outcome = false
 
         if (outcome) {
-            if (toDoArgs && toDoArgs instanceof Object[] )
-                toDo (*toDoArgs)
+            if (toDoArgs && toDoArgs instanceof Object[])
+                toDo(*toDoArgs)
             else if (toDoArgs)
-                toDo (toDoArgs)
+                toDo(toDoArgs)
             else if (toDoArgs == null)
-                toDo (someCondition.defaultItemToTest)  //use the condition default item as arg for the closure
+                toDo(someCondition.defaultItemToTest)  //use the condition default item as arg for the closure
         } else
             outcome       //fail as default
 
     }
 
-    def when (conditionArgs,  Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+    def when(conditionArgs, Condition someCondition, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
 
-        toDo.delegate = this  //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
+        toDo.delegate = this
+        //assume when is called in choice closure with ctx as delegate, hence this(ctx) for the to do.  is this correct ??
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         boolean outcome = false
-        if (someCondition )
-            outcome = someCondition.test (conditionArgs)  //run the test
+        if (someCondition)
+            outcome = someCondition.test(conditionArgs)  //run the test
         else
             outcome = false
 
         if (outcome) {
-            if (toDoArgs && toDoArgs instanceof Object[] )
-                toDo (*toDoArgs)
+            if (toDoArgs && toDoArgs instanceof Object[])
+                toDo(*toDoArgs)
             else if (toDoArgs)
-                toDo (toDoArgs)
+                toDo(toDoArgs)
             else if (toDoArgs == null) {
                 if (toDo.maximumNumberOfParameters == 1)
                     toDo(someCondition.defaultItemToTest)  //use the condition default item as arg for the closure
@@ -248,53 +251,53 @@ class FlowContext extends Expando {
 
     }
 
-    def when (boolean someBoolean, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+    def when(boolean someBoolean, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
         if (someBoolean) {
-            if (toDoArgs && toDoArgs instanceof Object[] )
-                toDo (*toDoArgs)
+            if (toDoArgs && toDoArgs instanceof Object[])
+                toDo(*toDoArgs)
             else
-                toDo (toDoArgs)
+                toDo(toDoArgs)
         } else
             false       //fail as default
 
     }
 
-    def when (Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+    def when(Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
-        boolean  outcome = false
+        boolean outcome = false
         if (someClosure)
             outcome = someClosure()
 
         if (outcome) {
-            if (toDoArgs && toDoArgs instanceof Object[] )
-                toDo (*toDoArgs)
+            if (toDoArgs && toDoArgs instanceof Object[])
+                toDo(*toDoArgs)
             else if (toDoArgs)
-                toDo (toDoArgs)
+                toDo(toDoArgs)
             else if (toDoArgs == null)
-                toDo ()  //use the condition default item as arg for the closure
+                toDo()  //use the condition default item as arg for the closure
         } else
             false       //fail as default
 
     }
 
-    def when (closureArgs, Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
+    def when(closureArgs, Closure<Boolean> someClosure, toDoArgs = null, @DelegatesTo(FlowContext) Closure toDo) {
         toDo.delegate = this
         toDo.resolveStrategy = Closure.DELEGATE_FIRST
 
-        boolean  outcome = false
+        boolean outcome = false
         if (someClosure)
             outcome = someClosure(closureArgs)
 
         if (outcome) {
-            if (toDoArgs && toDoArgs instanceof Object[] )
-                toDo (*toDoArgs)
+            if (toDoArgs && toDoArgs instanceof Object[])
+                toDo(*toDoArgs)
             else if (toDoArgs)
-                toDo (toDoArgs)
+                toDo(toDoArgs)
             else if (toDoArgs == null)
                 if (toDo.maximumNumberOfParameters == 1)
                     toDo(closureArgs)  //use the condition default item as arg for the closure
@@ -320,34 +323,34 @@ class FlowContext extends Expando {
      * @return instance : factory class instance created
      */
 
-    def subflow (Object[] args) {
+    def subflow(Object[] args) {
         assert args
-        Subflow::newSubflow (this, *args)
+        Subflow::newSubflow(this, *args)
     }
 
-    def action (Object[] args) {
+    def action(Object[] args) {
         assert args
-        TaskAction::newAction (this, *args)
+        TaskAction::newAction(this, *args)
     }
 
-    def cmdShell (Object[] args) {
+    def cmdShell(Object[] args) {
         assert args
-        CmdShellAction::newCmdShellAction (this, *args)
+        CmdShellAction::newCmdShellAction(this, *args)
     }
 
-    def pshShell (Object[] args) {
+    def pshShell(Object[] args) {
         assert args
-        PowerShellAction::newPowerShellAction (this, *args)
+        PowerShellAction::newPowerShellAction(this, *args)
     }
 
-    def flowCondition (Object[] args) {
+    def flowCondition(Object[] args) {
         assert args
-        Condition::newCondition (*args)
+        Condition::newCondition(*args)
     }
 
-    def choice (Object[] args) {
+    def choice(Object[] args) {
         assert args
-        ChoiceAction::newChoiceAction (this, *args)
+        ChoiceAction::newChoiceAction(this, *args)
     }
     //declares flowCondition as usable variable into the context
     //MethodClosure flowCondition = Condition::newCondition
@@ -357,49 +360,49 @@ class FlowContext extends Expando {
     //MethodClosure choice = ChoiceAction::newChoiceAction
     //MethodClosure subflow = Subflow::newSubflow
 
-    def cmdWithArguments (String name, args = null) {
-        CommandWithArgumentList::newShellCommand (this, name, args)
+    def cmdWithArguments(String name, args = null) {
+        CommandWithArgumentList::newShellCommand(this, name, args)
     }
 
-    def cmdWithArguments (String... args) {
-        CommandWithArgumentList::newShellCommand (this, args)
+    def cmdWithArguments(String... args) {
+        CommandWithArgumentList::newShellCommand(this, args)
     }
 
-    def pshWithArguments (String name, args = null) {
-        CommandWithArgumentList::newShellCommand (this, name, args)
+    def pshWithArguments(String name, args = null) {
+        CommandWithArgumentList::newShellCommand(this, name, args)
     }
 
-    def pshWithArguments (String... args) {
-        CommandWithArgumentList::newShellCommand (this, args)
+    def pshWithArguments(String... args) {
+        CommandWithArgumentList::newShellCommand(this, args)
     }
 
     //MethodClosure cmdArgument = CommandWithArgumentList::newCommandArgumentList
     //MethodClosure pshArgument = CommandWithArgumentList::newCommandArgumentList
 
-    void saveClosureNewIns (clos, newInItem) {
-        def key = getLogicalAddress (clos)
-        ConcurrentLinkedQueue newIns = newInClosureMap.computeIfAbsent (key, {k -> new ConcurrentLinkedQueue()})
+    void saveClosureNewIns(clos, newInItem) {
+        def key = getLogicalAddress(clos)
+        ConcurrentLinkedQueue newIns = newInClosureMap.computeIfAbsent(key, { k -> new ConcurrentLinkedQueue() })
         newIns << newInItem
-        newInClosureMap.put (key, newIns)
+        newInClosureMap.put(key, newIns)
     }
 
-    ConcurrentLinkedQueue retrieveClosureNewIns (clos) {
-        def key = getLogicalAddress (clos)
+    ConcurrentLinkedQueue retrieveClosureNewIns(clos) {
+        def key = getLogicalAddress(clos)
 
-        newInClosureMap.computeIfAbsent (key, {k -> new ConcurrentLinkedQueue()})
+        newInClosureMap.computeIfAbsent(key, { k -> new ConcurrentLinkedQueue() })
     }
 
-    def completedClosureNewIns (clos) {
-        newInClosureMap.remove(getLogicalAddress (clos))
+    def completedClosureNewIns(clos) {
+        newInClosureMap.remove(getLogicalAddress(clos))
     }
 
-    String  getLogicalAddress (ofItem) {
-        String address = Integer.toHexString (ofItem.hashCode())
+    String getLogicalAddress(ofItem) {
+        String address = Integer.toHexString(ofItem.hashCode())
         "${ofItem.getClass()}@$address"
     }
 
-    boolean isRunningInClosure (someObject) {
-        someObject.hasProperty ('owner')
+    boolean isRunningInClosure(someObject) {
+        someObject.hasProperty('owner')
     }
 
 }

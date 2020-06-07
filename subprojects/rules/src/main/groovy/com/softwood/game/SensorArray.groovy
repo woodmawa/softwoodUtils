@@ -8,25 +8,25 @@ class SensorArray {
 
     List<Sensor> sensors = []
 
-    SensorArray leftShift (Sensor sensor ) {
+    SensorArray leftShift(Sensor sensor) {
         assert sensor
         sensors << sensor
         this
     }
 
-    void clearSensors () {
+    void clearSensors() {
         sensors.clear()
     }
 
-    Facts getPlayerWorldState (Player player) {
+    Facts getPlayerWorldState(Player player) {
         Map map = [:]
         sensors.each {
             Fact fact = it.sense(player)
             map << [(fact?.name): fact?.value]
-       }
+        }
 
-     Facts facts = new Facts()
-        facts.putAll ( map)
+        Facts facts = new Facts()
+        facts.putAll(map)
         facts
     }
 

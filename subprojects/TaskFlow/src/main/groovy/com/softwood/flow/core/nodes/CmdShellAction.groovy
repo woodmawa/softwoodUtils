@@ -14,26 +14,26 @@ import static groovyx.gpars.dataflow.Dataflow.task
 class CmdShellAction extends AbstractFlowNode {
     def debug = false
 
-    static CmdShellAction newCmdShellAction (name = null, Closure closure) {
+    static CmdShellAction newCmdShellAction(name = null, Closure closure) {
         FlowContext ctx = FlowContext.newFreeStandingContext()
 
-        newCmdShellAction (ctx, name, closure)
+        newCmdShellAction(ctx, name, closure)
 
 
     }
 
-    static CmdShellAction newCmdShellAction (FlowContext ctx, String name = null, Closure closure) {
+    static CmdShellAction newCmdShellAction(FlowContext ctx, String name = null, Closure closure) {
 
-        def ca = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action:closure)
+        def ca = new CmdShellAction(ctx: ctx, name: name ?: "anonymous", action: closure)
         ca.ctx?.taskActions << ca
         ca.ctx?.newInClosure << ca  //add to items generated within the running closure
 
         ca
     }
 
-    static CmdShellAction newCmdShellAction (FlowContext ctx, String name = null,  long delay, Closure closure) {
+    static CmdShellAction newCmdShellAction(FlowContext ctx, String name = null, long delay, Closure closure) {
 
-        def ca = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action:closure)
+        def ca = new CmdShellAction(ctx: ctx, taskDelay: delay, name: name ?: "anonymous", action: closure)
         ca.ctx?.taskActions << ca
         ca.ctx?.newInClosure << ca  //add to items generated within the running closure
         ca
@@ -47,21 +47,21 @@ class CmdShellAction extends AbstractFlowNode {
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def run (Object[] args, Closure errHandler = null) {
-        doRun (null, args, errHandler)
+    def run(Object[] args, Closure errHandler = null) {
+        doRun(null, args, errHandler)
     }
 
-    def run (Closure errHandler = null) {
-        doRun (null, null, errHandler)
+    def run(Closure errHandler = null) {
+        doRun(null, null, errHandler)
     }
 
-    def run (AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
-        doRun (previousNode, args, errHandler)
+    def run(AbstractFlowNode previousNode, Object[] args = null, Closure errHandler = null) {
+        doRun(previousNode, args, errHandler)
     }
 
-    def delayedRun (int delay, args = null, Closure errHandler = null) {
+    def delayedRun(int delay, args = null, Closure errHandler = null) {
         taskDelay = delay
-        run (args, errHandler)
+        run(args, errHandler)
     }
 
     /**
@@ -73,7 +73,7 @@ class CmdShellAction extends AbstractFlowNode {
      * @param errHandler
      * @return
      */
-    private def doRun  (AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
+    private def doRun(AbstractFlowNode previousNode, args = null, Closure errHandler = null) {
         //println " doRun: made it to action task with previousTask $previousNode, and args as $args, and errHandler $errHandler"
         if (taskDelay == 0)
             status = FlowNodeStatus.running
@@ -85,22 +85,22 @@ class CmdShellAction extends AbstractFlowNode {
         cmd
     }
 
-    protected def cmdActionTask (AbstractFlowNode previousNode, CmdShellAction step,  Object[] args, Closure errHandler = null) {
+    protected def cmdActionTask(AbstractFlowNode previousNode, CmdShellAction step, Object[] args, Closure errHandler = null) {
         try {
 
-            def cloned  = step.action.clone()
+            def cloned = step.action.clone()
             cloned.delegate = step.ctx
             cloned.resolveStrategy = Closure.DELEGATE_FIRST
 
 
             //if deferred in time, sleep required period of ms
             if (taskDelay) {
-                Thread.sleep( taskDelay, {println "thread interupted "})
+                Thread.sleep(taskDelay, { println "thread interupted " })
                 log.debug "ActionTask: finished delay $taskDelay ms, now scheduling task"
             }
 
             step.ctx?.flowListeners.each { listener ->
-                listener.beforeFlowNodeExecuteState (step.ctx, this)
+                listener.beforeFlowNodeExecuteState(step.ctx, this)
             }
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
@@ -109,7 +109,7 @@ class CmdShellAction extends AbstractFlowNode {
             List cmdArgs = []
             String command = ""
             if (ctx.newInClosure) {
-                List<CommandWithArgumentList> cal = ctx.newInClosure.grep {it instanceof CommandWithArgumentList}.asList()
+                List<CommandWithArgumentList> cal = ctx.newInClosure.grep { it instanceof CommandWithArgumentList }.asList()
 
                 cal.each {
                     command = it.name               //keeps overwritting the name
@@ -118,7 +118,7 @@ class CmdShellAction extends AbstractFlowNode {
             }
 
             //args can get padded with null arg at the end of the list.  So if see the null, then strip it off
-            if (args != null ) {
+            if (args != null) {
                 def size = args.size()
                 if (args[size - 1] == null)
                     args = args.toList().subList(0, size - 1)
@@ -126,14 +126,14 @@ class CmdShellAction extends AbstractFlowNode {
 
             def processArgs = []
             processArgs.addAll(cmdArgs)
-            processArgs.addAll (args ?: [])
+            processArgs.addAll(args ?: [])
 
-            Promise promise  = task {
+            Promise promise = task {
                 def initialSize = 4096
                 ByteArrayOutputStream err = new ByteArrayOutputStream(initialSize)
                 def processError = ""
 
-                ProcessBuilder processBldr = new ProcessBuilder ("cmd", "/c", command, *processArgs)
+                ProcessBuilder processBldr = new ProcessBuilder("cmd", "/c", command, *processArgs)
                 def process = processBldr.start()
                 process.consumeProcessErrorStream(err)
                 def ans = process.text
@@ -150,13 +150,13 @@ class CmdShellAction extends AbstractFlowNode {
             //when DF is bound remove promise from ctx.activePromises
             promise.whenBound {
                 status = FlowNodeStatus.completed
-                boolean yesNo = step.ctx?.activePromises.remove (promise)
+                boolean yesNo = step.ctx?.activePromises.remove(promise)
                 assert yesNo
 
                 step.ctx?.flowListeners.each { listener ->
-                    listener.afterFlowNodeExecuteState (ctx, this)
-                    if(ctx.type = FlowType.Process) {
-                        FlowEvent fe = new FlowEvent<>(flow: ctx.flow,  message: "completed task #$sequence with '$name' ", referencedObject: this)
+                    listener.afterFlowNodeExecuteState(ctx, this)
+                    if (ctx.type = FlowType.Process) {
+                        FlowEvent fe = new FlowEvent<>(flow: ctx.flow, message: "completed task #$sequence with '$name' ", referencedObject: this)
                         listener.flowEventUpdate(ctx, fe)
                     }
                 }
@@ -188,7 +188,7 @@ class CmdShellAction extends AbstractFlowNode {
 
     }
 
-    def  then (AbstractFlowNode nextStep, args = null, Closure errHandler = null) {
+    def then(AbstractFlowNode nextStep, args = null, Closure errHandler = null) {
         assert nextStep, "was expecting non null nextStep"
 
         //todo replace with log
@@ -196,14 +196,14 @@ class CmdShellAction extends AbstractFlowNode {
 
         Object[] EMPTY_ARGS = []
 
-        super.then (nextStep, errHandler)
+        super.then(nextStep, errHandler)
 
         def previousTask = this
-        cmdActionTask (previousTask, nextStep, args ?: EMPTY_ARGS)
+        cmdActionTask(previousTask, nextStep, args ?: EMPTY_ARGS)
 
     }
 
-    String toString () {
+    String toString() {
         if (debug == false)
             "CmdShellAction (name:$name, status:$status)"
         else

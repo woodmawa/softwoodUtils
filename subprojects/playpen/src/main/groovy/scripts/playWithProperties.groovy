@@ -5,7 +5,7 @@ import java.lang.reflect.Modifier
 class MyClass {
     String name
 
-    def method () {
+    def method() {
         "method"
     }
 
@@ -14,7 +14,7 @@ class MyClass {
         "closure"
     }
 
-    def updateProps (Map m) {
+    def updateProps(Map m) {
 
         //properties is read-only
         properties.each { k, v ->
@@ -24,7 +24,7 @@ class MyClass {
                     def val = m.(k)
                     setProperty(k, val)
                 }
-            } catch (ReadOnlyPropertyException roe){
+            } catch (ReadOnlyPropertyException roe) {
                 println "read only exception <$roe> updating field : [$k] "
             } catch (Exception e) {
                 println "exception <$e> updating field : [$k] "
@@ -46,10 +46,10 @@ println "dump via MetaMethod invoke " + dmp.invoke(mc)
 
 List mprops = mc.metaClass.properties
 
-def propNames = props.collect {k, v -> k}
+def propNames = props.collect { k, v -> k }
 println "prop names " + propNames
 
-def mpropNames = mprops.collect {it -> it.name}
+def mpropNames = mprops.collect { it -> it.name }
 println "meta prop names " + mpropNames
 
 assert mc.clos.getThisObject() == mc

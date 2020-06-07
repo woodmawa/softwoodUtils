@@ -14,12 +14,12 @@ import com.softwood.rules.core.BasicRule
 import com.softwood.rules.core.DefaultRuleEngine
 
 //create player with some attributes
-Player toby = new Player (name:"tobias", attributes:["energyLevel":100, "hasSword":false, "isNewbie":true])
+Player toby = new Player(name: "tobias", attributes: ["energyLevel": 100, "hasSword": false, "isNewbie": true])
 
 SensorArray sa = new SensorArray()
 
-sa << new Sensor (name:"energyLevel") << new Sensor (name:"hasSword")
-sa << new Sensor (name:"isNewbie")
+sa << new Sensor(name: "energyLevel") << new Sensor(name: "hasSword")
+sa << new Sensor(name: "isNewbie")
 assert sa.sensors.size() == 3
 
 for (s in sa.sensors) {
@@ -32,17 +32,16 @@ println facts
 assert facts.size() == 3
 
 //use factory instead
-Rule r = RuleFactory.newRule(name:"wills rule")
+Rule r = RuleFactory.newRule(name: "wills rule")
 Action a = RuleFactory.newAction()
 
 
+Rule rule = new BasicRule(name: "isNewbie", description: "is this a new player",
+        action: new BasicAction(name: "print value", action: { player -> println "'isNewbie' : ${player.attributes.isNewbie} "; 'success' }))
 
-Rule rule = new BasicRule (name:"isNewbie", description:"is this a new player",
-            action: new BasicAction (name:"print value", action: { player -> println "'isNewbie' : ${player.attributes.isNewbie} "; 'success'}) )
-
-rule.postActionEffects << {Player player-> player.applyAttributeStateUpdates([isNewbie:false])}
+rule.postActionEffects << { Player player -> player.applyAttributeStateUpdates([isNewbie: false]) }
 //give him a sword as well as you know he wants one...
-rule.postActionEffects << {Player player-> player.applyAttributeStateUpdates([hasSword:true, energyLevel: 98])}
+rule.postActionEffects << { Player player -> player.applyAttributeStateUpdates([hasSword: true, energyLevel: 98]) }
 
 
 RuleSet rules = new RuleSet(name: "first rule set")

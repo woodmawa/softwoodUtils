@@ -8,8 +8,11 @@ import java.lang.annotation.Target
 @Target([ElementType.TYPE])
 @Retention(RetentionPolicy.RUNTIME)
 @interface TmfEntity {
-    String baseType () default ''
-    String domain () default '<Undefined Domain>'
-    String apiName () default '<Undefined Api Name>'
+    String baseType() default ''
+
+    String domain() default '<Undefined Domain>'
+
+    String apiName() default '<Undefined Api Name>'
+
     String version() default 'v1'
 }

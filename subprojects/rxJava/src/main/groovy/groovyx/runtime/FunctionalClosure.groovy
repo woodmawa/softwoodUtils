@@ -7,10 +7,10 @@ import org.codehaus.groovy.runtime.MethodClosure
 
 /**
  * class to wrap a closure and convert it into a RxJava Consumer
- * @param <T>  expected type of the arg that that the closure will be called with
+ * @param < T >   expected type of the arg that that the closure will be called with
  */
 @InheritConstructors
-class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T,R> {
+class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T, R> {
 
     private Closure action = {}
 
@@ -21,23 +21,23 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
         super(null)
     }
 
-    FunctionalClosure (final Closure clos) {
+    FunctionalClosure(final Closure clos) {
         //setup the abstract closure with the owner of the closure
         //super(clos?.owner)
-        super (clos.owner)
+        super(clos.owner)
 
         maximumNumberOfParameters = clos.getMaximumNumberOfParameters()
         parameterTypes = clos.parameterTypes
         delegate = clos.delegate
         action = clos.clone()
-   }
+    }
 
     //implement doCall to direct the call() to the action closure
     protected Object doCall(Object arguments) {
         return action(arguments)
     }
 
-    Closure<T> leftShift (final Closure clos) {
+    Closure<T> leftShift(final Closure clos) {
         action = clos.clone()
 
     }
@@ -48,7 +48,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @param delegate - the object you want to provide the context for the action
      */
     //
-    void setDelegate (final Object delegate) {
+    void setDelegate(final Object delegate) {
         action.delegate = delegate
     }
 
@@ -57,8 +57,8 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * an invokes the closure call () with the arg
      * @param arg
      */
-    void accept (T arg) {
-        call (arg)
+    void accept(T arg) {
+        call(arg)
     }
 
     /**
@@ -66,21 +66,21 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * an invokes the closure call () with the arg, and returns the result of the call
      * @param arg
      */
-    R apply (T arg) {
-        return call (arg)
+    R apply(T arg) {
+        return call(arg)
     }
 
 
-        /**
+    /**
      * static from method, accepts a closure and assigns a clone of it
      * and returns result as Consumer<T>
      * @param clos pass some closure to convert to Functional type
      * @return Consumer<T>
      */
-    static <T> Consumer<T>  consumerFrom (final Closure clos ) {
+    static <T> Consumer<T> consumerFrom(final Closure clos) {
         assert clos
 
-        if (clos.maximumNumberOfParameters == 0){
+        if (clos.maximumNumberOfParameters == 0) {
             throw new IncorrectClosureArgumentsException("from: closure must accept at least one argument")
         }
         Closure cons = new FunctionalClosure<>(clos.clone())
@@ -93,10 +93,10 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @param clos pass some closure to convert to Functional type
      * @return Consumer<T>
      */
-    static <T,R> Function<T, R>  functionFrom (final Closure clos ) {
+    static <T, R> Function<T, R> functionFrom(final Closure clos) {
         assert clos
 
-        if (clos.maximumNumberOfParameters == 0){
+        if (clos.maximumNumberOfParameters == 0) {
             throw new IncorrectClosureArgumentsException("from: closure must accept at least one argument")
         }
         Closure cons = new FunctionalClosure<>(clos)
@@ -110,7 +110,7 @@ class FunctionalClosure<T, R> extends Closure implements Consumer<T>, Function<T
      * @return Consumer<T>
      */
 
-    static MethodClosure asMethodClosure (final Closure clos ) {
+    static MethodClosure asMethodClosure(final Closure clos) {
         assert clos
 
         Closure cons = new FunctionalClosure<>(clos)

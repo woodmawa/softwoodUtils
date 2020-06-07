@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)
@@ -23,6 +23,7 @@ class SimpleOriginal {
     List complexList
     Map simpleMap
     Map complexMap
+
     String toString() {
         "SimpleOriginal (name:$name)"
     }
@@ -38,9 +39,9 @@ class SimpleChild {
 }
 
 
-SimpleChild sc = new SimpleChild(id:10, name:"child")
+SimpleChild sc = new SimpleChild(id: 10, name: "child")
 //SimpleOriginal so = new SimpleOriginal(id:1, name:"ok", simpleList:[1,2], complexList:[true, sc], simpleMap: [a:1, b:true], complexMap:[a:sc])
-SimpleOriginal so = new SimpleOriginal(id:1, name:"ok", simpleList:[1,2])
+SimpleOriginal so = new SimpleOriginal(id: 1, name: "ok", simpleList: [1, 2])
 so.child = sc
 
 //println jsonGenerator.toJsonApi(so).encodePrettily()
@@ -131,6 +132,6 @@ result = jsonGenerator.toObject (SimpleOriginal, jsonTmfText, JsonEncodingStyle.
 println "decoded from tmf formatted json : " + result
 assert result.child.name == "child"*/
 
-result = jsonGenerator.toObject (SimpleOriginal, jsonApiText, JsonEncodingStyle.jsonApi)
+result = jsonGenerator.toObject(SimpleOriginal, jsonApiText, JsonEncodingStyle.jsonApi)
 println "decoded from jsonApi formatted  json : " + result
 assert result.child.name == "child"

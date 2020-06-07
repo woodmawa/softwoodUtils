@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject
 import java.time.LocalDateTime
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)
@@ -41,7 +41,7 @@ class SubClass {
 
     SubSubClass ssc
 
-    String toString () {
+    String toString() {
         "SubClass (name:$name) [id:$id]"
     }
 
@@ -51,20 +51,21 @@ class SubSubClass {
     UUID id
     String name
 
-    String toString () {
+    String toString() {
         "SubSubClass (name:$name) [id:$id]"
     }
 
 }
-SubClass sc1 = new SubClass (id:1, name:"subclass 1")
-SubSubClass ssc1 = new SubSubClass (id:UuidUtil.getTimeBasedUuid(), name:"subSubClass 1")
+
+SubClass sc1 = new SubClass(id: 1, name: "subclass 1")
+SubSubClass ssc1 = new SubSubClass(id: UuidUtil.getTimeBasedUuid(), name: "subSubClass 1")
 sc1.ssc = ssc1
 
 
 //TestClass tc = new TestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass")
-TestClass tc = new TestClass(id: UuidUtil.getTimeBasedUuid(), name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
-tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
-tc.simpleMap = [a:1, b:true]
+TestClass tc = new TestClass(id: UuidUtil.getTimeBasedUuid(), name: "myTestClass", fl: 12.9, today: Date.newInstance(), ldt: LocalDateTime.now())
+tc.simpleList = [LocalDateTime.now(), true, "test string", 3]
+tc.simpleMap = [a: 1, b: true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
 

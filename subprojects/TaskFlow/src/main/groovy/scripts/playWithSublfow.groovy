@@ -15,16 +15,16 @@ MethodClosure subflow = Subflow::newSubflow
 FlowContext freeStandingCtx = FlowContext.newFreeStandingContext()
 
 //choice (externalisedCtx, 'my choice', choiceClos)
-Subflow defSubflow= subflow (freeStandingCtx, 'default subflow') {
+Subflow defSubflow = subflow(freeStandingCtx, 'default subflow') {
     println "subflow closure - create two actions "
-    action (delegate, 'main1') {println "hello act1 "; 1}
-    action (delegate, 'main2') {println "hello act2 "; 2}
-    choice (delegate, 'my choice') {sel, args ->
-        when (true) {
-            action(delegate, 'subflow-act1') { println "sublow sf-act1"; 3.1}
+    action(delegate, 'main1') { println "hello act1 "; 1 }
+    action(delegate, 'main2') { println "hello act2 "; 2 }
+    choice(delegate, 'my choice') { sel, args ->
+        when(true) {
+            action(delegate, 'subflow-act1') { println "sublow sf-act1"; 3.1 }
         }
-        when (true) {
-            action(delegate, 'subflow-act2') { println "sublow sf-act2"; 3.2}
+        when(true) {
+            action(delegate, 'subflow-act2') { println "sublow sf-act2"; 3.2 }
         }
 
         'done choice'
@@ -33,5 +33,5 @@ Subflow defSubflow= subflow (freeStandingCtx, 'default subflow') {
 }
 
 //defSubflow << action ('main') {'opt1'} << choice
-defSubflow.run ('start')
+defSubflow.run('start')
 

@@ -15,11 +15,11 @@ class Player {
      * @param updateAtts
      * @return
      */
-    List<Map.Entry> applyAttributeStateUpdates (Map updateAtts) {
-        updateAtts.each {String key, value ->
-            if (attributes.containsKey (key))
+    List<Map.Entry> applyAttributeStateUpdates(Map updateAtts) {
+        updateAtts.each { String key, value ->
+            if (attributes.containsKey(key))
                 attributes.remove(key)
-            attributes.put (key, value)
+            attributes.put(key, value)
         }
         attributes.asImmutable().iterator().toList()
     }

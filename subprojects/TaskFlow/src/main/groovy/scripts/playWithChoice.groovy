@@ -20,14 +20,15 @@ FlowContext freeStandingCtx
 //<!--------------------------->
 
 // try building a condition
-Closure condClosOut = {arg ->
+Closure condClosOut = { arg ->
     def ans = "william" == arg;
     println "in condition closure received $arg,  returning : $ans";
-    ans}
+    ans
+}
 
 
 // try building a choice
-Closure choiceClos = {def selectorValue, choiceRunArgs ->
+Closure choiceClos = { def selectorValue, choiceRunArgs ->
     println "choice closure got arg : $choiceRunArgs"
 
     def sf1, sf2
@@ -35,11 +36,11 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
     //if (cond.test()) {
 
     //this will be true so one subflow will be added to the newIns
-    when (flowCondition (selectorValue) {it == 'opt1'}) {selVal ->
+    when(flowCondition(selectorValue) { it == 'opt1' }) { selVal ->
         println "inside when condition (opt1) inside choiceClosure selector: $selectorValue, args: $choiceRunArgs"
-        sf1 = subflow( 'csf#1', 'opt1') {
-            def a1 = action( 'sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
-            action( 'sf1Act2#') { println "subflow 1, action 2, returnining 1.2"; 1.2 }.dependsOn (a1)
+        sf1 = subflow('csf#1', 'opt1') {
+            def a1 = action('sf1Act1#') { println "subflow 1, action 1, returnining 1.1"; 1.1 }
+            action('sf1Act2#') { println "subflow 1, action 2, returnining 1.2"; 1.2 }.dependsOn(a1)
         }
     }
 
@@ -59,9 +60,9 @@ Closure choiceClos = {def selectorValue, choiceRunArgs ->
 
 freeStandingCtx = FlowContext.newFreeStandingContext()
 
-ChoiceAction split = choice (freeStandingCtx, 'my choice', choiceClos)
+ChoiceAction split = choice(freeStandingCtx, 'my choice', choiceClos)
 
 split.fork('opt1')
 
-freeStandingCtx.taskActions.collect {it.result}.join()
+freeStandingCtx.taskActions.collect { it.result }.join()
 

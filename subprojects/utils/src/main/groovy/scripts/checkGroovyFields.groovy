@@ -16,7 +16,7 @@ def allFields = []
 def clazz = wsc.getClass()
 
 while (clazz) {
-    allFields.addAll ( clazz.declaredFields*.name)
+    allFields.addAll(clazz.declaredFields*.name)
     clazz = clazz.superclass
 }
 

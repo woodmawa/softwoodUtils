@@ -44,10 +44,10 @@ public interface RuleListener {
     /**
      * Triggered after a rule has failed.
      *
-     * @param rule      the current rule
+     * @param rule the current rule
      * @param facts known facts after executing the rule
      * @param exception the exception thrown when attempting to execute the rule
      */
-    void onError (Rule rule, Facts facts, Exception exception)
+    void onError(Rule rule, Facts facts, Exception exception)
 
 }

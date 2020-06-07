@@ -15,8 +15,8 @@ class ClasspathHelper {
      * @return resources classpath root
      */
     static String getProjectResourcesClasspath() {
-        String userDir = System.getProperty("user.dir").replace ('\\', '/')
-        String projectRootDir = userDir.split ('/src')?[0]
+        String userDir = System.getProperty("user.dir").replace('\\', '/')
+        String projectRootDir = userDir.split('/src') ?[0]
         String runtimeResourcesClasspath = (projectRootDir + targetResourcesMain).toString()
         runtimeResourcesClasspath
     }
@@ -26,8 +26,8 @@ class ClasspathHelper {
      * @return resources classpath root
      */
     static String getProjectClassesClasspath() {
-        String userDir = System.getProperty("user.dir").replace ('\\', '/')
-        String projectRootDir = userDir.split ('/src')?[0]
+        String userDir = System.getProperty("user.dir").replace('\\', '/')
+        String projectRootDir = userDir.split('/src') ?[0]
         String runtimeClassesClasspath = (projectRootDir + targetClassesMain).toString()
         runtimeClassesClasspath
     }
@@ -40,12 +40,13 @@ class ClasspathHelper {
      * @return URL for resource
      */
 
-    static URL getUrlFromResource (String name) {
+    static URL getUrlFromResource(String name) {
         // note toUrl() has been deprecated https://docs.oracle.com/javase/7/docs/api/java/io/File.html
-        URL base = new File (getProjectResourcesClasspath()).toURI().toURL()  //"/D:/Intellij-projects/softwoodUtils/subprojects/utils/target/resources/main"
+        URL base = new File(getProjectResourcesClasspath()).toURI().toURL()
+        //"/D:/Intellij-projects/softwoodUtils/subprojects/utils/target/resources/main"
         URL[] urls = [base]
 
-        URLClassLoader urlClassLoader=new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent());
+        URLClassLoader urlClassLoader = new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent());
         URL url = urlClassLoader.getResource(name)
 
     }
@@ -58,12 +59,13 @@ class ClasspathHelper {
      * @return (Buffered)InputStream  for resource
      */
 
-    static InputStream getStreamFromResource (String name) {
+    static InputStream getStreamFromResource(String name) {
         // note toUrl() has been deprecated https://docs.oracle.com/javase/7/docs/api/java/io/File.html
-        URL base = new File (getProjectResourcesClasspath()).toURI().toURL()  //"/D:/Intellij-projects/softwoodUtils/subprojects/utils/target/resources/main"
+        URL base = new File(getProjectResourcesClasspath()).toURI().toURL()
+        //"/D:/Intellij-projects/softwoodUtils/subprojects/utils/target/resources/main"
         URL[] urls = [base]
 
-        URLClassLoader urlClassLoader=new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent());
+        URLClassLoader urlClassLoader = new URLClassLoader(urls, ClassLoader.getSystemClassLoader().getParent());
         urlClassLoader.getResourceAsStream(name)
     }
 
@@ -73,8 +75,8 @@ class ClasspathHelper {
      * @param name
      * @return unix formatted  file name
      */
-    static String windowsToUnixFileFormat (String name ) {
-        name.replace ('\\', '/')
+    static String windowsToUnixFileFormat(String name) {
+        name.replace('\\', '/')
     }
 
     /**
@@ -82,7 +84,7 @@ class ClasspathHelper {
      * @param name
      * @return windows formatted file name
      */
-    static String toWindowsFileFormat (String name ) {
-        name.replace ('/', '\\')
+    static String toWindowsFileFormat(String name) {
+        name.replace('/', '\\')
     }
 }

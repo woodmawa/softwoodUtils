@@ -8,7 +8,7 @@ class EntityRef<ModelType> extends ModelReferenceTrait {
 
     Optional<ModelType> entity
 
-    boolean isLoaded () {
+    boolean isLoaded() {
         entity.isPresent()
     }
 
@@ -23,7 +23,7 @@ class EntityRef<ModelType> extends ModelReferenceTrait {
      * @param clos
      * @return
      */
-    def with (Closure clos) {
+    def with(Closure clos) {
 
         assert clos
         Closure cloned = clos.clone()
@@ -31,7 +31,7 @@ class EntityRef<ModelType> extends ModelReferenceTrait {
 
         if (isLoaded()) {
             cloned.delegate = entity.get()
-            cloned ()
+            cloned()
         } else {
             //do something
         }

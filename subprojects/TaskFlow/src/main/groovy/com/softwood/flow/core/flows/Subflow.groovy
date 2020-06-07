@@ -22,13 +22,13 @@ class Subflow extends AbstractFlow {
     Closure subflowClosure
     def subflowInitialArgs = []
 
-    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Closure clos)  {
+    static Subflow newSubflow(FlowContext ctx, String subFlowName = null, Closure clos) {
 
-        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos)
+        Subflow sflow = new Subflow(name: subFlowName, ctx: ctx, subflowClosure: clos)
         sflow.flowType = FlowType.Subflow
 
         List frames = CallingStackContext.getContext()
-        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+        boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
         //add to list of newly created objects
         //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
@@ -40,15 +40,15 @@ class Subflow extends AbstractFlow {
 
     }
 
-    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, Map sfConstMap, Closure clos)  {
+    static Subflow newSubflow(FlowContext ctx, String subFlowName = null, Map sfConstMap, Closure clos) {
 
         assert sfConstMap
 
-        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, subflowClosure: clos, *:sfConstMap)
+        Subflow sflow = new Subflow(name: subFlowName, ctx: ctx, subflowClosure: clos, *: sfConstMap)
         sflow.flowType = FlowType.Subflow
 
         List frames = CallingStackContext.getContext()
-        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+        boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
         //add to list of newly created objects
         //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
@@ -60,13 +60,13 @@ class Subflow extends AbstractFlow {
 
     }
 
-    static Subflow newSubflow (FlowContext ctx, String subFlowName = null, selectTag,   Closure clos)  {
+    static Subflow newSubflow(FlowContext ctx, String subFlowName = null, selectTag, Closure clos) {
 
-        Subflow sflow = new Subflow (name: subFlowName, ctx:ctx, selectTag: selectTag, subflowClosure: clos)
+        Subflow sflow = new Subflow(name: subFlowName, ctx: ctx, selectTag: selectTag, subflowClosure: clos)
         sflow.flowType = FlowType.Subflow
 
         List frames = CallingStackContext.getContext()
-        boolean isCalledInClosure = frames?[1].callingContextIsClosure
+        boolean isCalledInClosure = frames ?[1].callingContextIsClosure
 
         //add to list of newly created objects
         //ctx?.saveClosureNewIns(ctx.getLogicalAddress(sflow), sflow)
@@ -78,19 +78,19 @@ class Subflow extends AbstractFlow {
 
     }
 
-    boolean hasTasks () {
-        subflowFlowNodes.size () > 0
+    boolean hasTasks() {
+        subflowFlowNodes.size() > 0
     }
 
-    def run (args = null, Closure errHandler = null) {
+    def run(args = null, Closure errHandler = null) {
         ctx.withNestedNewIns(this::doRun, args, errHandler)
     }
 
-    def run (ArrayList arrayArg, args = null, Closure errHandler = null) {
-        ctx.withNestedNewIns (this::doRun, arrayArg, args, errHandler )
+    def run(ArrayList arrayArg, args = null, Closure errHandler = null) {
+        ctx.withNestedNewIns(this::doRun, arrayArg, args, errHandler)
     }
 
-    protected def doRun(args = null,  Closure errhandler = null  ) {
+    protected def doRun(args = null, Closure errhandler = null) {
         assert subflowClosure
 
         Closure cloned = subflowClosure
@@ -105,42 +105,42 @@ class Subflow extends AbstractFlow {
         if (args)
             subflowInitialArgs << args
 
-        def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
-        if (newIns)  {
-            subflowFlowNodes.addAll (ctx.newInClosure)
+        def newIns = ctx.newInClosure.grep { it instanceof AbstractFlowNode }
+        if (newIns) {
+            subflowFlowNodes.addAll(ctx.newInClosure)
         }
         subflowFlowNodes.eachWithIndex { node, idx ->
             def promise
             switch (node?.getClass()) {
-                case ChoiceAction :
+                case ChoiceAction:
 
                     promise = new DataflowVariable<>()
-                    if (idx == 0){
-                        if (subflowInitialArgs.size() > 0 )
-                            promise = node.run (subflowInitialArgs, args)
-                        else
-                            promise = node.run (args)
-                   } else {
-                        def predessor = subflowFlowNodes[idx - 1]
-                        node.previousNode = predessor
-                        promise << (ChoiceAction) node.fork (predessor, args)
-                    }
-                    break
-
-                case TaskAction :
-                    if (idx == 0){
+                    if (idx == 0) {
                         if (subflowInitialArgs.size() > 0)
-                            promise = node.run (subflowInitialArgs, args)
+                            promise = node.run(subflowInitialArgs, args)
                         else
-                            promise = node.run (args)
+                            promise = node.run(args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
-                        promise = node.run (predessor, args)
+                        promise << (ChoiceAction) node.fork(predessor, args)
                     }
                     break
 
-                default :
+                case TaskAction:
+                    if (idx == 0) {
+                        if (subflowInitialArgs.size() > 0)
+                            promise = node.run(subflowInitialArgs, args)
+                        else
+                            promise = node.run(args)
+                    } else {
+                        def predessor = subflowFlowNodes[idx - 1]
+                        node.previousNode = predessor
+                        promise = node.run(predessor, args)
+                    }
+                    break
+
+                default:
                     break
             }
             promises << promise
@@ -163,41 +163,41 @@ class Subflow extends AbstractFlow {
 
         cloned(args)
 
-        def newIns = ctx.newInClosure.grep {it instanceof AbstractFlowNode}
-        if (newIns)  {
-            subflowFlowNodes.addAll (ctx.newInClosure)
+        def newIns = ctx.newInClosure.grep { it instanceof AbstractFlowNode }
+        if (newIns) {
+            subflowFlowNodes.addAll(ctx.newInClosure)
         }
         subflowFlowNodes.eachWithIndex { node, idx ->
             def promise
             switch (node?.getClass()) {
-                case ChoiceAction :
+                case ChoiceAction:
                     promise = new DataflowVariable<>()
-                    if (idx == 0){
-                        if (arrayArg?.size() > 0 )
-                            promise << (ChoiceAction) node.fork (arrayArg, args)
+                    if (idx == 0) {
+                        if (arrayArg?.size() > 0)
+                            promise << (ChoiceAction) node.fork(arrayArg, args)
                         else
-                            promise << (ChoiceAction) node.fork (args)
+                            promise << (ChoiceAction) node.fork(args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
-                        promise << (ChoiceAction) node.fork (predessor, args)
+                        promise << (ChoiceAction) node.fork(predessor, args)
                     }
                     break
 
-                case TaskAction :
-                    if (idx == 0){
-                        if (arrayArg?.size() > 0 )
-                            promise = node.run (arrayArg, args)
+                case TaskAction:
+                    if (idx == 0) {
+                        if (arrayArg?.size() > 0)
+                            promise = node.run(arrayArg, args)
                         else
-                            promise = node.run (args)
+                            promise = node.run(args)
                     } else {
                         def predessor = subflowFlowNodes[idx - 1]
                         node.previousNode = predessor
-                        promise = node.run (predessor, args)
+                        promise = node.run(predessor, args)
                     }
                     break
 
-                default :
+                default:
                     break
             }
 
@@ -210,32 +210,33 @@ class Subflow extends AbstractFlow {
         this
     }
 
-    def leftShift (AbstractFlowNode firstStep) {
-        subflowFlowNodes.add (firstStep)
+    def leftShift(AbstractFlowNode firstStep) {
+        subflowFlowNodes.add(firstStep)
         this
     }
 
-    def leftShift (Collection steps) {
-        subflowFlowNodes.addAll (steps)
+    def leftShift(Collection steps) {
+        subflowFlowNodes.addAll(steps)
         this
     }
 
-    def rightShift (AbstractFlowNode firstStep ) {
+    def rightShift(AbstractFlowNode firstStep) {
 
-        firstStep.name =  "subflow initial step"
+        firstStep.name = "subflow initial step"
         println "subflow rightShift on first node $firstStep.name "
 
-        Closure cloned  = firstStep.action.clone()
+        Closure cloned = firstStep.action.clone()
 
         cloned.delegate = ctx
         firstStep.ctx = ctx
         firstStep.status = FlowNodeStatus.running
 
-        Promise promise =  task {def ans = cloned(ctx)
+        Promise promise = task {
+            def ans = cloned(ctx)
             ans
         }
         promise.whenBound {
-            def yesNo = ctx.activePromises.remove (promise)
+            def yesNo = ctx.activePromises.remove(promise)
             assert yesNo
             firstStep.status = FlowNodeStatus.completed
 

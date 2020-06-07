@@ -23,7 +23,7 @@ class RuleFactory {
     private static Map ruleFactory = [(RuleType.Default.toString()): BasicRule]
     private static Map ruleEngineFactory = [(RuleEngineType.Default.toString()): DefaultRuleEngine]
     private static Map<String, Condition> conditionFactory = [(ConditionType.Default.toString()): BasicCondition,
-                                           (ConditionType.Closure.toString()) : ConditionClosure]
+                                                              (ConditionType.Closure.toString()): ConditionClosure]
 
     static enum ActionType {
         Default
@@ -34,7 +34,7 @@ class RuleFactory {
     }
 
     static enum RuleEngineType {
-        Default,Inferencing
+        Default, Inferencing
     }
 
     static enum ConditionType {
@@ -49,11 +49,11 @@ class RuleFactory {
      * @param predicate - a class that implements Predicate
      * @return new Condition (either BasicCondition or ConditionClosure type)
      */
-    static Condition newCondition (ConditionType reqType, final Map map=null,  final Closure predicate) {
+    static Condition newCondition(ConditionType reqType, final Map map = null, final Closure predicate) {
 
         Map initMap = [:]
         if (map)
-            initMap.putAll (map)
+            initMap.putAll(map)
 
         def klazz = conditionFactory.get(reqType.toString())
         Class<Condition> factoryConditionClazz = klazz
@@ -68,13 +68,12 @@ class RuleFactory {
                 if (predicate instanceof Predicate)
                     condition = ConditionClosure.from(predicate::test as MethodClosure)
                 else
-                    condition  = ConditionClosure.from(predicate as Closure)
-            }
-            else {
+                    condition = ConditionClosure.from(predicate as Closure)
+            } else {
                 //no predicate passed so look for one in the initMap
                 condition = ConditionClosure.from((initMap?.dynamicTest as Predicate)::test ?: {})
             }
-         } else if (reqType == ConditionType.Default) {
+        } else if (reqType == ConditionType.Default) {
             if (mapConstructor && initMap)
                 condition = mapConstructor.newInstance(initMap)
             else
@@ -82,23 +81,22 @@ class RuleFactory {
             if (initMap.test) {
                 Predicate pred = initMap.test as Predicate
                 condition.setConditionTest(pred::test)
-            }
-            else if (initMap?.dynamicTest) {
+            } else if (initMap?.dynamicTest) {
                 Predicate pred = initMap.dynamicTest as Predicate
                 condition.setConditionTest(pred::test)
             }
             //if there is an explicit closure it takes precedence
             if (predicate)
-                condition.setConditionTest (predicate)
+                condition.setConditionTest(predicate)
         }
 
         String name = (initMap?.name) ?: "anonymous condition"
         condition.setName(name)
         String description = (initMap?.description) ?: "description: anonymous condition"
         condition.setDescription(description)
-        condition.setLowerLimit ( (initMap?.lowerLimit) ?: 0 )
-        condition.setUpperLimit ( (initMap?.upperLimit) ?: 0 )
-        condition.setMeasure ( (initMap?.measure) ?: 0 )
+        condition.setLowerLimit((initMap?.lowerLimit) ?: 0)
+        condition.setUpperLimit((initMap?.upperLimit) ?: 0)
+        condition.setMeasure((initMap?.measure) ?: 0)
 
         condition
 
@@ -111,7 +109,7 @@ class RuleFactory {
      * @param predicate
      * @return new BasicCondition
      */
-    static Condition newCondition (final Map initMap, final Predicate predicate=null) {
+    static Condition newCondition(final Map initMap, final Predicate predicate = null) {
         newCondition(ConditionType.Default, initMap, predicate)
     }
 
@@ -121,10 +119,9 @@ class RuleFactory {
      * @param predicateClos - (one that returns true or false)
      * @return new BasicCondition
      */
-    static Condition newCondition (final Map initMap=null, final Closure predicateClos) {
+    static Condition newCondition(final Map initMap = null, final Closure predicateClos) {
         newCondition(ConditionType.Default, initMap, predicateClos)
     }
-
 
 
     /**
@@ -134,11 +131,11 @@ class RuleFactory {
      * @return
      */
 
-    static Action newAction (ActionType type, final Map map) {
+    static Action newAction(ActionType type, final Map map) {
 
         Map initMap = [:]
         if (map)
-            initMap.putAll (map)
+            initMap.putAll(map)
 
 
         def factoryActionClazz = actionFactory.get(type.toString())
@@ -147,15 +144,15 @@ class RuleFactory {
 
         Action newAction
         if (mapConstructor && initMap)
-              newAction = mapConstructor.newInstance(initMap)
+            newAction = mapConstructor.newInstance(initMap)
         else
-            //actionFactory.get(type.toString()).getConstructor().newInstance()
+        //actionFactory.get(type.toString()).getConstructor().newInstance()
             newAction = factoryActionClazz.newInstance()
 
         newAction.name = (initMap?.name) ?: factoryActionClazz.ANONYMOUS_ACTION
         newAction.description = (initMap?.description) ?: factoryActionClazz.ANONYMOUS_DESCRIPTION
         if (initMap.action)
-            newAction.setAction (initMap.action as Closure)
+            newAction.setAction(initMap.action as Closure)
         newAction
     }
 
@@ -165,27 +162,27 @@ class RuleFactory {
      * @param newAct
      * @return
      */
-    static Action newAction (final Map map =null, final Closure newAct) {
+    static Action newAction(final Map map = null, final Closure newAct) {
         Map initMap = [:]
         if (map)
-            initMap.putAll (map)
+            initMap.putAll(map)
         if (newAct)
             initMap << [action: newAct]  //add newAct as action for constructor
-        newAction (ActionType.Default, initMap)
+        newAction(ActionType.Default, initMap)
     }
 
-    static Action newAction (final Map map =null) {
+    static Action newAction(final Map map = null) {
         Map initMap = [:]
         if (map)
-            initMap.putAll (map)
-        newAction (ActionType.Default, initMap)
+            initMap.putAll(map)
+        newAction(ActionType.Default, initMap)
     }
 
 
-    static Rule newRule (RuleType type, final Map map=null) {
+    static Rule newRule(RuleType type, final Map map = null) {
         Map initMap = [:]
         if (map)
-            initMap.putAll (map)
+            initMap.putAll(map)
 
         Class<Rule> factoryRuleClazz = ruleFactory.get(type.toString())
 
@@ -202,18 +199,19 @@ class RuleFactory {
      * @param initMap
      * @return
      */
-    static Rule newRule (Map initMap =null) {
-        newRule (RuleType.Default, initMap)
+    static Rule newRule(Map initMap = null) {
+        newRule(RuleType.Default, initMap)
     }
 
     /*
      * if rule is created with a closure, assume its for the embedded rule.action
      */
-    static Rule newRule (Map initMap =null, @DelegatesTo (Action) Closure actionMethod) {
+
+    static Rule newRule(Map initMap = null, @DelegatesTo(Action) Closure actionMethod) {
         assert actionMethod
-        Rule rule = newRule (RuleType.Default, initMap)
+        Rule rule = newRule(RuleType.Default, initMap)
         //if created with a closure create a default Action using the closure and assign to the rule
-        (rule as BasicRule).action  = newAction([name:'RuleFactory initialised'], actionMethod)
+        (rule as BasicRule).action = newAction([name: 'RuleFactory initialised'], actionMethod)
         rule
 
     }
@@ -221,7 +219,8 @@ class RuleFactory {
     /*
      * create a new rule engine instance
      */
-    static RuleEngine newRuleEngine (RuleEngineType type, Map initMap=null) {
+
+    static RuleEngine newRuleEngine(RuleEngineType type, Map initMap = null) {
 
         def factoryRuleEngineClazz = ruleEngineFactory.get(type.toString())
 
@@ -233,18 +232,17 @@ class RuleFactory {
          */
         Constructor[] cons = factoryRuleEngineClazz.constructors
         Class[] cTypes = cons[0].parameterTypes
-        if (cTypes.contains(Map)){
+        if (cTypes.contains(Map)) {
             Constructor mapConstructor = factoryRuleEngineClazz.getDeclaredConstructor(Map)
             if (mapConstructor && initMap)
                 return mapConstructor.newInstance(initMap)
-        }
-        else
+        } else
             return factoryRuleEngineClazz.newInstance()
 
     }
 
-    static RuleEngine newRuleEngine (Map initMap =null) {
-        newRuleEngine (RuleEngineType.Default, initMap)
+    static RuleEngine newRuleEngine(Map initMap = null) {
+        newRuleEngine(RuleEngineType.Default, initMap)
     }
 
 /*    static Condition newCondition (Map initMap = null) {
@@ -271,7 +269,7 @@ class RuleFactory {
     }
 */
 
-    static RuleSet newRuleSet (Map initMap = null) {
+    static RuleSet newRuleSet(Map initMap = null) {
         if (initMap == null)
             initMap = [name: 'Anonymous RuleSet']
 

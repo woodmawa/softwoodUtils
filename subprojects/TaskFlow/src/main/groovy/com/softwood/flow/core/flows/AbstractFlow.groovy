@@ -26,6 +26,4 @@ abstract class AbstractFlow {
     FlowType flowType
 
 
-
-
 }

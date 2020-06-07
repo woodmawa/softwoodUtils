@@ -16,8 +16,8 @@ f.setAccessible(true);
 ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 Vector<Class> classes =  (Vector<Class>) f.get(classLoader);*/
 
-GroovyClassLoader cl = new GroovyClassLoader (Thread.currentThread().getContextClassLoader())
- List<Class> classList = cl.getLoadedClasses()
+GroovyClassLoader cl = new GroovyClassLoader(Thread.currentThread().getContextClassLoader())
+List<Class> classList = cl.getLoadedClasses()
 
 println "classes loaded : " + classList.size()
 classList.each {
@@ -27,6 +27,6 @@ classList.each {
 
 ClassLoader classLoader = Thread.currentThread().getContextClassLoader()
 
-def clazz = classLoader.findSystemClass ("scripts.Test")
+def clazz = classLoader.findSystemClass("scripts.Test")
 
 println clazz.canonicalName

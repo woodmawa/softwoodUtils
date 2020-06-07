@@ -28,53 +28,53 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         log.debug("with com.softwood.rules $rules, size ${rules.size()}")
 
         //if any ruleEnginListeners are set, then process them
-        ruleEngineListeners.each {it?.beforeEvaluate(rules, facts)}
+        ruleEngineListeners.each { it?.beforeEvaluate(rules, facts) }
 
         Collection<Boolean> results = rules.iterator().collect { Rule rule ->
             println "rule '$rule.name' evaluate facts $facts"
 
-            def yehNey = ruleListeners.each {it?.beforeEvaluate(rule, facts)}
-            if (yehNey.any {it == false}) {
-                log.debug( "check facts with com.softwood.rules: One of the RuleListeners returned false, you should stop evaluation of the Rule  ")
+            def yehNey = ruleListeners.each { it?.beforeEvaluate(rule, facts) }
+            if (yehNey.any { it == false }) {
+                log.debug("check facts with com.softwood.rules: One of the RuleListeners returned false, you should stop evaluation of the Rule  ")
                 return
             }
 
-            boolean res = rule.evaluate (facts, arg)
-            ruleListeners.each {it?.afterEvaluate(rule, facts, res)}
+            boolean res = rule.evaluate(facts, arg)
+            ruleListeners.each { it?.afterEvaluate(rule, facts, res) }
 
         }
         results
     }
 
-   def run (Facts facts, RuleSet rules, arg = null) {
-       assert rules, facts
+    def run(Facts facts, RuleSet rules, arg = null) {
+        assert rules, facts
 
-       def prioritySortedRules = rules.sort {rule1, rule2 -> rule1.priority <=> rule2.priority}
-       Collection<Object> resultsList = prioritySortedRules.iterator().collect { Rule rule ->
+        def prioritySortedRules = rules.sort { rule1, rule2 -> rule1.priority <=> rule2.priority }
+        Collection<Object> resultsList = prioritySortedRules.iterator().collect { Rule rule ->
 
-           def result
-           //check if any listeners.beforeExecute want to override the execution of the rule
-           if (check (facts, rule, arg)) {
-               ruleListeners.each { it?.beforeExecute(rule, facts) }
-               try {
-                   log.debug("run: executing rule $rule, passing facts <$facts> for preConditions check")
-                   result = rule.execute(facts, arg)
-                   ruleListeners.each { it?.onSuccess(rule, facts) }
-                   result
-               } catch (Exception e) {
-                   ruleListeners.each { it?.onError(rule, facts, e) }
-               }
-           }
+            def result
+            //check if any listeners.beforeExecute want to override the execution of the rule
+            if (check(facts, rule, arg)) {
+                ruleListeners.each { it?.beforeExecute(rule, facts) }
+                try {
+                    log.debug("run: executing rule $rule, passing facts <$facts> for preConditions check")
+                    result = rule.execute(facts, arg)
+                    ruleListeners.each { it?.onSuccess(rule, facts) }
+                    result
+                } catch (Exception e) {
+                    ruleListeners.each { it?.onError(rule, facts, e) }
+                }
+            }
 
 
-           result
-       }
+            result
+        }
 
-       //if any ruleEnginListeners are set, then  process them
-       ruleEngineListeners.each {it?.afterExecute(rules, facts, resultsList)}
+        //if any ruleEnginListeners are set, then  process them
+        ruleEngineListeners.each { it?.afterExecute(rules, facts, resultsList) }
 
-       resultsList
-   }
+        resultsList
+    }
 
 
     /**
@@ -88,38 +88,38 @@ class DefaultRuleEngine extends AbstractRuleEngine implements RuleEngine {
         assert rule, facts
 
         //if any ruleEnginListeners are set, then process them
-        ruleEngineListeners.each {it?.beforeRuleEvaluate(rule, facts)}
+        ruleEngineListeners.each { it?.beforeRuleEvaluate(rule, facts) }
 
-        def yehNey = ruleListeners.each {it?.beforeEvaluate(rule, facts)}
-        if (yehNey.any {it == false}) {
-            log.debug( "check facts with individual rule $rule: One of the RuleListeners returned false, stopping evaluation of the Rule  ")
+        def yehNey = ruleListeners.each { it?.beforeEvaluate(rule, facts) }
+        if (yehNey.any { it == false }) {
+            log.debug("check facts with individual rule $rule: One of the RuleListeners returned false, stopping evaluation of the Rule  ")
             return false
         }
 
         boolean result = rule.evaluate(facts, arg)
-        ruleListeners.each {it?.afterEvaluate(rule, facts, result)}
+        ruleListeners.each { it?.afterEvaluate(rule, facts, result) }
         result
 
     }
 
-    def run (Facts facts, Rule rule, arg = null) {
+    def run(Facts facts, Rule rule, arg = null) {
         assert rule, facts
 
         def result
-        ruleListeners.each {it?.beforeExecute(rule, facts)}
+        ruleListeners.each { it?.beforeExecute(rule, facts) }
         try {
             //if check returns false - then the rule should not be run
-            if (check (facts, rule, arg)) {
-                log.debug ("run: execute the the rule with facts <$facts>, and arg  <$arg>")
+            if (check(facts, rule, arg)) {
+                log.debug("run: execute the the rule with facts <$facts>, and arg  <$arg>")
                 result = rule.execute(facts, arg)
-                ruleListeners.each {it?.onSuccess(rule, facts)}
+                ruleListeners.each { it?.onSuccess(rule, facts) }
             }
-        } catch  (Exception e) {
-            ruleListeners.each { it?.onError (rule, facts, e) }
+        } catch (Exception e) {
+            ruleListeners.each { it?.onError(rule, facts, e) }
         }
 
         //if any ruleEnginListeners are set, then  process them
-        ruleEngineListeners.each {it?.afterRuleExecute(rule, facts, result)}
+        ruleEngineListeners.each { it?.afterRuleExecute(rule, facts, result) }
 
         result
     }

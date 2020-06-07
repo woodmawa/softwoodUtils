@@ -11,45 +11,45 @@ import java.util.stream.Stream
  * todo might want to use Tuple for a Fact
  */
 @ToString
-class Facts<String, Object>  {
+class Facts<String, Object> {
 
     //add these methods to Facts
     @Delegate
-    Map<String, Object> $map  = new ConcurrentHashMap()
+    Map<String, Object> $map = new ConcurrentHashMap()
 
     String name = "my Facts"
     String description = "some standard facts"
 
-    Facts leftShift (final Map map) {
+    Facts leftShift(final Map map) {
         $map.putAll(map)
         this
     }
 
     // get fact using key from $map delegate
     Fact findFact(String key) {
-        def value = $map.get (key)
-       new BasicFact (name:key, value:value)
+        def value = $map.get(key)
+        new BasicFact(name: key, value: value)
     }
 
     public <T> T getFactValue(String key) {
-        return (T) $map.get (key)
+        return (T) $map.get(key)
     }
 
     Collection<Fact> asFact() {
         List list = $map.collect {
-            new BasicFact (name:(it.key), value:it.value)
+            new BasicFact(name: (it.key), value: it.value)
         }
         list.asImmutable()
     }
 
     //returns a stream of Map.EntrySetView
-    Stream<Fact> stream () {
+    Stream<Fact> stream() {
         //$map.entrySet().stream()
         List facts = asFact()
         facts.asImmutable().stream()
     }
 
-    public <T> List<T> asList () {
+    public <T> List<T> asList() {
         //$map.iterator().toList()
         asFact().toList()
     }
@@ -59,9 +59,9 @@ class Facts<String, Object>  {
     def getProperty(java.lang.String name) {
         if (name == 'name')
             return getName()
-        else if (name =='description')
+        else if (name == 'description')
             return getDescription()
-         else
+        else
             return $map.(name)     //just invoke on map delegate
     }
 

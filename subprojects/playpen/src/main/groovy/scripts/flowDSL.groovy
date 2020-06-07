@@ -29,13 +29,13 @@ class Flow {
 
     def initialValue = 0
 
-    def start () {
+    def start() {
         println "starting flow : $name"
         queue << initialValue
         this
     }
 
-    def stop () {
+    def stop() {
 
         promises*.join()
         result << queue.getVal()
@@ -49,7 +49,7 @@ class Flow {
 
     }
 
-    def action (String name = 'anonymous', ActionFlowType ft = scripts.ActionFlowType.sequential, Closure work) {
+    def action(String name = 'anonymous', ActionFlowType ft = scripts.ActionFlowType.sequential, Closure work) {
         //forces previous promise to complete
         //if (promises)
         //   promises[-1].join()
@@ -69,8 +69,8 @@ class Flow {
         this
     }
 
-    def asyncAction (Closure work) {
-       Promise promise = task {
+    def asyncAction(Closure work) {
+        Promise promise = task {
 
             def seq = seqNum.incrementAndGet()
             def val = queue.val
@@ -78,13 +78,13 @@ class Flow {
             def intermediateResult = work(val)
             queue << intermediateResult
             println "asyncAction #$seq: received $val and pushed $intermediateResult to queue}"
-           intermediateResult
+            intermediateResult
         }
         promises << promise
         this
     }
 
-    def split (splits) {
+    def split(splits) {
 
         def intermediateValue = queue.val
 
@@ -99,9 +99,9 @@ class Flow {
 */
 
         DataflowQueue lhs = new DataflowQueue()
-        lhs.wheneverBound {println "sent $it to lhs"}
+        lhs.wheneverBound { println "sent $it to lhs" }
         def rhs = new DataflowQueue()
-        rhs.wheneverBound {println "sent $it to rhs"}
+        rhs.wheneverBound { println "sent $it to rhs" }
 
         DataflowProcessor op = operator(inputs: [inp], outputs: [lhs, rhs]) { val ->
 
@@ -109,10 +109,10 @@ class Flow {
             //lhs << val
             //rhs << val
 
-            for (int i=0; i< splits.size(); i++) {
+            for (int i = 0; i < splits.size(); i++) {
                 outputs[i] << intermediateValue
                 Closure clos = splits[i]
-                clos (outputs[i])
+                clos(outputs[i])
             }
         }
         operators << op
@@ -120,22 +120,22 @@ class Flow {
     }
 }
 
-def flow = new Flow (name:'myflow')
+def flow = new Flow(name: 'myflow')
 
 def ans = flow
         .start()
-        /*.action {println "doing work ..., initial value $it"; it + 10}
-        .asyncAction {println "do more work ..., initial value $it"; it + 20}
-        .asyncAction {println "do more and more work ..., initial value $it"; it + 30}*/
-        .action ('doStuff') {it + 10}
-        .action ('do more stuff') {it + 20}
-        .action {it - 5}
-        /*.split ( [
-                {DataflowQueue s = it;
-                    def val = s.val
-                    println "lhs got $it, with value $val" },
-                {println "rhs got $it"}
-        ])*/
+/*.action {println "doing work ..., initial value $it"; it + 10}
+.asyncAction {println "do more work ..., initial value $it"; it + 20}
+.asyncAction {println "do more and more work ..., initial value $it"; it + 30}*/
+        .action('doStuff') { it + 10 }
+        .action('do more stuff') { it + 20 }
+        .action { it - 5 }
+/*.split ( [
+        {DataflowQueue s = it;
+            def val = s.val
+            println "lhs got $it, with value $val" },
+        {println "rhs got $it"}
+])*/
 
         .stop()
 
@@ -143,7 +143,7 @@ println "result was : " + flow.result.get()
 
 Binding binding = new Binding()
 
-block = {nestedClosure ->
+block = { nestedClosure ->
     def cloned = nestedClosure.clone()
     cloned.delegate = delegate
     scripts.flowDSL.enclosing = "block"
@@ -208,7 +208,7 @@ enum NodeStatus {
     ready, running, deferred, completed, errors
 }
 
-abstract class  FlowNode {
+abstract class FlowNode {
     protected Closure action = {}
     //todo must fix this -
     protected static Expando ctx    //has to be static to get splits 'action's' to have a ctx
@@ -221,22 +221,22 @@ abstract class  FlowNode {
     protected DataflowVariable result = new DataflowVariable()
     int taskDelay = 0
 
-    void setTaskDelay (int delay) {
+    void setTaskDelay(int delay) {
         taskDelay = delay
     }
 
 
-    void setResult (value) {
+    void setResult(value) {
         result << value
     }
 
     //todo version that takes timeout
-    def  getResult () {
+    def getResult() {
         result.getVal()
     }
 
-    def then (FlowNode nextStep, Closure errhandler = null) {
-        cloned  = nextStep.action.clone()
+    def then(FlowNode nextStep, Closure errhandler = null) {
+        cloned = nextStep.action.clone()
         nextStep.previousNode = this
         //action = cloned
         if (taskDelay == 0)
@@ -252,9 +252,9 @@ abstract class  FlowNode {
         //check if any promises have completed and if so remove from list
 
         def promises = ctx.promises
-        def boundPromises = promises.grep {it.isBound()}
+        def boundPromises = promises.grep { it.isBound() }
         boundPromises.each {
-            boolean yesNo = ctx.promises.remove (it)
+            boolean yesNo = ctx.promises.remove(it)
             yesNo
         }
 
@@ -266,26 +266,26 @@ abstract class  FlowNode {
     }
 
     //syntactic sugar
-    def rightShift (FlowNode nextStep,  Closure errhandler = null) {
-        then (nextStep, errhandler)
+    def rightShift(FlowNode nextStep, Closure errhandler = null) {
+        then(nextStep, errhandler)
     }
 }
 
 
 class TaskAction extends FlowNode {
-    static newAction (name = null) {
+    static newAction(name = null) {
         def action = new TaskAction(name: name ?: "anon")
         action
     }
 
-    static newAction (name = null,  Closure clos) {
+    static newAction(name = null, Closure clos) {
         def cloned = clos.clone()
-        new TaskAction(name: name ?: "anon", action:cloned)
+        new TaskAction(name: name ?: "anon", action: cloned)
     }
 
-    static newAction (name = null,  int delay, Closure clos) {
+    static newAction(name = null, int delay, Closure clos) {
         def cloned = clos.clone()
-        new TaskAction(name: name ?: "anon", action:cloned, taskDelay: delay)
+        new TaskAction(name: name ?: "anon", action: cloned, taskDelay: delay)
 
     }
 
@@ -295,18 +295,17 @@ class TaskAction extends FlowNode {
     }*/
 
 
-
-    def then (FlowNode nextStep, Closure errHandler = null) {
-        super.then (nextStep, errHandler)
+    def then(FlowNode nextStep, Closure errHandler = null) {
+        super.then(nextStep, errHandler)
         try {
             if (nextStep.taskDelay) {
-                Thread.sleep( nextStep.taskDelay, {println "thread interupted "})
+                Thread.sleep(nextStep.taskDelay, { println "thread interupted " })
                 println "finished delay $nextStep.taskDelay ms"
             }
 
             //schedule task and receive the future and store it
             //pass promise from this into new closure in the task
-            Promise promise  = task {
+            Promise promise = task {
                 def ans
                 if (cloned.maximumNumberOfParameters == 2)
                     ans = cloned(ctx, this.result)
@@ -329,30 +328,30 @@ class TaskAction extends FlowNode {
         }
     }
 
-        String toString () {
+    String toString() {
         "Action (name:$name, action:${action.toString()}"
     }
 }
 
 class SplitAction extends FlowNode {
-    static newSplit (name = null) {
+    static newSplit(name = null) {
         def action = new SplitAction(name: name ?: "anon")
         action
     }
 
-    static newSplit (name = null,  Closure clos) {
+    static newSplit(name = null, Closure clos) {
         def cloned = clos.clone()
         println "new split created"
-        new SplitAction(name: name ?: "anon", action:cloned)
+        new SplitAction(name: name ?: "anon", action: cloned)
     }
 
-    def then (FlowNode nextStep, Closure errHandler = null) {
-        super.then (nextStep, errHandler)
+    def then(FlowNode nextStep, Closure errHandler = null) {
+        super.then(nextStep, errHandler)
         try {
             if (cloned.maximumNumberOfParameters == 2)
-                nextStep.setResult (cloned(ctx, result))
+                nextStep.setResult(cloned(ctx, result))
             else
-                nextStep.setResult (cloned (ctx))       //binds the
+                nextStep.setResult(cloned(ctx))       //binds the
 
             nextStep.status = NodeStatus.completed
             nextStep
@@ -365,7 +364,7 @@ class SplitAction extends FlowNode {
         }
     }
 
-    String toString () {
+    String toString() {
         "Split (name:$name, action:${action.toString()}"
     }
 }
@@ -387,27 +386,28 @@ class Cflow extends AbstractFlow {
 
     protected ConcurrentLinkedDeque subflows = new ConcurrentLinkedDeque<>()
 
-    static Cflow newFlow (flowName = null)  {
+    static Cflow newFlow(flowName = null) {
 
-        Cflow flow = new Cflow ()
+        Cflow flow = new Cflow()
         if (!flow.ctx)
-            flow.ctx = new Expando ()
+            flow.ctx = new Expando()
         flow
     }
 
 
-    def rightShift (TaskAction firstAction ) {
+    def rightShift(TaskAction firstAction) {
 
-        firstAction.name =  "initial action"
+        firstAction.name = "initial action"
         println "cflow rightShift on first action $firstAction.name "
 
-        Closure cloned  = firstAction.action.clone()
+        Closure cloned = firstAction.action.clone()
 
         cloned.delegate = ctx.scriptInstance
         firstAction.ctx = ctx
         firstAction.status = NodeStatus.running
 
-         Promise promise =  task {def ans = cloned(ctx)
+        Promise promise = task {
+            def ans = cloned(ctx)
             firstAction.status = NodeStatus.completed
             ans
         }
@@ -418,7 +418,7 @@ class Cflow extends AbstractFlow {
         firstAction
     }
 
-    def leftShift (SubFlow sflow) {
+    def leftShift(SubFlow sflow) {
         subflows << sflow
         sflow.parent = this as AbstractFlow
         if (!sflow.ctx)
@@ -434,26 +434,27 @@ class SubFlow extends AbstractFlow {
     protected ConcurrentLinkedDeque<Promise> subFlowPromises = new ConcurrentLinkedDeque<>()
 
 
-    static SubFlow newSubFlow (flowName = null, Closure clos)  {
+    static SubFlow newSubFlow(flowName = null, Closure clos) {
 
-        SubFlow sflow = new SubFlow (name: flowName)
+        SubFlow sflow = new SubFlow(name: flowName)
 
-         sflow
+        sflow
 
     }
 
-    def rightShift (FlowNode firstStep ) {
+    def rightShift(FlowNode firstStep) {
 
-        firstStep.name =  "subflow initial step"
+        firstStep.name = "subflow initial step"
         println "subflow rightShift on first node $firstStep.name "
 
-        Closure cloned  = firstStep.action.clone()
+        Closure cloned = firstStep.action.clone()
 
         cloned.delegate = ctx
         firstStep.ctx = ctx
         firstStep.status = NodeStatus.running
 
-        Promise promise =  task {def ans = cloned(ctx)
+        Promise promise = task {
+            def ans = cloned(ctx)
             firstStep.status = NodeStatus.completed
             ans
         }
@@ -468,24 +469,23 @@ class SubFlow extends AbstractFlow {
 }
 
 
+flow = new Cflow(name: 'myflow', ctx: context)
 
-flow = new Cflow(name: 'myflow', ctx : context)
-
-flow << subflow ('subflow') {println "new subflow "}
+flow << subflow('subflow') { println "new subflow " }
 
 System.exit(1)
 
-flow = new Cflow(ctx : context)
+flow = new Cflow(ctx: context)
 
-def result = flow >> action {println "first action, return 1 "; 1}
-        >> action ('act#2', 1000) {println "second action, return 2 "; 2}
-        >> split ('split') {
-            println "doing the split "
-            def outp = action ('split1') {'2.1'} >> action ('substep') {println "substep 2.1";'2.1.2'}
-            action ('split2') {'2.2'}
-            action ('split3') {'2.3'}
-            outp
-            }
+def result = flow >> action { println "first action, return 1 "; 1 }
+        >> action('act#2', 1000) { println "second action, return 2 "; 2 }
+        >> split('split') {
+    println "doing the split "
+    def outp = action('split1') { '2.1' } >> action('substep') { println "substep 2.1"; '2.1.2' }
+    action('split2') { '2.2' }
+    action('split3') { '2.3' }
+    outp
+}
 
 println result.result
 

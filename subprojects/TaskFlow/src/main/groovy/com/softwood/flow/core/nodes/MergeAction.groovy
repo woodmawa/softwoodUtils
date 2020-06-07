@@ -9,7 +9,7 @@ import groovy.util.logging.Slf4j
 import groovyx.gpars.dataflow.DataflowVariable
 import groovyx.gpars.dataflow.Promise
 
-import static groovyx.gpars.dataflow.Dataflow.select  as gparsSelect
+import static groovyx.gpars.dataflow.Dataflow.select as gparsSelect
 
 import java.util.concurrent.ConcurrentLinkedQueue
 
@@ -58,7 +58,6 @@ class MergeAction extends AbstractFlowNode {
     }
 
 
-
     protected def mergeTask(TaskAction previousNode, AbstractFlowNode step, args, Closure errHandler = null) {
         try {
             Closure cloned = step.action.clone()
@@ -94,10 +93,10 @@ class MergeAction extends AbstractFlowNode {
             }
 
             List<AbstractFlowNode> mergedSubflowLastActions
-            if (toMergeSubflows.size() > 0 ) {
-                mergedSubflowLastActions = toMergeSubflows.collect{it.subflowFlowNodes.asList().last() }
+            if (toMergeSubflows.size() > 0) {
+                mergedSubflowLastActions = toMergeSubflows.collect { it.subflowFlowNodes.asList().last() }
                 if (mergedSubflowLastActions)
-                    mergedSubflowLastActions.collect {it.result}*.join()
+                    mergedSubflowLastActions.collect { it.result }*.join()
             }
 
             step.result << 'merged'
@@ -114,24 +113,24 @@ class MergeAction extends AbstractFlowNode {
 
             List newIns = ctx.newInClosure.toList()
             //should be one subflow out
-            def newSubflows = newIns.grep {it.class == Subflow}
-            def newActions = newIns.grep {it instanceof AbstractFlowNode}
+            def newSubflows = newIns.grep { it.class == Subflow }
+            def newActions = newIns.grep { it instanceof AbstractFlowNode }
             if (ctx.flow) {
-                    newIns.each {it.parent = ctx.flow; ctx.flow.subflows << it}
+                newIns.each { it.parent = ctx.flow; ctx.flow.subflows << it }
             }
             ctx.newInClosure.clear()
 
             //subflow (ctx:ctx, name:"merge[${name}].defaultSublow" ) {}
-            defaultSubflow = newSubflows.size() > 0 ? newSubflows[0] :  new Subflow(ctx: ctx, name: "merge[${name}].defaultSublow", subflowClosure:{})
+            defaultSubflow = newSubflows.size() > 0 ? newSubflows[0] : new Subflow(ctx: ctx, name: "merge[${name}].defaultSublow", subflowClosure: {})
 
-            defaultSubflow.subflowFlowNodes.addAll (newActions)
+            defaultSubflow.subflowFlowNodes.addAll(newActions)
             //as input provide the list of actions you have waited on
             if (args)
-                defaultSubflow.run (mergedSubflowLastActions, args)
+                defaultSubflow.run(mergedSubflowLastActions, args)
             else
-                defaultSubflow.run (mergedSubflowLastActions)
+                defaultSubflow.run(mergedSubflowLastActions)
 
-           step
+            step
         } catch (Exception e) {
             if (errHandler) {
                 log.debug "mergeTask()  hit exception $e"
@@ -149,12 +148,12 @@ class MergeAction extends AbstractFlowNode {
      * @param errHandler - closure to call in case of exception being triggered
      * @return 'this' FlowNode
      */
-    def select (args = null, Closure errHandler = null) {
+    def select(args = null, Closure errHandler = null) {
         doSelect(null, args, errHandler)
     }
 
-    def select (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
-        doSelect (null, previousNode, args, errHandler)
+    def select(List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+        doSelect(null, previousNode, args, errHandler)
     }
 
     /*def select (List<Subflow> selectfromSubflows, args = null, Closure errHandler = null) {
@@ -166,29 +165,29 @@ class MergeAction extends AbstractFlowNode {
         doSelect (nodes, previousNode, args, errHandler)
     }*/
 
-    protected doSelect (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+    protected doSelect(List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
         ctx.withNestedNewIns(this::selectAction, selectNodes, previousNode, args, errHandler)
 
     }
 
-    protected selectAction (List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
+    protected selectAction(List<AbstractFlowNode> selectNodes, args = null, Closure errHandler = null) {
         List<Promise> promises
 
         if (selectNodes) {
-            promises = selectNodes.collect {it.result}
+            promises = selectNodes.collect { it.result }
 
-            Promise selectResult = gparsSelect (promises)
+            Promise selectResult = gparsSelect(promises)
 
             def firstResult = selectResult().value
-       }
+        }
     }
 
     //todo - need to think what this needs to look like default selector logic for a choiceAction
-    List mergeSubflowSelector (DataflowVariable previousNode, args) {
+    List mergeSubflowSelector(DataflowVariable previousNode, args) {
         []
     }
 
-    String toString () {
+    String toString() {
         int sz = mergeSubflows.size()
         String insertTxt = "with # of subflows ${mergeSubflows.size()}"
         "Merge (name:$name, status:$status) ${sz ? insertTxt : ''}"

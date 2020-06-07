@@ -10,12 +10,12 @@
 :source-highlighter: pygments
 
 
-This project has come of previous work, and a smattering of cross reference from jeasy rules, with the addition of some features
-for my lad who was doing a games project and wanted an something for his AI rules engine.
+This project has come of previous work, and a smattering of cross reference from jeasy rules, with the addition of some features for my lad who was doing a games project and wanted an something for his AI rules engine.
 
 This engine was developed using Groovy v3.0.2 and java 11 LTS
 
 == Where to start
+
 The basic idea is simple, you need a view concepts to work from
 
 . Facts
@@ -26,28 +26,28 @@ The basic idea is simple, you need a view concepts to work from
 
 and a RuleEngine instance to process the Facts against the Rules
 
-the project consists of a public API folder, and a core folder that provides the implementation
-users are expected to use the public API primarily to work with the library.
-
+the project consists of a public API folder, and a core folder that provides the implementation users are expected to use the public API primarily to work with the library.
 
 so taking this in order, here are the basic principles to work with.
 
-
 === Logical Model
-A picture is worth a thousand words so here is the basic structure of the project
-represented in UML.  This shows the core elements of the API and the default implementations
-to be found in the src/core folder
+
+A picture is worth a thousand words so here is the basic structure of the project represented in UML. This shows the core elements of the API and the default implementations to be found in the src/core folder
 
 image::uml/logicalmodel_Rulesmodel.png[]
 
 == Rules API
+
 === Facts
-Lets start with Facts.  This is implemented as a class in the api folder.
 
-Facts is a named group of individual Fact's that you want the engine to assess against its rules.  This uses a ConcurrentHashMap internally, so
-it should be thread safe.
+Lets start with Facts.
+This is implemented as a class in the api folder.
 
-each instance of Facts can have a discrete `name` and `description` if required.  These are optional.
+Facts is a named group of individual Fact's that you want the engine to assess against its rules.
+This uses a ConcurrentHashMap internally, so it should be thread safe.
+
+each instance of Facts can have a discrete `name` and `description` if required.
+These are optional.
 
 This provides a name, and description attribute, but otherwise the Fact's are store in the ConcurrentHashmap delegate.
 Essentially each Map.Entry represents a Fact
@@ -56,21 +56,19 @@ Facts provides an << (groovy left shift) operator where by a Map may be passed a
 
 The RuleEngine can process Facts, or a single Fact if required against Rules.
 
-Facts provides a convenience method `findFact(String key)` that will do a lookup and if the entry is
-matched will return the Fact.  If you just want the value rather than the Fact entry use `getFactvalue(String key)` instead
+Facts provides a convenience method `findFact(String key)` that will do a lookup and if the entry is matched will return the Fact.
+If you just want the value rather than the Fact entry use `getFactvalue(String key)` instead
 
-if you want a Stream<Fact> of facts then invoke the `stream()` method, which generates an immutable stream of
-facts for a stream pipeline.
+if you want a Stream<Fact> of facts then invoke the `stream()` method, which generates an immutable stream of facts for a stream pipeline.
 
 === RuleFactory
-In order to simplify and hide the internals a Factory class is provided to generate
-instances of the required types, handle defaulting and so forth.
+
+In order to simplify and hide the internals a Factory class is provided to generate instances of the required types, handle defaulting and so forth.
 
 This provides a number of static methods to handle creating key instances of the essential api types you require for rule processing.
 
-The factory allows for (future) alternate implementations of api interfaces, so the full version
-uses the appropriate enum `xxxType` as input.  Where only the basic std implementation is to be used
-this can be dropped as there is method in the factory that auto applied the correct enum type automatically
+The factory allows for (future) alternate implementations of api interfaces, so the full version uses the appropriate enum `xxxType` as input.
+Where only the basic std implementation is to be used this can be dropped as there is method in the factory that auto applied the correct enum type automatically
 
 e.g.
 
@@ -113,22 +111,21 @@ uses of this can be seen in the `src/main/groovy/scripts` directory and in the `
 
 In addition to the basic factory capability there is a Rules builder DSL for building rules sets
 
-This is best shown by example, where by you create an instance of the builder, at (1).  With the builder you call the
-ruleSet target in the builder and provide it a name (2), followed by a closure to invoke the build targets for
-a `preCondition` (3), and `action` (4), and any `effect`s (5).
+This is best shown by example, where by you create an instance of the builder, at (1).
+With the builder you call the ruleSet target in the builder and provide it a name (2), followed by a closure to invoke the build targets for a `preCondition` (3), and `action` (4), and any `effect`s (5).
 
-for any given `rule` the preConditions are optional and do need to be set.  An Rule with no preConditions will just execute its action.
+for any given `rule` the preConditions are optional and do need to be set.
+An Rule with no preConditions will just execute its action.
 
 at present an Rule has only a single Action target per rule (this may change in future releases later).
 
 A rule can also have an any number of `effects`, which are just closures that are called post the action if they are provided
 
-the introduction of the optional `effects` for a `rule` was driven by my sons requirement for his AI to change games rule state after
-an action had been performed.
+the introduction of the optional `effects` for a `rule` was driven by my sons requirement for his AI to change games rule state after an action had been performed.
 
-The last iteration  (6), just forces the `rule.action` to be performed regardless of any guard preConditions
+The last iteration (6), just forces the `rule.action` to be performed regardless of any guard preConditions
 
-[source, groovy]
+[source,groovy]
 ----
 
 package com.softwood.rules.scripts
@@ -161,27 +158,28 @@ rules.each { Rule rule->   <.>
 }
 
 ----
+
 === Rule Engine
 
 This is a stateless processor that offers the ability to `#check(facts, ruleSet)` - which evaluates all the preConditions for any Rule in a set, and returns all the aggregated boolean results for each Rule in the RuleSet.
 This permits an external decision to be made about whether any given `rule.#action`  would be performed.
 
-It also provides a `#run (facts, ruleSet, arg=null)` which will both run the preConditions checks but also actually do the `rule.action.#invoke ()` and return all the results as
-a `Collection<T extends Object>` so that a user can look at the collective outputs of each rule.action
+It also provides a `#run (facts, ruleSet, arg=null)` which will both run the preConditions checks but also actually do the `rule.action.#invoke ()` and return all the results as a `Collection<T extends Object>` so that a user can look at the collective outputs of each rule.action
 
-where Appropriate a users can add and remove `#attributes`, on a rule engine.  The expected use of these user driven attributes
-is not defined by the library.  They are provided as is to do with a user sees fit.
+where Appropriate a users can add and remove `#attributes`, on a rule engine.
+The expected use of these user driven attributes is not defined by the library.
+They are provided as is to do with a user sees fit.
 
 when using the `#run()` method the optional arg can be set to be the ruleEngines.#attributes map if required by coding like this
 
-[source, groovy]
+[source,groovy]
 ----
 
 ruleEngine.run (facts, ruleSet, ruleEngine.attributes)
 ----
 
-which will pass the attributes as the optional arg in every rule.action invocation.  The optional arg can any
-user provided data item reference.
+which will pass the attributes as the optional arg in every rule.action invocation.
+The optional arg can any user provided data item reference.
 
 Multiple attributes can be added to the `ruleEngine.attributes` by using the << (leftShift) operator with a map on the ruleEngine.
 
@@ -190,45 +188,37 @@ for just processing the facts against a single explicit rule instance.
 
 The ruleEngine permits the registration and removal of `ruleEngineListeners` and `ruleListeners` against the engine.
 
-in the case of the `RuleListener`, returning a false from the `#beforeEvaluate()` method, this will override any and all preConditions for a rule
-permitting an external listener from stopping the potential execution of any rule actions that might be normally triggered.
+in the case of the `RuleListener`, returning a false from the `#beforeEvaluate()` method, this will override any and all preConditions for a rule permitting an external listener from stopping the potential execution of any rule actions that might be normally triggered.
 
 when running rules in a RuleSet, these are done in a `rule.priority` order, that is a rule with priority of 10 will be assessed before rules with lower priorities
-
-
 
 === RuleSet
 
 Normally the engine is expected to run a number of Facts against a RuleSet.
 
-If all the Facts pass the preConditions predicate checks for any rule in a RuleSet, then the corresponding rule.action will be invoked
-it is possible to override this from an engines RuleListener where returning false from `listeners.#beforeEvaluate()` which will stop any action
-from being performed regardless of any preCondition checks
+If all the Facts pass the preConditions predicate checks for any rule in a RuleSet, then the corresponding rule.action will be invoked it is possible to override this from an engines RuleListener where returning false from `listeners.#beforeEvaluate()` which will stop any action from being performed regardless of any preCondition checks
 
-It is also possible to use an engine to process the Facts against a single Rule instance, rather than a RuleSet which is the
-expected normal use.
+It is also possible to use an engine to process the Facts against a single Rule instance, rather than a RuleSet which is the expected normal use.
 
 === Rule
 
-A Rule is a named container for zero or more preCondition predicate checks (that all must be true), before the corresponding embedded
-action can be invoked.
+A Rule is a named container for zero or more preCondition predicate checks (that all must be true), before the corresponding embedded action can be invoked.
 
 Rule has a standard name, description, and priority (integer, default is 0).
 
-Each preConditions closure will be invoked with the facts as input to the closure.  In addition to the facts passed
-as input, the delegate for the Condition is set to be the Rule, so that the Condition closure can also access the rule.stateData map if this
-has been set.  In addtion
+Each preConditions closure will be invoked with the facts as input to the closure.
+In addition to the facts passed as input, the delegate for the Condition is set to be the Rule, so that the Condition closure can also access the rule.stateData map if this has been set.
+In addtion
 
 At present a rule instance is associated with a *single* Action
 
 There is an optional ability to attach an optional number of '#effect' closures to a rule.
-These will always be invoked if the action has been invoked.  This feature provides a pure
-side effects ability separate from the controlled invocation of the rule action.
+These will always be invoked if the action has been invoked.
+This feature provides a pure side effects ability separate from the controlled invocation of the rule action.
 
 They operate as post action invocation behaviour and are always run even if the rule.action were to fail
 
-If the action throws an exception, the the text 'threw exception' will returned to the caller (and logged in log.debug trace)
-and in this case no effects (if defined) will be executed.
+If the action throws an exception, the the text 'threw exception' will returned to the caller (and logged in log.debug trace) and in this case no effects (if defined) will be executed.
 
 
 

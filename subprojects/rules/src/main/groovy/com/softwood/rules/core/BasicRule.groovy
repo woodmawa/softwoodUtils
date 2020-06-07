@@ -50,7 +50,7 @@ class BasicRule implements Rule, Comparable {
     //set action to an action that does nothing - returns "Do nothing action" by default
     //Todo - should we permit multiple actions for a given rule ?
     // at the moment its 1 rule : 1 action but many post action effects
-    Action action  = new BasicAction (name: "basicAction", description: "Do nothing action")
+    Action action = new BasicAction(name: "basicAction", description: "Do nothing action")
 
     Collection<Closure> postActionEffects = new ConcurrentLinkedQueue<>()
 
@@ -69,7 +69,7 @@ class BasicRule implements Rule, Comparable {
             preConditions.remove(condition)
     }
 
-    void clearAllPreConditions (){
+    void clearAllPreConditions() {
         preConditions.clear()
     }
 
@@ -77,7 +77,7 @@ class BasicRule implements Rule, Comparable {
     /**
      * effects processing methods for a Rule
      */
-    List<Closure> getPostActionEffectsList () {
+    List<Closure> getPostActionEffectsList() {
         postActionEffects.toList()
     }
 
@@ -88,20 +88,20 @@ class BasicRule implements Rule, Comparable {
     /**
      * processing the action methods
      */
-    void setAction (Closure task) {
+    void setAction(Closure task) {
         assert task
-        action = RuleFactory.newAction (name:"anonymousAction", description:"anonymous action", task )
+        action = RuleFactory.newAction(name: "anonymousAction", description: "anonymous action", task)
     }
 
-    void setAction (Action action) {
+    void setAction(Action action) {
         assert action
         this.action = action
     }
 
 
-    Rule shiftLeft (Closure task) {
+    Rule shiftLeft(Closure task) {
         assert action
-        action = RuleFactory.newAction (name:"anonymousAction", description:"anonymous action", task )
+        action = RuleFactory.newAction(name: "anonymousAction", description: "anonymous action", task)
         this
     }
 
@@ -110,25 +110,25 @@ class BasicRule implements Rule, Comparable {
      * @param facts
      * @return
      */
-    private boolean checkPreconditions (Facts facts) {
+    private boolean checkPreconditions(Facts facts) {
 
         if (preConditions.size() == 0) {   //no pre conditions so just return true
-            log.debug ("rule <$this> has no preconditions, return true")
+            log.debug("rule <$this> has no preconditions, return true")
             return true
         }
 
         //start false
-        AtomicBoolean preConditionsCheck = new AtomicBoolean (false)
+        AtomicBoolean preConditionsCheck = new AtomicBoolean(false)
 
         //serial at the mo parallelise later
 
         //for each fact in facts
         List<Fact> list = facts.asList()
-        list.each {Fact fact ->
+        list.each { Fact fact ->
             log.debug "test $fact, against rule preConditions"
-            preConditions.each {Predicate condition ->
+            preConditions.each { Predicate condition ->
                 def testRes = condition.test(fact)
-                preConditionsCheck.compareAndSet(false, condition.test(fact) )
+                preConditionsCheck.compareAndSet(false, condition.test(fact))
                 log.debug "\tcondition $condition, performed test on $fact, set  rule preConditions check state to : ${preConditionsCheck.get()}"
 
             }
@@ -137,27 +137,27 @@ class BasicRule implements Rule, Comparable {
         preConditionsCheck.get()
     }
 
-    private def applyPostActionEffects (arg = null) {
+    private def applyPostActionEffects(arg = null) {
         //apply each effect if it has any defined passing in the optional arg to which the effect applies
         log.debug "applying any post rule execution effects with arg : <$arg>"
         postActionEffects.each { effect ->
-            if (effect.maximumNumberOfParameters > 0 )
-               effect(arg)
+            if (effect.maximumNumberOfParameters > 0)
+                effect(arg)
             else
                 effect()
         }
     }
 
     boolean evaluate(Facts facts, param = null) {
-        return checkPreconditions (facts)
+        return checkPreconditions(facts)
     }
 
-    def execute (Facts facts, arg = null) {
+    def execute(Facts facts, arg = null) {
 
         def result
         if (checkPreconditions(facts)) {
             try {
-            result = (arg ? action.invoke(arg) : action.invoke())
+                result = (arg ? action.invoke(arg) : action.invoke())
             }
             catch (Exception e) {
                 log.debug "rule execute : threw exception, no post action effects were run   " + e.stackTrace
@@ -168,7 +168,7 @@ class BasicRule implements Rule, Comparable {
             applyPostActionEffects(arg)
             result
         } else {
-            log.debug  "rule execute   : pre conditions $preConditions were not met "
+            log.debug "rule execute   : pre conditions $preConditions were not met "
             return "preconditions not met"
         }
     }
@@ -177,8 +177,9 @@ class BasicRule implements Rule, Comparable {
      * forced execution of the rule action, no preconditions check is applied
      * if any effects are enabled then execute them as well
      */
-    def justExecute (arg = null) {
-        log.debug  "rule justExecute   : invoked action with $arg "
+
+    def justExecute(arg = null) {
+        log.debug "rule justExecute   : invoked action with $arg "
 
         def result
         try {

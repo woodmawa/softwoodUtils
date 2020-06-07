@@ -31,11 +31,11 @@ class RuleSet implements Iterable<Rule> {
      *
      * @param rules to register
      */
-    RuleSet(Rule... rules ) {
+    RuleSet(Rule... rules) {
         Collections.addAll(this.rules, rules)
     }
 
-    void leftShift (Rule... rules) {
+    void leftShift(Rule... rules) {
         Collections.addAll(this.rules, rules)
     }
 
@@ -57,7 +57,7 @@ class RuleSet implements Iterable<Rule> {
     public void register(Object ruleObj) {
         assert ruleObj, "object $ruleObj cannot be null"  //groovy assert way
         //todo proxies
-        rules.add (new Proxy().wrap (ruleObj) as Rule)
+        rules.add(new Proxy().wrap(ruleObj) as Rule)
         //com.softwood.rules.add(RuleProxy.asRule(rule));
     }
 
@@ -78,7 +78,7 @@ class RuleSet implements Iterable<Rule> {
     public void unregister(Object ruleObj) {
         Objects.requireNonNull(ruleObj);
         //- uses groovy proxy todo proxies
-        rules.remove (new Proxy().wrap (ruleObj) as Rule)
+        rules.remove(new Proxy().wrap(ruleObj) as Rule)
     }
 
     /**
@@ -86,11 +86,11 @@ class RuleSet implements Iterable<Rule> {
      *
      * @param ruleName the name of the rule to unregister
      */
-    public void unregister(final String ruleName){
+    public void unregister(final String ruleName) {
         Objects.requireNonNull(ruleName)
         Optional<Rule> rule = findRuleByName(ruleName)
         rule.ifPresent(r -> unregister(r))      //use lambda
-        }
+    }
 
 
     /**
@@ -119,9 +119,9 @@ class RuleSet implements Iterable<Rule> {
     }
 
     //todo replace null return with Optional
-    private Optional<Rule> findRuleByName(String ruleName){
-        for(Rule rule : rules){
-            if(rule.getName().equalsIgnoreCase(ruleName))
+    private Optional<Rule> findRuleByName(String ruleName) {
+        for (Rule rule : rules) {
+            if (rule.getName().equalsIgnoreCase(ruleName))
                 return Optional.of(rule)
         }
         return Optional.ofNullable(null)

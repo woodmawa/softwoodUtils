@@ -17,26 +17,27 @@ class AbstractRuleEngine {
     Queue<RuleEngineListener> ruleEngineListeners = new ConcurrentLinkedQueue<>()
     Queue<RuleListener> ruleListeners = new ConcurrentLinkedQueue<>()
 
-    @Bindable HashMap attributes = new ConcurrentHashMap<>()
+    @Bindable
+    HashMap attributes = new ConcurrentHashMap<>()
 
-    public void addAttribute (String key, value) {
+    public void addAttribute(String key, value) {
         assert key
 
         def oldValue = attributes.clone()
-        attributes.put (key, value )
+        attributes.put(key, value)
         firePropertyChange('attributes', oldValue, attributes)
     }
 
-    public void removeAttribute (String key) {
+    public void removeAttribute(String key) {
         assert key
 
         def oldValue = attributes.clone()
-        attributes.remove (key)
+        attributes.remove(key)
         firePropertyChange('attributes', oldValue, attributes)
     }
 
 
-    void leftShift (Map attribs) {
+    void leftShift(Map attribs) {
         assert attribs
 
         def oldValue = attributes.clone()
@@ -61,7 +62,7 @@ class AbstractRuleEngine {
         this.ruleListeners.addAll(ruleListeners)
     }
 
-    public void removeRuleListener (RuleListener listener) {
+    public void removeRuleListener(RuleListener listener) {
         ruleListeners.remove(listener)
     }
 
@@ -83,7 +84,7 @@ class AbstractRuleEngine {
         this.ruleEngineListeners.addAll(ruleEngineListeners);
     }
 
-    public void removeRuleEngineListener (RuleEngineListener listener) {
+    public void removeRuleEngineListener(RuleEngineListener listener) {
         ruleEngineListeners.remove(listener)
     }
 

@@ -9,11 +9,11 @@ trait ModelBaseTrait {
     String id
     String name
 
-    String getUrlName () {
+    String getUrlName() {
         "$server:$port/$schemaBase/$schemaLocation"
     }
 
-    String getType () {
+    String getType() {
         this.getClass().simpleName
     }
 

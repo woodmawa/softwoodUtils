@@ -10,27 +10,27 @@ class SoftwoodClassUtils {
 
     /**
      *
-     * @param clazz, the class to check
-     * @return List<String> list of names of static properties in this class
+     * @param clazz , the class to check
+     * @return List<String>  list of names of static properties in this class
      */
-    static List<String> getStaticProperties (Class clazz) {
+    static List<String> getStaticProperties(Class clazz) {
         assert clazz, "must provide provide instance of Class to assess"
 
         List<MetaProperty> props = clazz.metaClass.properties
         props?.stream()
-        .filter {MetaProperty prop -> Modifier.isStatic(prop.modifiers)}
-        .map {prop -> prop.name}
-        .collect()
-        .toList()
+                .filter { MetaProperty prop -> Modifier.isStatic(prop.modifiers) }
+                .map { prop -> prop.name }
+                .collect()
+                .toList()
     }
 
-    static List<String> hasPublicStaticProperty (Class clazz, String ) {
+    static List<String> hasPublicStaticProperty(Class clazz, String) {
         assert clazz, "must provide provide instance of Class to assess"
 
         List<MetaProperty> props = clazz.metaClass.properties
         props?.stream()
-                .filter {MetaProperty prop -> Modifier.isStatic(prop.modifiers) && Modifier.isPublic(prop.modifiers)}
-                .map {prop -> prop.name}
+                .filter { MetaProperty prop -> Modifier.isStatic(prop.modifiers) && Modifier.isPublic(prop.modifiers) }
+                .map { prop -> prop.name }
                 .collect()
                 .toList()
     }
@@ -39,10 +39,10 @@ class SoftwoodClassUtils {
     /**
      * uses latest approved Java way creating instance of class.  will default to finding the no arg constructor if present
      * @param clazz to create instance of
-     * @param args, optional args to pass a constructor that matches
-     * @return Optional<T> creates instance of constructed object, or empty optional if cant find a match
+     * @param args , optional args to pass a constructor that matches
+     * @return Optional<T>  creates instance of constructed object, or empty optional if cant find a match
      */
-    static <T> Optional<T> instanceOf (Class<T> clazz, Object[] args) {
+    static <T> Optional<T> instanceOf(Class<T> clazz, Object[] args) {
         assert clazz
 
         final Object<?>[] EMPTY_ARGS = [].toArray()
@@ -64,7 +64,7 @@ class SoftwoodClassUtils {
                 continue
 
             def match = true
-            for (int i=0; i < constructorTypes.length; i++){
+            for (int i = 0; i < constructorTypes.length; i++) {
                 Class requiredType = constructorTypes[i], argType = args[i].getClass()
                 if (!isAssignableTo(argType, requiredType)) {
                     match = false
@@ -79,7 +79,7 @@ class SoftwoodClassUtils {
 
         //use of the spread operator seems to trigger the unboxing from wrapped to unwrapped classes as required
         Optional o = Optional.ofNullable(constructor?.newInstance(*args))
-     }
+    }
 
     private static final Map<Class<?>, Class<?>> primitiveToWrapperMap =
             Map.of(boolean.class, Boolean.class,

@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 Date now = new Date()
 SimpleDateFormat sdtf = new SimpleDateFormat('EEE MMM dd HH:mm:ss.SSS z yyyy')
 
-String fds = sdtf.format (now)
+String fds = sdtf.format(now)
 
 Date parsedDate = sdtf.parse(fds)
 

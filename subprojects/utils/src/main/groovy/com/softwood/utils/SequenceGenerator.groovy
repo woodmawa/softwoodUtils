@@ -21,8 +21,7 @@ import java.util.concurrent.atomic.AtomicLong
  *
  * @author Will Woodman
  * @since 2019-10-07
- * @version 1.0
- *
+ * @version 1.0*
  */
 public class SequenceGenerator {
     private static final int TOTAL_BITS = 64
@@ -31,9 +30,9 @@ public class SequenceGenerator {
     private static final int SEQUENCE_BITS = 12
 
     //1023 - 10 bits long
-    private static final int maxNodeId = (int)(Math.pow(2, NODE_ID_BITS) - 1)
+    private static final int maxNodeId = (int) (Math.pow(2, NODE_ID_BITS) - 1)
     //4095 - 12 bits long
-    private static final int maxSequence = (int)(Math.pow(2, SEQUENCE_BITS) - 1)
+    private static final int maxSequence = (int) (Math.pow(2, SEQUENCE_BITS) - 1)
 
     // Custom Epoch (January 1, 2015 Midnight UTC = 2015-01-01T00:00:00Z)
     private static final long CUSTOM_EPOCH = 1420070400000L
@@ -50,8 +49,8 @@ public class SequenceGenerator {
     private volatile static SequenceGenerator instance
 
     //builder option - returns the class, so that build can be called at the end of the method chain
-    public static setNode (int id) {
-        if(id < 0 || id > maxNodeId) {
+    public static setNode(int id) {
+        if (id < 0 || id > maxNodeId) {
             throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
         }
         node = id
@@ -63,7 +62,7 @@ public class SequenceGenerator {
      * returns a one time factory instance.  Will return the same instance on all calls from any thread
      * @return
      */
-    public static synchronized SequenceGenerator build () {
+    public static synchronized SequenceGenerator build() {
 
         if (!instance) {
             if (!node)
@@ -76,7 +75,7 @@ public class SequenceGenerator {
 
     // private factory constructor, Create SequenceGenerator with a explicit required nodeId
     private SequenceGenerator(int nodeId) {
-        if(nodeId < 0 || nodeId > maxNodeId) {
+        if (nodeId < 0 || nodeId > maxNodeId) {
             throw new IllegalArgumentException(String.format("NodeId must be between %d and %d", 0, maxNodeId))
         }
         this.nodeId = nodeId
@@ -88,21 +87,21 @@ public class SequenceGenerator {
     }
 
 
-    public String getDateStringForSequence (long seq) {
-        getLocalDateTimeForSequence (seq).toString()
+    public String getDateStringForSequence(long seq) {
+        getLocalDateTimeForSequence(seq).toString()
     }
 
-    public LocalDateTime getLocalDateTimeForSequence (long seq) {
+    public LocalDateTime getLocalDateTimeForSequence(long seq) {
         long mask = (long) (2**64 - 1) << (TOTAL_BITS - EPOCH_BITS)
         long timeSegment = seq & mask
-        long shiftedBackSegment = timeSegment >>  (TOTAL_BITS - EPOCH_BITS)
+        long shiftedBackSegment = timeSegment >> (TOTAL_BITS - EPOCH_BITS)
 
         //get back to time since standard epoc
         long epochMillis = shiftedBackSegment + CUSTOM_EPOCH
 
 
         //LocalDateTime.ofEpochSecond(shiftedBackSegment, 0, ZoneOffset.UTC).toString()
-        LocalDateTime dt = new Timestamp (epochMillis).toLocalDateTime()
+        LocalDateTime dt = new Timestamp(epochMillis).toLocalDateTime()
 
     }
 
@@ -117,7 +116,7 @@ public class SequenceGenerator {
     public synchronized long nextId() {
         long currentTimestamp = timestamp()
 
-        if(currentTimestamp < lastTimestamp) {
+        if (currentTimestamp < lastTimestamp) {
             throw new IllegalStateException("Invalid System Clock!")
         }
 
@@ -126,7 +125,7 @@ public class SequenceGenerator {
             //sequence = aSequence.incrementAndGet() & maxSequence
             sequence = (sequence + 1) & maxSequence;
             //if masked value has cycled
-            if(sequence == 0) {
+            if (sequence == 0) {
                 // Sequence Exhausted, wait till next millisecond.
                 currentTimestamp = waitNextMillis(currentTimestamp)
             }
@@ -139,7 +138,7 @@ public class SequenceGenerator {
         lastTimestamp = currentTimestamp;
 
         //take the timestamp and bit shift it 64-42 = 22 bits
-        AtomicLong  seq = new AtomicLong (0)
+        AtomicLong seq = new AtomicLong(0)
         long tid = currentTimestamp << (TOTAL_BITS - EPOCH_BITS)
 
         //OR in the nodeId bit shifted 10 digits
@@ -148,7 +147,7 @@ public class SequenceGenerator {
         //mask off SEQUENCE_ID_BITS from sequence, 12 digits and OR it onto end of id
         long lid = (sequence & maxSequence)
         //ensure atomic update
-        seq.set (tid | nid | lid)
+        seq.set(tid | nid | lid)
 
         //seq made of [timestamp|node|sequence] as a long
         return seq.get()
@@ -184,7 +183,7 @@ public class SequenceGenerator {
                 NetworkInterface networkInterface = networkInterfaces.nextElement()
                 byte[] mac = networkInterface.getHardwareAddress()
                 if (mac != null) {
-                    for(int i = 0; i < mac.length; i++) {
+                    for (int i = 0; i < mac.length; i++) {
                         sb.append(String.format("%02X", mac[i]))
                     }
                 }

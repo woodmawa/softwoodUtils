@@ -12,7 +12,8 @@ dependencies {
 
     implementation group: 'com.fasterxml.uuid', name: 'java-uuid-generator', version: '4.0'
     implementation group: 'io.vertx', name: 'vertx-core', version: '3.8.5'
-    implementation group: 'com.github.seancfoley', name: 'ipaddress', version: '5.2.1'  //ipv4 & v6 handling library, better options than JDK
+    implementation group: 'com.github.seancfoley', name: 'ipaddress', version: '5.2.1'
+    //ipv4 & v6 handling library, better options than JDK
 
 }
 

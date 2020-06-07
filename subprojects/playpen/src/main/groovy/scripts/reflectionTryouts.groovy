@@ -5,7 +5,8 @@ import playpen.GroovyClassUtils
 
 import java.lang.reflect.Modifier
 
-class Empty{}
+class Empty {}
+
 def stdMeth = Empty.metaClass.methods.name
 def stdProp = Empty.metaClass.properties.name
 
@@ -14,6 +15,7 @@ class A {
     static String ref = "ref "
     String name
     int count
+
     String greet() {
         println "hello william"
     }
@@ -21,8 +23,9 @@ class A {
 
 class B {
     int num = 10
-    String name =""
-    B (int someNumber, String name ){
+    String name = ""
+
+    B(int someNumber, String name) {
         if (someNumber)
             num = someNumber
         this.name = name
@@ -39,12 +42,12 @@ List staticPropNames = GroovyClassUtils.getStaticProperties(A)
 
 
 def isWrapperOf = GroovyClassUtils.isPrimitiveWrapperOf(Integer, int.class)
-def canbeAssigned = GroovyClassUtils.isAssignableTo(Integer, int.class )
+def canbeAssigned = GroovyClassUtils.isAssignableTo(Integer, int.class)
 //just use apache library for this
 def newB // = ConstructorUtils.invokeConstructor(B, 20)
 
 //now working
-newB = GroovyClassUtils.instanceOf (B, 30, "will")
+newB = GroovyClassUtils.instanceOf(B, 30, "will")
 assert newB
 
 newB = GroovyClassUtils.instanceOf(B, 20 as int)

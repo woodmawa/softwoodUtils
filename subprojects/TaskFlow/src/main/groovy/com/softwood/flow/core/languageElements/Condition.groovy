@@ -9,13 +9,13 @@ class Condition implements Predicate {
 
     def defaultItemToTest
 
-    def setItemTotest (item) {
+    def setItemTotest(item) {
         defaultItemToTest = item
     }
 
     static Condition newCondition(Closure conditionClosure) {
         Condition condition
-        condition = new Condition ()
+        condition = new Condition()
         if (conditionClosure != null)
             condition.dynamicTest = conditionClosure
 
@@ -24,9 +24,9 @@ class Condition implements Predicate {
 
     static Condition newCondition(def condArg, Closure conditionClosure) {
         Condition condition
-        condition = new Condition ()
+        condition = new Condition()
         if (conditionClosure != null)
-            condition.dynamicTest =  conditionClosure
+            condition.dynamicTest = conditionClosure
 
         if (condArg)
             condition.defaultItemToTest = condArg
@@ -40,25 +40,24 @@ class Condition implements Predicate {
      * @return a Condition
      */
 
-    static Condition flowCondition (argToTest, Closure condClosure){
+    static Condition flowCondition(argToTest, Closure condClosure) {
         Condition.newCondition(argToTest, condClosure)
     }
 
-    Closure dynamicTest = { false}
+    Closure dynamicTest = { false }
 
-    Condition () {}
+    Condition() {}
 
     boolean test(Object item) {
         defaultItemToTest = item  //cache arg as defaultItemToTest
-        def yesNo =  dynamicTest (item)
+        def yesNo = dynamicTest(item)
         yesNo
     }
 
     boolean test() {
-        def yesNo =  dynamicTest (this.defaultItemToTest)
+        def yesNo = dynamicTest(this.defaultItemToTest)
         yesNo
     }
-
 
 
 }

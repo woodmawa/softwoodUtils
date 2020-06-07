@@ -35,30 +35,31 @@ class JsonUtils {
     //UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger,
     List simpleAttributeTypes = [Number, Integer, Long, Float, Double, byte[], String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
 
-    Map classForSimpleTypesLookup = ['Number': Number, 'Enum':Enum, 'Temporal': Temporal,
-                                     'Date': Date, 'Calendar': Calendar, 'Instant':Instant,
+    Map classForSimpleTypesLookup = ['Number'       : Number, 'Enum': Enum, 'Temporal': Temporal,
+                                     'Date'         : Date, 'Calendar': Calendar, 'Instant': Instant,
                                      'LocalDateTime': LocalDateTime, 'LocalDate': LocalDate, 'LocalTime': LocalTime,
-                                     'UUID':UUID, 'URI':URI, 'URL':URL,
-                                     'String': String, 'GString':GString,
-                                     'byte[]': Byte[], 'Byte': Byte,
-                                     'CharSequence': CharSequence, 'Character': Character,
-                                     'Boolean':Boolean, 'Integer':Integer, 'Long':Long,
-                                     'Float':Float, 'Double':Double,
-                                     'BigDecimal': BigDecimal, 'BigInteger':BigInteger]
+                                     'UUID'         : UUID, 'URI': URI, 'URL': URL,
+                                     'String'       : String, 'GString': GString,
+                                     'byte[]'       : Byte[], 'Byte': Byte,
+                                     'CharSequence' : CharSequence, 'Character': Character,
+                                     'Boolean'      : Boolean, 'Integer': Integer, 'Long': Long,
+                                     'Float'        : Float, 'Double': Double,
+                                     'BigDecimal'   : BigDecimal, 'BigInteger': BigInteger]
 
     //todo note these may need to be thread local ??
     Map classInstanceHasBeenEncodedOnce = new ConcurrentHashMap()
     Queue previouslyDecodedClassInstance = new ConcurrentLinkedQueue()
-    ThreadLocal<Integer> iterLevel = ThreadLocal.withInitial{0}
+    ThreadLocal<Integer> iterLevel = ThreadLocal.withInitial { 0 }
 
     List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
 
     protected Options options
-    Options getOptions () { options}
 
-    private JsonUtils (Options options) {
+    Options getOptions() { options }
+
+    private JsonUtils(Options options) {
         //add getAt function for array index notation on JsonObject
-        JsonObject.metaClass.getAt = {String s -> delegate.getValue(s)}
+        JsonObject.metaClass.getAt = { String s -> delegate.getValue(s) }
         this.options = options
     }
 
@@ -71,8 +72,10 @@ class JsonUtils {
 
         ClassLoader defaultClassLoader = Thread.currentThread().getContextClassLoader()
 
-        @Inject String host = "localhost" //assumed default
-        @Inject int port = 8080 //assumed default
+        @Inject
+        String host = "localhost" //assumed default
+        @Inject
+        int port = 8080 //assumed default
         String apiRoot = 'tmf-api'
         boolean optionalLinks = false
         boolean includeVersion = false
@@ -107,160 +110,161 @@ class JsonUtils {
 
         //methods use method chainimg style
 
-        Options () {
+        Options() {
             //default type encoders to json text output
-            typeEncodingConverters.put(Date, {Date it -> it.toLocalDateTime().toString()})  //save in LDT format
-            typeEncodingConverters.put(Calendar, {it.toString()})
-            typeEncodingConverters.put(Temporal, {it.toString()})
-            typeEncodingConverters.put(URI, {it.toString()})
-            typeEncodingConverters.put(UUID, {it.toString()})
+            typeEncodingConverters.put(Date, { Date it -> it.toLocalDateTime().toString() })  //save in LDT format
+            typeEncodingConverters.put(Calendar, { it.toString() })
+            typeEncodingConverters.put(Temporal, { it.toString() })
+            typeEncodingConverters.put(URI, { it.toString() })
+            typeEncodingConverters.put(UUID, { it.toString() })
 
             //default type decoders from text to target type
-            typeDecodingConverters.put(Date, {String it ->
+            typeDecodingConverters.put(Date, { String it ->
                 //SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")  //looses precision
-                LocalDateTime ldt = LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME )
+                LocalDateTime ldt = LocalDateTime.parse(it, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
                 Date date = ldt.toDate()
                 date
-                }
+            }
             )
-            typeDecodingConverters.put(Calendar, {String it ->
+            typeDecodingConverters.put(Calendar, { String it ->
                 SimpleDateFormat sdf = new SimpleDateFormat("EEE MMM dd HH:mm:ss Z yyyy")
-                Date date = sdf.parse (it)
+                Date date = sdf.parse(it)
                 Calendar cal = Calendar.getInstance()
-                cal.setTime (date)
-                cal}
+                cal.setTime(date)
+                cal
+            }
             )
-            typeDecodingConverters.put(LocalDate, {String it ->
+            typeDecodingConverters.put(LocalDate, { String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalDate.parse(it)
             })
-            typeDecodingConverters.put(LocalDateTime, {String it ->
+            typeDecodingConverters.put(LocalDateTime, { String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalDateTime.parse(it)
             })
-            typeDecodingConverters.put(LocalTime, {String it ->
+            typeDecodingConverters.put(LocalTime, { String it ->
                 //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/MM/yyyy");
                 LocalTime.parse(it)
             })
-            typeDecodingConverters.put(URL, {String it -> new URL(it)})
-            typeDecodingConverters.put(URI, {String it ->new URI(it)})
-            typeDecodingConverters.put(UUID, {String it -> UUID.fromString(it)})
+            typeDecodingConverters.put(URL, { String it -> new URL(it) })
+            typeDecodingConverters.put(URI, { String it -> new URI(it) })
+            typeDecodingConverters.put(UUID, { String it -> UUID.fromString(it) })
 
             this
         }
 
-        Options setDefaultClassLoader (ClassLoader cl) {
+        Options setDefaultClassLoader(ClassLoader cl) {
             defaultClassLoader = cl
             this
         }
 
-        Options setJsonEncodingStyle (JsonEncodingStyle style){
+        Options setJsonEncodingStyle(JsonEncodingStyle style) {
             jsonStyle = style
             this
         }
 
-        Options setExpandLevels (Integer level){
+        Options setExpandLevels(Integer level) {
             expandLevels = level
             this
         }
 
-        Options setApiRoot (String root) {
+        Options setApiRoot(String root) {
             apiRoot = root
             this
         }
 
-        Options setHost (String hostname) {
+        Options setHost(String hostname) {
             host = hostname
             this
         }
 
-        Options setPort (int portNumber) {
+        Options setPort(int portNumber) {
             port = portNumber
             this
         }
 
-        Options setIncludeVersion  (boolean value = false) {
+        Options setIncludeVersion(boolean value = false) {
             includeVersion = value
             this
         }
 
-        Options jsonApiIncludeVersion  (boolean value = false) {
+        Options jsonApiIncludeVersion(boolean value = false) {
             includeVersion = value
             this
         }
 
-        Options jsonApiOptionalLinks  (boolean value = false) {
+        Options jsonApiOptionalLinks(boolean value = false) {
             optionalLinks = value
             this
         }
 
-        Options jsonApiCompoundDocument  (boolean value = false) {
+        Options jsonApiCompoundDocument(boolean value = false) {
             compoundDocument = value
             this
         }
 
-        Options summaryClassFormEnabled  (boolean value = false) {
+        Options summaryClassFormEnabled(boolean value = false) {
             summaryEnabled = value
             this
         }
 
-        Options excludePrivateFields (boolean value = false){
+        Options excludePrivateFields(boolean value = false) {
             excludePrivateFields = value
             this
         }
 
-        Options excludeStaticFields (boolean value = true){
+        Options excludeStaticFields(boolean value = true) {
             excludeStaticFields = value
             this
         }
 
-        Options excludeNulls (boolean value = true){
+        Options excludeNulls(boolean value = true) {
             excludeNulls = value
             this
         }
 
-        Options excludeClass (boolean value = true) {
+        Options excludeClass(boolean value = true) {
             excludeClass = value
             this
         }
 
-        Options excludeFieldByNames(String name, args=null){
+        Options excludeFieldByNames(String name, args = null) {
             excludedFieldNames << name
             if (args) {
-                args.each {excludedFieldNames << it}
+                args.each { excludedFieldNames << it }
             }
             this
         }
 
-        Options excludeFieldByNames(List<String> names){
+        Options excludeFieldByNames(List<String> names) {
             excludedFieldNames.addAll(names)
             this
         }
 
-        Options excludeFieldByTypes(Class clazz, args=null){
+        Options excludeFieldByTypes(Class clazz, args = null) {
             excludedFieldTypes << clazz
             if (args) {
-                args.each {excludedFieldTypes << it}
+                args.each { excludedFieldTypes << it }
             }
             this
         }
 
-        Options excludeFieldByTypes(List<Class> clazzes){
+        Options excludeFieldByTypes(List<Class> clazzes) {
             excludedFieldTypes.addAll(clazzes)
             this
         }
 
-        Options registerTypeEncodingConverter(Class clazz, Closure converter){
-            typeEncodingConverters.put (clazz, converter)
+        Options registerTypeEncodingConverter(Class clazz, Closure converter) {
+            typeEncodingConverters.put(clazz, converter)
             this
         }
 
-        Options registerTypeDecodingConverter(Class clazz, Closure converter){
-            typeDecodingConverters.put (clazz, converter)
+        Options registerTypeDecodingConverter(Class clazz, Closure converter) {
+            typeDecodingConverters.put(clazz, converter)
             this
         }
 
-        JsonUtils build () {
+        JsonUtils build() {
             def generator = JsonUtils.newInstance(this)
             generator
         }
@@ -270,7 +274,8 @@ class JsonUtils {
      * use options.defaultClassLoader to load class and return new instance
      * if throws an execption returns a proxy Expando class
      */
-    private def getNewInstanceFromClass (clazz, Object[] args=null) {
+
+    private def getNewInstanceFromClass(clazz, Object[] args = null) {
         def clazzName, instance
         Class clazzRef
 
@@ -279,24 +284,23 @@ class JsonUtils {
         try {
             if (clazz instanceof Class) {
                 clazzName = (clazz as Class).getCanonicalName()
-            }
-            else
+            } else
                 clazzName = clazz.getClass().toString()
 
-            clazzRef = Class.forName(clazzName, true, options.defaultClassLoader )
+            clazzRef = Class.forName(clazzName, true, options.defaultClassLoader)
 
             Constructor<?>[] constructors = clazzRef.getConstructors()//clazz.getDeclaredConstructor()
-            for (constructor in constructors ) {
+            for (constructor in constructors) {
                 if (constructor.parameterCount == 0)
                     defaultConstructor = constructor
             }
             if (defaultConstructor) {
                 instance = defaultConstructor.newInstance() //try default constructor by preference
             } else {
-                if (isSimpleType(clazzRef) && isSimpleAttribute(args?[0])) {
+                if (isSimpleType(clazzRef) && isSimpleAttribute(args ?[0])) {
                     instance = clazzRef.newInstance(args)
                 } else {
-                    if (args?[0] !instanceof JsonObject)
+                    if (args ?[0] !instanceof JsonObject)
                         instance = clazzRef.newInstance(*args)  //try creating instance with provided args
                     else
                         throw new IllegalArgumentException("illegal argument format of Type JsonObject for constructor presented $args")
@@ -318,8 +322,9 @@ class JsonUtils {
      * use options.defaultClassLoader to load class and return the class
      * can throw an exception - todo should i catch it ?
      */
+
     @CompileStatic
-    private Class<?> getClassForName (String clazzName) {
+    private Class<?> getClassForName(String clazzName) {
         def clazz
         try {
             clazz = Class.forName(clazzName, true, options.getDefaultClassLoader())
@@ -331,7 +336,7 @@ class JsonUtils {
 
     //only want the real fields, and not getXXX property access methods
     @CompileStatic
-    private Map getDeclaredFields (pogo) {
+    private Map getDeclaredFields(pogo) {
         Class clazz
         if (pogo == Class)
             clazz = pogo
@@ -342,7 +347,7 @@ class JsonUtils {
 
         //get all the fields all way up hiererachy
         while (clazz) {
-            thisFields.addAll (clazz.declaredFields)
+            thisFields.addAll(clazz.declaredFields)
             clazz = clazz.getSuperclass()
         }
 
@@ -362,20 +367,20 @@ class JsonUtils {
             def staticField = Modifier.isStatic(f.modifiers)
             if (staticField && options.excludeStaticFields) //skip static fields
                 return
-            if(!synthetic) {
-                    def accessible = f.canAccess(pogo)
-                    if (!accessible)
-                        f.setAccessible(true)
-                    //check its not in excludes category before adding to list of props to encode
-                    if (isInExcludesCategory(f?.name, pogo.getClass())) {
-                        if (!accessible)
-                            f.setAccessible(accessible)  //reset to orig
-                        return
-                    }
-
-                    props.putAll( ["$f.name": f.get(pogo)])
+            if (!synthetic) {
+                def accessible = f.canAccess(pogo)
+                if (!accessible)
+                    f.setAccessible(true)
+                //check its not in excludes category before adding to list of props to encode
+                if (isInExcludesCategory(f?.name, pogo.getClass())) {
                     if (!accessible)
                         f.setAccessible(accessible)  //reset to orig
+                    return
+                }
+
+                props.putAll(["$f.name": f.get(pogo)])
+                if (!accessible)
+                    f.setAccessible(accessible)  //reset to orig
 
 
             }
@@ -385,7 +390,7 @@ class JsonUtils {
 
     //lookup through hierarchy for field with right name and return it
     @CompileStatic
-    private Field getField (pogo, String attName) {
+    private Field getField(pogo, String attName) {
         Class clazz
         if (pogo == Class)
             clazz = pogo
@@ -413,15 +418,16 @@ class JsonUtils {
      * by checking for the how the entity data type has been encoded.
      * returns false if it cant determine the encoding format
      */
+
     @CompileStatic
-    private boolean isJsonEncodedString (String json) {
+    private boolean isJsonEncodedString(String json) {
         //check for metadata first - if there its encoded json string
-        if (json.contains ('"softwoodEncoded"') || json.contains ('"tmfEncoded"') || json.contains ('"jsonApiEncoded"'))
+        if (json.contains('"softwoodEncoded"') || json.contains('"tmfEncoded"') || json.contains('"jsonApiEncoded"'))
             return true
         //look for entity definition string in format - bit weaker and could go wrong
-        else if (json.contains ('"entityData"') ||  //com.softwood
-                json.contains ('"@type"') ||        //tmf
-                json.contains ('"data"'))           //jsonApi
+        else if (json.contains('"entityData"') ||  //com.softwood
+                json.contains('"@type"') ||        //tmf
+                json.contains('"data"'))           //jsonApi
             return true
         else
             false
@@ -437,7 +443,7 @@ class JsonUtils {
      * @return decoded object
      */
     @CompileStatic
-    def toObject (def json, JsonEncodingStyle style = options.jsonStyle ) {
+    def toObject(def json, JsonEncodingStyle style = options.jsonStyle) {
         def clazz, jsonClass
         def instance
 
@@ -504,11 +510,11 @@ class JsonUtils {
             } else {
                 //todo try and figure out the implicit type
                 switch (style) {
-                    case JsonEncodingStyle.tmf :
+                    case JsonEncodingStyle.tmf:
                         typeString = (json as JsonObject).getValue('@type')
                         clazz = getClassForName(typeString)
                         break
-                    case JsonEncodingStyle.jsonApi :
+                    case JsonEncodingStyle.jsonApi:
                         typeString = (json as JsonObject).getValue('data')
                         clazz = getClassForName(typeString)
                         break
@@ -516,14 +522,14 @@ class JsonUtils {
                         typeString = (json as JsonObject).getValue('entityData')
                         clazz = getClassForName(typeString)
                         break
-                    default :
+                    default:
                         log.debug "cant detect implicit class type to decode into  for $json"
                         return null
                 }
             }
         }
 
-         toObject (clazz, json, style  )
+        toObject(clazz, json, style)
 
     }
     /*
@@ -534,19 +540,20 @@ class JsonUtils {
      * build a proxy using an Expando, where the proxiedClassName will hold the string name of the remote class
      * as encoded into the json
      */
-    @CompileStatic
-    def toObject (Class<?> clazz,json, JsonEncodingStyle style = options.jsonStyle) {
-        int level = iterLevel.get()
-        def  instance
 
-        iterLevel.set (++level)
+    @CompileStatic
+    def toObject(Class<?> clazz, json, JsonEncodingStyle style = options.jsonStyle) {
+        int level = iterLevel.get()
+        def instance
+
+        iterLevel.set(++level)
         if (clazz.isInterface()) {
             if (List.isAssignableFrom(clazz)) {
                 // is bit older, and ConcurrentLinkedQueue doesnt implement List as an interface use ArrayList
                 instance = new ArrayList<>()
             } else if (Deque.isAssignableFrom(clazz)) {
                 instance = new ConcurrentLinkedDeque<>() //can add/remove at front and back
-            }else if (Collection.isAssignableFrom(clazz)) { //otherwise if just a collection, queue, etc then use
+            } else if (Collection.isAssignableFrom(clazz)) { //otherwise if just a collection, queue, etc then use
                 instance = new ConcurrentLinkedQueue<>()
             } else if (Map.isAssignableFrom(clazz)) {
                 instance = new ConcurrentHashMap<>()
@@ -555,38 +562,35 @@ class JsonUtils {
                 return
             }
         } else {
-            if (clazz == LocalDateTime || clazz ==  LocalTime || clazz == LocalDate ) {
+            if (clazz == LocalDateTime || clazz == LocalTime || clazz == LocalDate) {
                 if (clazz.respondsTo('now')) {
                     instance = clazz.invokeMethod('now', null)
                 }
-           }
-            else
+            } else
                 instance = getNewInstanceFromClass(clazz, json)
         }
 
         if (isSimpleAttribute(json)) {
             // if strong contains an encoded json string - then try and parse it - bit of a weak test
-            if (json instanceof String ) {
+            if (json instanceof String) {
 
                 if (instance == null)
                     instance = getNewInstanceFromClass(clazz)
 
                 //try parse the json string back to json
                 def parsedJson
-                if (json.startsWith ('{')) {
+                if (json.startsWith('{')) {
                     parsedJson = new JsonObject(json)
                     decodeEntityToInstance(instance, parsedJson, style)
-                }
-                else if (json.startsWith('[')) {
+                } else if (json.startsWith('[')) {
                     parsedJson = new JsonArray(json)
                     decodeCollectionAttribute(instance, parsedJson, style)
                 }
 
-            }
-            else if (clazz == json.getClass()) {
+            } else if (clazz == json.getClass()) {
                 instance = json
             }
-         } else if (json instanceof JsonArray) {
+        } else if (json instanceof JsonArray) {
             // json passed represents an array of objects+JsonObjects
             switch (style) {
                 case JsonEncodingStyle.softwood:  //shouldn't get this as jsonArrays encoded as value of a key:'iterable' json object
@@ -600,16 +604,14 @@ class JsonUtils {
                     break
 
             }
-        }
-        else if (json instanceof JsonObject)  {
+        } else if (json instanceof JsonObject) {
             decodeEntityToInstance(instance, json, style)
+        } else {
+            iterLevel.set(--level)
+            throw new InvalidParameterException(message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
         }
-        else  {
-            iterLevel.set (--level)
-            throw new InvalidParameterException (message: "parameter should be of type JsonObject or JsonArray, found ${json.getClass()}")
-        }
-        iterLevel.set (--level)
-        if (iterLevel.get () == 0) {
+        iterLevel.set(--level)
+        if (iterLevel.get() == 0) {
             previouslyDecodedClassInstance.clear()
         }
         instance
@@ -620,7 +622,7 @@ class JsonUtils {
      * refactored this into its own method so that it be invoked from toObject if passed either a jsonString, or jsonObject
      */
     //@CompileStatic
-    private def decodeEntityToInstance (def instance, jsonEntity, JsonEncodingStyle style) {
+    private def decodeEntityToInstance(def instance, jsonEntity, JsonEncodingStyle style) {
         switch (style) {
             case JsonEncodingStyle.softwood:
                 if (jsonEntity['iterable']) {
@@ -798,12 +800,12 @@ class JsonUtils {
         instance
     }
 
-    private def decodeToProxyInstance (proxyClazzTypeName, jsonEntity, JsonEncodingStyle style) {
+    private def decodeToProxyInstance(proxyClazzTypeName, jsonEntity, JsonEncodingStyle style) {
         //encoded iterable entity element doesn't exist in current vm - build a proxy and add that
         println "class $proxyClazzTypeName not in current vm - build an expando proxy instead"
         Expando proxy = new Expando()
         proxy.isProxy = true
-        proxy.proxiedClassName =  proxyClazzTypeName
+        proxy.proxiedClassName = proxyClazzTypeName
 
         switch (style) {
             case JsonEncodingStyle.softwood:
@@ -816,7 +818,7 @@ class JsonUtils {
                     //only encode basic attributes - ignore lists and maps for proxy
                     def jsonValueObject = jsonAtt['value']['value']
                     if (isSimpleAttribute(jsonValueObject?.getClass()))
-                        proxy."${jsonAtt['key']}" =  jsonValueObject
+                        proxy."${jsonAtt['key']}" = jsonValueObject
                     else if (jsonValueObject['entityData']) {
                         def entity = jsonValueObject['entityData']
                         def entityType = entity['entityType']
@@ -836,23 +838,23 @@ class JsonUtils {
                     if (isSimpleAttribute(jsonAtt['value']?.getClass()))
                         proxy."${jsonAtt['key']}" = jsonAtt['value']
                     else if (jsonAtt['value']['@type']) {
-                        def decodedEntity  = decodeToProxyInstance (jsonAtt['value']['@type'], jsonAtt['value'], style)
+                        def decodedEntity = decodeToProxyInstance(jsonAtt['value']['@type'], jsonAtt['value'], style)
                         if (decodedEntity)
-                            proxy."${jsonAtt['key']}" =  decodedEntity
+                            proxy."${jsonAtt['key']}" = decodedEntity
                     }
                 }
 
                 break
         }
-        proxy.toString = {"Proxy'$proxiedClassName' (name:${this.name}) [id:${this.id}) "}
+        proxy.toString = { "Proxy'$proxiedClassName' (name:${this.name}) [id:${this.id}) " }
         proxy
 
     }
 
-    private def decodeSimpleAttribute (attType, attValue, JsonEncodingStyle style) {
+    private def decodeSimpleAttribute(attType, attValue, JsonEncodingStyle style) {
         switch (style) {
             case JsonEncodingStyle.softwood:
-                if (Number.isAssignableFrom (attType) || attType == Enum || attType == Boolean)
+                if (Number.isAssignableFrom(attType) || attType == Enum || attType == Boolean)
                     return attValue
                 else if (attType == String || attType == CharSequence)
                     return attValue
@@ -861,38 +863,34 @@ class JsonUtils {
                 else if (attType == Date) {
                     return LocalDateTime.parse(attValue).toDate()
                     //return  new SimpleDateFormat('EEE MMM dd HH:mm:ss Z yyyy').parse(attValue)
-                }
-                else if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
-                    return attType.parse (attValue)
-                }
-                else if (attType == URI) {
-                    return new URI (attValue)
-                }
-                else if (attType == URL) {
-                    return new URI (attValue)
-                }
-                else if (attType == UUID) {
-                    return UUID.fromString (attValue)
+                } else if (attType == LocalDateTime || attType == LocalDate || attType == LocalTime) {
+                    return attType.parse(attValue)
+                } else if (attType == URI) {
+                    return new URI(attValue)
+                } else if (attType == URL) {
+                    return new URI(attValue)
+                } else if (attType == UUID) {
+                    return UUID.fromString(attValue)
                 }
 
                 break
         }
     }
 
-    private def decodeFieldAttribute (instance, jsonAtt, JsonEncodingStyle style) {
+    private def decodeFieldAttribute(instance, jsonAtt, JsonEncodingStyle style) {
         switch (style) {
             case JsonEncodingStyle.softwood:
                 String attName = jsonAtt['key']
-                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                String camelCasedAttName = attName.substring(0, 1).toUpperCase() + attName.substring(1)
                 def attTypeName = jsonAtt['value']['type']
-                def attType = classForSimpleTypesLookup[ attTypeName ]
+                def attType = classForSimpleTypesLookup[attTypeName]
                 def attValue = jsonAtt['value']['value']
-                if (attType !=null && isSimpleAttribute(attType)) {
+                if (attType != null && isSimpleAttribute(attType)) {
                     //just set prop value in corresponding field in the instance
                     //test if respondsTo?...
                     boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
                     if (supports)
-                        //if setter exists for AttValue then use it
+                    //if setter exists for AttValue then use it
                         instance["$jsonAtt.key"] = attValue
                     else {
                         /*check to see if Class offers a converter */
@@ -912,7 +910,7 @@ class JsonUtils {
                         if (decodedInstance) {
                             //instance["$jsonAtt.key"] = decodedInstance
                             //call the setter
-                            instance."set${camelCasedAttName}" ( decodedInstance )
+                            instance."set${camelCasedAttName}"(decodedInstance)
                             instance
                         }
 
@@ -921,15 +919,15 @@ class JsonUtils {
                             Class clazz = getClassForName(clazzName)  //instance of subclass to build
                             def decodedInstance = toObject(clazz, attValue, style)
                             if (decodedInstance) {
-                                instance."set${camelCasedAttName}" ( decodedInstance)
+                                instance."set${camelCasedAttName}"(decodedInstance)
                                 instance
                             }
                         } catch (Throwable t) {
                             log.debug "exception in getClassForName([$clazzName]): " + t.message
                             def proxyInstance = decodeToProxyInstance(clazzName, attValue, style)
                             //todo - this will fail if variable is explicit type coded  - proxy is essentially an expando
-                            if (proxyInstance){
-                                instance."set${camelCasedAttName}" ( proxyInstance)
+                            if (proxyInstance) {
+                                instance."set${camelCasedAttName}"(proxyInstance)
                                 instance
                             }
 
@@ -946,19 +944,19 @@ class JsonUtils {
                     return   //if tmfEncoded meta header record detected, skip this attribute when decoding
                 if (attName.equalsIgnoreCase("@type"))
                     return   //skip this attribute when decoding
-                if (attName.equalsIgnoreCase ("href"))
+                if (attName.equalsIgnoreCase("href"))
                     return   //skip this attribute when decoding
-                if (attName.equalsIgnoreCase ("_links"))
+                if (attName.equalsIgnoreCase("_links"))
                     return   //skip this attribute when decoding
-                if (attName.equalsIgnoreCase ("_self"))
+                if (attName.equalsIgnoreCase("_self"))
                     return   //skip this attribute when decoding
 
-                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                String camelCasedAttName = attName.substring(0, 1).toUpperCase() + attName.substring(1)
                 def attValue = jsonAtt.getValue()
-                def simpleAttType = classForSimpleTypesLookup[ attValue.getClass().simpleName ]
+                def simpleAttType = classForSimpleTypesLookup[attValue.getClass().simpleName]
 
                 //if simple test for setter and use if present
-                Field field = getField (instance, attName)
+                Field field = getField(instance, attName)
                 if (simpleAttType != null && isSimpleAttribute(attValue)) {
                     boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
 
@@ -989,12 +987,12 @@ class JsonUtils {
                 if (attName == "type")
                     return   //skip this attribute when decoding
 
-                String camelCasedAttName = attName.substring (0,1).toUpperCase() + attName.substring (1)
+                String camelCasedAttName = attName.substring(0, 1).toUpperCase() + attName.substring(1)
                 def attValue = jsonAtt.getValue()
-                def simpleAttType = classForSimpleTypesLookup[ attValue.getClass().simpleName ]
+                def simpleAttType = classForSimpleTypesLookup[attValue.getClass().simpleName]
 
                 //if simple test for setter and use if present
-                Field field = getField (instance, attName)
+                Field field = getField(instance, attName)
                 if (simpleAttType != null && isSimpleAttribute(attValue)) {
                     boolean supports = instance.respondsTo("set$camelCasedAttName", attValue)
 
@@ -1023,11 +1021,11 @@ class JsonUtils {
 
     }
 
-    private def decodeCollectionAttribute (def instance, collectionAtt, JsonEncodingStyle style) {
-        switch (style ) {
+    private def decodeCollectionAttribute(def instance, collectionAtt, JsonEncodingStyle style) {
+        switch (style) {
             case JsonEncodingStyle.softwood:
                 //starting instance is a collection class
-                if (Collection.isAssignableFrom(instance.getClass()) ) {
+                if (Collection.isAssignableFrom(instance.getClass())) {
                     if (isSimpleAttribute(collectionAtt)) {
                         //we are building a list of items, decode the collctionAtt and add to 'instance' collection
                         instance.add collectionAtt
@@ -1036,15 +1034,15 @@ class JsonUtils {
                         //json attribute is an complex entity expression so decode and all to instance
                         String clazzName = collectionAtt['entityData']['entityType']
                         try {
-                            Class clazz = getClassForName (clazzName)
+                            Class clazz = getClassForName(clazzName)
                             def decodedEntity = toObject(clazz, collectionAtt, style)
                             if (decodedEntity)
-                                instance.add (decodedEntity)
+                                instance.add(decodedEntity)
                         } catch (Throwable t) {
                             //class not in local vm - build using a proxy
                             def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
                             if (decodedProxy)
-                                instance.add (decodedProxy)
+                                instance.add(decodedProxy)
                         }
                         return instance
 
@@ -1057,7 +1055,7 @@ class JsonUtils {
                 def iterableAttValue = collectionAtt['value']
 
                 //use reflection to get field type
-                Field field = instance.getClass().getDeclaredField ("$attName")
+                Field field = instance.getClass().getDeclaredField("$attName")
                 switch (field.type) {
                     case ArrayList:
                     case List:
@@ -1080,16 +1078,16 @@ class JsonUtils {
 
                 }
                 //def instCollAtt = instance["$attName"]
-                for (item in iterableAttValue ) {
+                for (item in iterableAttValue) {
                     def clazz, value, proxy, iterableInstance, entity, previouslyDecodedEntity, entityId, entityName
                     boolean isEntity = false, isPreviouslyEncoded = false
                     String clazzName
                     if (item instanceof JsonObject) {
                         //either a map object - or could be an encoded jsonObject as map
                         if (item['type']) {
-                            clazz = classForSimpleTypesLookup[ (item['type'])]
+                            clazz = classForSimpleTypesLookup[(item['type'])]
                             value = item['value']
-                        } else if (item['entityData'] ) {
+                        } else if (item['entityData']) {
                             entity = item['entityData']
                             entityId = entity['id']
                             entityName = entity['name']
@@ -1104,7 +1102,7 @@ class JsonUtils {
                         value = item
                     }
                     if (!isEntity && isSimpleAttribute(clazz))
-                        instance["$attName"].add (decodeSimpleAttribute(clazz, value, style) )
+                        instance["$attName"].add(decodeSimpleAttribute(clazz, value, style))
                     else {
                         if (isPreviouslyEncoded) {
                             previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId, entityName)
@@ -1130,7 +1128,7 @@ class JsonUtils {
                 break
             case JsonEncodingStyle.tmf:
                 def previouslyDecodedEntity
-                if (Collection.isAssignableFrom(instance.getClass()) ) {
+                if (Collection.isAssignableFrom(instance.getClass())) {
                     if (isSimpleAttribute(collectionAtt)) {
                         //we are building a list of items, decode the collectionAtt and add to 'instance' collection
                         instance.add collectionAtt
@@ -1141,22 +1139,21 @@ class JsonUtils {
                                 instance.add(item)
                             } else {
                                 def dec = decodeEntityToInstance(instance, item, style)
-                                instance.add (dec)
+                                instance.add(dec)
                             }
                         }
-                    }
-                    else if (collectionAtt['type']) {
+                    } else if (collectionAtt['type']) {
                         //found one of normal java types to encode
                         def attTypeName = collectionAtt['type']
                         def attValue = collectionAtt['value']
-                        def simpleAttType = classForSimpleTypesLookup[ attTypeName ]
+                        def simpleAttType = classForSimpleTypesLookup[attTypeName]
                         Closure decoder = classImplementsDecoderType(simpleAttType)
                         if (decoder) {
                             def decodedJsonValueToTypeInstance = decoder(attValue)
                             if (decodedJsonValueToTypeInstance)
-                                instance.add (decodedJsonValueToTypeInstance)
+                                instance.add(decodedJsonValueToTypeInstance)
                             else
-                                instance.add ("error: cant decode $attTypeName with value $attValue")
+                                instance.add("error: cant decode $attTypeName with value $attValue")
                         }
 
                     } else if (collectionAtt['@type']) {
@@ -1171,20 +1168,20 @@ class JsonUtils {
                                 test
                             }
                             if (previouslyDecodedEntity)
-                                instance.add (previouslyDecodedEntity)
+                                instance.add(previouslyDecodedEntity)
                         } else {
                             try {
                                 Class clazz = getClassForName(clazzName)
                                 def entity
-                                entity = toObject (clazz, collectionAtt, style)
+                                entity = toObject(clazz, collectionAtt, style)
 
-                                 if (entity)
+                                if (entity)
                                     instance.add(entity)
                             } catch (Throwable t) {
                                 //class not in local vm - build using a proxy
                                 def decodedProxy = decodeToProxyInstance(clazzName, collectionAtt, style)
                                 if (decodedProxy) {
-                                    previouslyDecodedClassInstance.add (decodedProxy) //add newly decoded entity
+                                    previouslyDecodedClassInstance.add(decodedProxy) //add newly decoded entity
 
                                     instance.add(decodedProxy)
                                 }
@@ -1201,14 +1198,14 @@ class JsonUtils {
     }
 
     //@CompileStatic
-    private def decodeMapAttribute (def instance, Map.Entry mapAtt, JsonEncodingStyle style) {
-        switch (style ) {
+    private def decodeMapAttribute(def instance, Map.Entry mapAtt, JsonEncodingStyle style) {
+        switch (style) {
             case JsonEncodingStyle.softwood:
                 String attName = mapAtt['key']
                 def attValue = mapAtt['value']
 
                 //check in case we are just building basic map,not an entity
-                if (Map.isAssignableFrom(instance.getClass()) ) {
+                if (Map.isAssignableFrom(instance.getClass())) {
                     if (isSimpleAttribute(attValue)) {
                         instance.put(attName, attValue)
                         return instance
@@ -1233,10 +1230,10 @@ class JsonUtils {
                 }
 
                 // else we should have received an entity as instance and building json mapEntries into entity
-                 def listOfMapEntries = mapAtt['value']['withMapEntries']
+                def listOfMapEntries = mapAtt['value']['withMapEntries']
 
                 //use reflection to get field type
-                Field field = instance.getClass().getDeclaredField ("$attName")
+                Field field = instance.getClass().getDeclaredField("$attName")
                 switch (field.type) {
                     case HashMap:
                         instance["$attName"] = new HashMap()
@@ -1247,7 +1244,7 @@ class JsonUtils {
                         break
                 }
                 def instMapAtt = instance["$attName"]
-                for (item in listOfMapEntries ) {
+                for (item in listOfMapEntries) {
                     def clazz, clazzName, value, key, mapInstance, proxy, entity, entityId, entityName, previouslyDecodedEntity, decodedMapValue
                     boolean isEntity = false, isPreviouslyEncoded = false
 
@@ -1255,7 +1252,7 @@ class JsonUtils {
                     if (isSimpleAttribute(item['value'].getClass())) {
                         value = item['value']
                         clazz = value.getClass()
-                    } else if (item['value']['entityData'] ) {
+                    } else if (item['value']['entityData']) {
                         entity = item['value']['entityData']
                         isEntity = true
                         clazzName = entity['entityType']
@@ -1267,13 +1264,12 @@ class JsonUtils {
 
                     if (!isEntity && isSimpleAttribute(clazz)) {
                         def decodedSimpleValue = decodeSimpleAttribute(clazz, value, style)
-                        instance["$attName"].put(key, decodedSimpleValue )
-                    }
-                    else {
+                        instance["$attName"].put(key, decodedSimpleValue)
+                    } else {
                         if (isPreviouslyEncoded) {
                             previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId)
                             if (previouslyDecodedEntity) {
-                                instance["$attName"].put(key, previouslyDecodedEntity )
+                                instance["$attName"].put(key, previouslyDecodedEntity)
                             }
                         } else {
                             try {
@@ -1298,7 +1294,7 @@ class JsonUtils {
                 def attValue = mapAtt['value']
 
                 if (isSimpleAttribute(attValue)) {
-                    instance.put (attName, attValue)
+                    instance.put(attName, attValue)
                 } else if (attValue['@type']) {
                     //value is itself a complex entity, decode entity value and store as value in map
                     def entity = attValue
@@ -1313,12 +1309,11 @@ class JsonUtils {
                     if (isSummarised) {
                         def summarisedProxyEntity = decodeToProxyInstance(clazzName, attValue, style)
                         if (summarisedProxyEntity)
-                            instance.put(attName,summarisedProxyEntity)
-                    }
-                    else if (isPreviouslyEncoded) {
+                            instance.put(attName, summarisedProxyEntity)
+                    } else if (isPreviouslyEncoded) {
                         previouslyDecodedEntity = findPreviouslyDecodedObjectMatch(clazzName, entityId, entityName)
                         if (previouslyDecodedEntity) {
-                            instance.put(attName, previouslyDecodedEntity )
+                            instance.put(attName, previouslyDecodedEntity)
                         }
 
                     } else {
@@ -1344,17 +1339,17 @@ class JsonUtils {
     }
 
     //entry point, wrapper method just invoke correct method based on default jsonStyle
-    def toJson (def pogo, String named= null, JsonEncodingStyle style = options.jsonStyle){
+    def toJson(def pogo, String named = null, JsonEncodingStyle style = options.jsonStyle) {
         def encodedResult
         switch (style) {
-            case JsonEncodingStyle.softwood :
+            case JsonEncodingStyle.softwood:
                 encodedResult = toSoftwoodJson(pogo, named)
                 break
-            case JsonEncodingStyle.tmf :
+            case JsonEncodingStyle.tmf:
                 encodedResult = toTmfJson(pogo, named)
                 break
-            case JsonEncodingStyle.jsonApi :
-                encodedResult = toJsonApi (pogo) //need extra attribute ?
+            case JsonEncodingStyle.jsonApi:
+                encodedResult = toJsonApi(pogo) //need extra attribute ?
                 break
 
         }
@@ -1364,8 +1359,9 @@ class JsonUtils {
     /*
      * take a pogo and encode to tmf json format, defaults to one layer of expansion of an object graph
      */
+
     @CompileStatic
-    def toTmfJson (def pogo, String named= null) {
+    def toTmfJson(def pogo, String named = null) {
         def json = new JsonObject()
 
         int level = iterLevel.get()
@@ -1377,44 +1373,42 @@ class JsonUtils {
             }
         }
 
-        iterLevel.set (++level)
+        iterLevel.set(++level)
         log.debug "toTmfJson - iteration level $level, for entity : $pogo"
 
-        if (pogo == null){
-            iterLevel.set (--level)
+        if (pogo == null) {
+            iterLevel.set(--level)
             return pogo
-        } else if (level > (options.expandLevels+1)) {
+        } else if (level > (options.expandLevels + 1)) {
             println "toTmfJson : exceeded encode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
             json = null     //too many levels drop out with null json
         } else if (isSimpleAttribute(pogo.getClass())) {
-            if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
+            if (named && isJsonStandardEncodableAttribute(pogo.getClass())) {
                 (json as JsonObject).put("$named".toString(), pogo)
             } else {
-                iterLevel.set (--level)
+                iterLevel.set(--level)
                 return encodeSimpleType(pogo, JsonEncodingStyle.tmf)
             }
-        } else if (Iterable.isAssignableFrom(pogo.getClass()) )
-                 if (named) {
-                     JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
-                     (json as JsonObject).put("$named".toString(), encIterable)
-                 }
-                 else {
-                     //if array just ignore any metadata if present and return the encoded array values
-                     JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
-                     json = encIterable
+        } else if (Iterable.isAssignableFrom(pogo.getClass()))
+            if (named) {
+                JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
+                (json as JsonObject).put("$named".toString(), encIterable)
+            } else {
+                //if array just ignore any metadata if present and return the encoded array values
+                JsonArray encIterable = encodeIterableType(pogo as Iterable, JsonEncodingStyle.tmf)
+                json = encIterable
 
-                 }
+            }
         else if (Map.isAssignableFrom(pogo.getClass()))
-                 if (named) {
-                     JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
-                     (json as JsonObject).put("$named".toString(), encMap )
-                 }
-                 else {
-                     //if map just ignore any metadata if present and return the encoded map values
-                     JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
-                     if (encMap)
-                         json = encMap
-                 }
+            if (named) {
+                JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
+                (json as JsonObject).put("$named".toString(), encMap)
+            } else {
+                //if map just ignore any metadata if present and return the encoded map values
+                JsonObject encMap = encodeMapType(pogo as Map, JsonEncodingStyle.tmf)
+                if (encMap)
+                    json = encMap
+            }
         else {
             String href, baseType = ''
 
@@ -1425,7 +1419,7 @@ class JsonUtils {
                         pogo as GroovyObject
                 )
                 baseType = tmfEntity.baseType()
-           }
+            }
 
             //json = new JsonObject()
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
@@ -1434,54 +1428,52 @@ class JsonUtils {
                 //JsonObject wrapper = new JsonObject()
                 JsonObject jsonObj = new JsonObject()
 
-                jsonObj.put ("isPreviouslyEncoded", true)
-                jsonObj.put ("@type", pogo.getClass().canonicalName)
+                jsonObj.put("isPreviouslyEncoded", true)
+                jsonObj.put("@type", pogo.getClass().canonicalName)
                 if (href) {
-                    jsonObj.put ("href", href)
+                    jsonObj.put("href", href)
                 }
-                if (pogo.hasProperty ("id")) {
+                if (pogo.hasProperty("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass())) {
                         Closure encoder = classImplementsEncoderType(id.getClass())
                         if (encoder)
-                            jsonObj.put("id", encoder (id))
+                            jsonObj.put("id", encoder(id))
                         else
-                            jsonObj.put ("id", id)
-                    }
-                    else
+                            jsonObj.put("id", id)
+                    } else
                         jsonObj.put("id", id.toString())
                 }
-                if (pogo.hasProperty ("name")) {
+                if (pogo.hasProperty("name")) {
                     def name = (pogo as GroovyObject).getProperty("name")
                     jsonObj.put("name", name)
                 }
-                jsonObj.put ("shortForm", pogo.toString())
+                jsonObj.put("shortForm", pogo.toString())
                 //wrapper.put ("entity", jsonObj)
-                iterLevel.set (--level)
+                iterLevel.set(--level)
                 return jsonObj // pogo.toString()
             } else {
                 //first time object to encode - process type, id, & name  first ...
                 JsonObject jsonObj = (json as JsonObject)
                 if (baseType != '')
-                    jsonObj.put ("@baseType", baseType)
-                jsonObj.put ("@type", pogo.getClass().canonicalName)
+                    jsonObj.put("@baseType", baseType)
+                jsonObj.put("@type", pogo.getClass().canonicalName)
 
                 if (href) {
-                    jsonObj.put ("href", href)
+                    jsonObj.put("href", href)
                 }
-                if (pogo.hasProperty ("id")) {
+                if (pogo.hasProperty("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass())) {
                         Closure encoder = classImplementsEncoderType(id.getClass())
                         if (encoder)
-                            jsonObj.put("id", encoder (id))
+                            jsonObj.put("id", encoder(id))
                         else
-                            jsonObj.put ("id", id)
-                    }
-                    else
+                            jsonObj.put("id", id)
+                    } else
                         jsonObj.put("id", id.toString())
                 }
-                if (pogo.hasProperty ("name")) {
+                if (pogo.hasProperty("name")) {
                     def name = (pogo as GroovyObject).getProperty("name")
                     jsonObj.put("name", name)
                 }
@@ -1492,18 +1484,18 @@ class JsonUtils {
             }
 
             //now process the object fields
-            Map props = getDeclaredFields (pogo)
+            Map props = getDeclaredFields(pogo)
 
             def jsonFields = new JsonObject()
             def jsonEntityReferences = new JsonObject()
 
-            for ( prop in props) {
+            for (prop in props) {
 
-                if (prop.value == null )    //skip if value is null
+                if (prop.value == null)    //skip if value is null
                     continue
 
                 if (Iterable.isAssignableFrom(prop.value.getClass())) {
-                    def arrayResult = encodeIterableType ( prop.value as Iterable , JsonEncodingStyle.tmf)
+                    def arrayResult = encodeIterableType(prop.value as Iterable, JsonEncodingStyle.tmf)
                     if (arrayResult) {
                         jsonFields.put(prop.key.toString(), arrayResult)
                     } else {
@@ -1511,7 +1503,7 @@ class JsonUtils {
                             jsonFields.putNull(prop.key.toString())
                     }
                 } else if (Map.isAssignableFrom(prop.value.getClass())) {
-                    def result = encodeMapType ( prop.value as Map, JsonEncodingStyle.tmf)
+                    def result = encodeMapType(prop.value as Map, JsonEncodingStyle.tmf)
                     if (result) {
                         jsonFields.put(prop.key.toString(), result)
                     } else {
@@ -1521,19 +1513,19 @@ class JsonUtils {
                 } else {
                     //must be an ordinary field
                     def field = encodeFieldType(prop, JsonEncodingStyle.tmf)
-                    if (field ) {
-                        jsonFields.put (prop.key.toString(), field )
-                   } else {
+                    if (field) {
+                        jsonFields.put(prop.key.toString(), field)
+                    } else {
                         if (!options.excludeNulls)
                             jsonFields.putNull(prop.key.toString())
 
                     }
                 }
-                (json as JsonObject).mergeIn (jsonFields as JsonObject, true)
+                (json as JsonObject).mergeIn(jsonFields as JsonObject, true)
             }
         }
 
-        iterLevel.set (--level)
+        iterLevel.set(--level)
         if (iterLevel.get() == 0) {
             classInstanceHasBeenEncodedOnce.clear()
         }
@@ -1549,7 +1541,7 @@ class JsonUtils {
      * @return
      */
     @CompileStatic
-    def toSoftwoodJson(def pogo, String named= null) {
+    def toSoftwoodJson(def pogo, String named = null) {
 
         def json = new JsonObject()
 
@@ -1562,34 +1554,32 @@ class JsonUtils {
             }
         }
 
-        iterLevel.set (++level)
+        iterLevel.set(++level)
 
-        if (pogo == null){
-            iterLevel.set (--level)
+        if (pogo == null) {
+            iterLevel.set(--level)
             return pogo
-        } else if (level > (options.expandLevels+1)) {
+        } else if (level > (options.expandLevels + 1)) {
             println "toSoftwoodJson : exceeded decode levels $level (>${options.expandLevels}), on pogo [$pogo] return null"
             json = null     //too many levels drop out with null json
-        }
-        else if (Iterable.isAssignableFrom(pogo.getClass()) )
+        } else if (Iterable.isAssignableFrom(pogo.getClass()))
             if (named) {
-                (json as JsonObject).put ("$named".toString(),  encodeIterableType(pogo as Iterable))
+                (json as JsonObject).put("$named".toString(), encodeIterableType(pogo as Iterable))
             } else
-                (json as JsonObject).put ("iterable",  encodeIterableType(pogo as Iterable))
+                (json as JsonObject).put("iterable", encodeIterableType(pogo as Iterable))
         else if (Map.isAssignableFrom(pogo.getClass()))
             if (named)
-                (json as JsonObject).put ("$named".toString(),  encodeMapType(pogo as Map))
+                (json as JsonObject).put("$named".toString(), encodeMapType(pogo as Map))
             else
-                (json as JsonObject).put ("map",  encodeMapType(pogo ))
-        else if ( isSimpleAttribute(pogo.getClass()) ){
-            if ( named && isJsonStandardEncodableAttribute(pogo.getClass()) ) {
+                (json as JsonObject).put("map", encodeMapType(pogo))
+        else if (isSimpleAttribute(pogo.getClass())) {
+            if (named && isJsonStandardEncodableAttribute(pogo.getClass())) {
                 (json as JsonObject).put("$named", pogo)
             } else {
-                iterLevel.set (--level)
+                iterLevel.set(--level)
                 return encodeSimpleType(pogo, JsonEncodingStyle.softwood)
             }
-        }
-        else {
+        } else {
             //json = new JsonObject()
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 //println "already encoded pogo $pogo so just put toString summary and stop recursing"
@@ -1597,22 +1587,22 @@ class JsonUtils {
                 JsonObject wrapper = new JsonObject()
                 JsonObject jsonObj = new JsonObject()
 
-                jsonObj.put ("entityType", pogo.getClass().canonicalName)
-                jsonObj.put ("isPreviouslyEncoded", true)
-                if (pogo.hasProperty ("id")) {
+                jsonObj.put("entityType", pogo.getClass().canonicalName)
+                jsonObj.put("isPreviouslyEncoded", true)
+                if (pogo.hasProperty("id")) {
                     def id = (pogo as GroovyObject).getProperty("id")
                     if (isSimpleAttribute(id.getClass()))
                         jsonObj.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood))
                     else
                         jsonObj.put("id", id.toString().toString())
                 }
-                if (pogo.hasProperty ("name")) {
+                if (pogo.hasProperty("name")) {
                     def name = (pogo as GroovyObject).getProperty("name")
                     jsonObj.put("name", name)
                 }
-                jsonObj.put ("shortForm", pogo.toString())
-                wrapper.put ("entityData", jsonObj)
-                iterLevel.set (--level)
+                jsonObj.put("shortForm", pogo.toString())
+                wrapper.put("entityData", jsonObj)
+                iterLevel.set(--level)
                 return wrapper // pogo.toString()
             }
 
@@ -1623,14 +1613,16 @@ class JsonUtils {
 
 
             //Map props = pogo.deviceProperties
-            Map props = getDeclaredFields (pogo)
-            def iterableFields = props.findAll { def clazz = it?.value?.getClass()
+            Map props = getDeclaredFields(pogo)
+            def iterableFields = props.findAll {
+                def clazz = it?.value?.getClass()
                 if (clazz)
                     Iterable.isAssignableFrom(clazz)
                 else
                     false
             }
-            def mapFields = props.findAll { def clazz = it?.value?.getClass()
+            def mapFields = props.findAll {
+                def clazz = it?.value?.getClass()
                 if (clazz)
                     Map.isAssignableFrom(clazz)
                 else
@@ -1645,45 +1637,45 @@ class JsonUtils {
             def jsonMaps = new JsonObject()
 
             for (prop in nonIterableFields) {
-                if (prop.value == null )
+                if (prop.value == null)
                     continue
 
                 def encodedField = encodeFieldType(prop, JsonEncodingStyle.softwood)
                 if (isSimpleAttribute(encodedField)) {
                     //simple things just generate the type and value
                     def wrapper = new JsonObject()
-                    wrapper.put ('type', prop['value'].getClass().simpleName)
-                    wrapper.put ('value', encodedField)
+                    wrapper.put('type', prop['value'].getClass().simpleName)
+                    wrapper.put('value', encodedField)
                     jsonAttributes.put(prop.key.toString(), wrapper)
 
                 } else {
                     def wrapper = new JsonObject()
                     def entity = (encodedField as JsonObject).getValue('entityData')
                     if (entity) {
-                        def entityType = (entity as JsonObject).getValue ('entityType')
+                        def entityType = (entity as JsonObject).getValue('entityType')
                         //complex entity - generate full entity value returned from encodeField type
-                        wrapper.put ('type', entityType ?: "null")
-                        wrapper.put ('value', encodedField)
-                        jsonAttributes.put (prop.key.toString(), wrapper )
+                        wrapper.put('type', entityType ?: "null")
+                        wrapper.put('value', encodedField)
+                        jsonAttributes.put(prop.key.toString(), wrapper)
                     }
 
                 }
             }
-            for (prop in iterableFields){
-                if (prop.value == null )
+            for (prop in iterableFields) {
+                if (prop.value == null)
                     continue
 
-                def arrayResult = encodeIterableType ( prop.value as Iterable, JsonEncodingStyle.softwood)
+                def arrayResult = encodeIterableType(prop.value as Iterable, JsonEncodingStyle.softwood)
                 if (arrayResult) {
                     //jsonFields.put(prop.key, arrayResult)
                     jsonCollections.put(prop.key.toString(), arrayResult)
                 }
             }
-            for (prop in mapFields){
-                if (prop.value == null )
+            for (prop in mapFields) {
+                if (prop.value == null)
                     continue
 
-                def result = encodeMapType ( prop.value as Map, JsonEncodingStyle.softwood)
+                def result = encodeMapType(prop.value as Map, JsonEncodingStyle.softwood)
                 if (result) {
                     jsonMaps.put(prop.key.toString(), result)
                 }
@@ -1693,18 +1685,18 @@ class JsonUtils {
             def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "<not defined>"
             def name = (pogo.hasProperty("name")) ? (pogo as GroovyObject).getProperty("name") : "<not defined>"
             def type = pogo.getClass().canonicalName
-            jsonFields.put ("entityType", type)
+            jsonFields.put("entityType", type)
             if (!isSimpleAttribute(pogo.getClass())) {
                 if (id != "<not defined>")
                     jsonFields.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood))
-                if (name != "<not defined>" )
+                if (name != "<not defined>")
                     jsonFields.put("name", name)
             }
-            jsonFields.put ("attributes", jsonAttributes)
-            if (options.excludeNulls == true ) {
-                if (jsonCollections.size() > 0 )
+            jsonFields.put("attributes", jsonAttributes)
+            if (options.excludeNulls == true) {
+                if (jsonCollections.size() > 0)
                     jsonFields.put("collectionAttributes", jsonCollections)
-                if (jsonMaps.size() > 0 )
+                if (jsonMaps.size() > 0)
                     jsonFields.put("mapAttributes", jsonMaps)
 
             } else {
@@ -1713,9 +1705,9 @@ class JsonUtils {
 
             }
 
-            (json as JsonObject).put ("entityData", jsonFields)
+            (json as JsonObject).put("entityData", jsonFields)
         }
-        iterLevel.set (--level)
+        iterLevel.set(--level)
         if (iterLevel.get() == 0) {
             classInstanceHasBeenEncodedOnce.clear()
         }
@@ -1723,15 +1715,15 @@ class JsonUtils {
 
     }
 
-    Closure getLinkNamingStrategy () {
+    Closure getLinkNamingStrategy() {
         options.linkNamingStrategy
     }
 
     @CompileStatic
-    def toJsonApi (def pogo, JsonArray includedArray = null) {
+    def toJsonApi(def pogo, JsonArray includedArray = null) {
 
         int level = iterLevel.get()
-        iterLevel.set (++level)
+        iterLevel.set(++level)
         JsonArray compoundDocumentIncludedArray
         def jsonApiEncoded = true
 
@@ -1740,21 +1732,21 @@ class JsonUtils {
         JsonObject jsonAttributes = new JsonObject()
         JsonObject jsonRelationships = new JsonObject()
 
-        if (iterLevel == 1 && options.compoundDocument){
+        if (iterLevel == 1 && options.compoundDocument) {
             compoundDocumentIncludedArray = new JsonArray()
             includedArray = compoundDocumentIncludedArray
         }
 
-        if (Iterable.isAssignableFrom(pogo.getClass()) )
-            jsonApiObject =  encodeIterableType( pogo as Iterable, JsonEncodingStyle.jsonApi)
+        if (Iterable.isAssignableFrom(pogo.getClass()))
+            jsonApiObject = encodeIterableType(pogo as Iterable, JsonEncodingStyle.jsonApi)
         else if (Map.isAssignableFrom(pogo.getClass()))
-            jsonApiObject =  encodeMapType ( pogo as Map, JsonEncodingStyle.jsonApi, includedArray )
+            jsonApiObject = encodeMapType(pogo as Map, JsonEncodingStyle.jsonApi, includedArray)
         else {
             def json = new JsonObject()
             if (classInstanceHasBeenEncodedOnce[(pogo)]) {
                 println "already encoded pogo $pogo so just stop recursing"
 
-                iterLevel.set (--level)
+                iterLevel.set(--level)
                 return
             }
 
@@ -1763,13 +1755,15 @@ class JsonUtils {
             }
 
             Map props = pogo.properties
-            def iterableFields = props.findAll { def clazz = it?.value?.getClass()
+            def iterableFields = props.findAll {
+                def clazz = it?.value?.getClass()
                 if (clazz)
                     Iterable.isAssignableFrom(clazz)
                 else
                     false
             }
-            def mapFields = props.findAll { def clazz = it?.value?.getClass()
+            def mapFields = props.findAll {
+                def clazz = it?.value?.getClass()
                 if (clazz)
                     Map.isAssignableFrom(clazz)
                 else
@@ -1782,7 +1776,7 @@ class JsonUtils {
             for (prop in nonIterableFields) {
 
                 def field = encodeFieldType(prop, JsonEncodingStyle.jsonApi, includedArray)
-                if (field ) {
+                if (field) {
                     //if field is itself a JsonObject add to relationhips
                     if (field instanceof JsonObject) {
                         def id = (prop.value.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id") : "unknown"
@@ -1800,25 +1794,24 @@ class JsonUtils {
                         if (options.optionalLinks) {
                             JsonObject links = new JsonObject()
                             Closure linkNames = this.getLinkNamingStrategy()
-                            links.put("self", linkNames ("parent", pogo.getClass(), (String)prop.key, "$id" ))
-                            links.put("related", linkNames ("related", pogo.getClass(), (String)prop.key, "$id" ))
+                            links.put("self", linkNames("parent", pogo.getClass(), (String) prop.key, "$id"))
+                            links.put("related", linkNames("related", pogo.getClass(), (String) prop.key, "$id"))
                             container.put("links", links)
                         }
                         container.put("data", data)
-                        jsonRelationships.put ((String)prop.key, container)
-                    }
-                    else
-                        //if basic field type - add to attributes
-                        jsonAttributes.put((String)prop.key, field)
+                        jsonRelationships.put((String) prop.key, container)
+                    } else
+                    //if basic field type - add to attributes
+                        jsonAttributes.put((String) prop.key, field)
                 }
 
             }
 
             //do list type relationships
-            for (prop in iterableFields){
-                def arrayResult = encodeIterableType ((Iterable)prop.value, JsonEncodingStyle.jsonApi, includedArray)
+            for (prop in iterableFields) {
+                def arrayResult = encodeIterableType((Iterable) prop.value, JsonEncodingStyle.jsonApi, includedArray)
                 if (arrayResult) {
-                    JsonObject container = new JsonObject ()
+                    JsonObject container = new JsonObject()
                     if (options.optionalLinks) {
                         //then we need to reference the links from parent pogo to its property we have just encoded
                         JsonObject links = new JsonObject()
@@ -1829,21 +1822,21 @@ class JsonUtils {
                         def idStr = "$id".toString()
                         Closure linkNames = this.getLinkNamingStrategy()
 
-                        links.put ("self", linkNames ("parent", pogo.getClass(), (String)prop.key, idStr))
-                        links.put ("related", linkNames ("related", pogo.getClass(), (String)prop.key, idStr))
+                        links.put("self", linkNames("parent", pogo.getClass(), (String) prop.key, idStr))
+                        links.put("related", linkNames("related", pogo.getClass(), (String) prop.key, idStr))
                         container.put("links", links)
                     }
                     container.put("data", arrayResult)
-                    jsonRelationships.put ("$prop.key", container)
+                    jsonRelationships.put("$prop.key", container)
                 }
             }
 
             //do map type relationships
-            for (prop in mapFields){
+            for (prop in mapFields) {
                 //prop is mapEntry to key = attribute name, and value is the real map
-                def arrayResult = encodeMapType ((prop.value as Map), JsonEncodingStyle.jsonApi, includedArray)
+                def arrayResult = encodeMapType((prop.value as Map), JsonEncodingStyle.jsonApi, includedArray)
                 if (arrayResult) {
-                    JsonObject container = new JsonObject ()
+                    JsonObject container = new JsonObject()
                     if (options.optionalLinks) {
                         JsonObject links = new JsonObject()
                         def id = (pogo.hasProperty("id")) ? (pogo as GroovyObject).getProperty("id").toString() : "unknown"
@@ -1853,12 +1846,12 @@ class JsonUtils {
                         def idStr = "$id".toString()
                         Closure linkNames = this.getLinkNamingStrategy()
 
-                        links.put ("self", linkNames ("parent", pogo.getClass(), (String)prop.key, idStr))
-                        links.put ("related", linkNames ("related", pogo.getClass(), (String)prop.key, idStr))
+                        links.put("self", linkNames("parent", pogo.getClass(), (String) prop.key, idStr))
+                        links.put("related", linkNames("related", pogo.getClass(), (String) prop.key, idStr))
                         container.put("links", links)
                     }
                     container.put("data", arrayResult)
-                    jsonRelationships.put ("$prop.key", container)
+                    jsonRelationships.put("$prop.key", container)
                 }
             }
 
@@ -1868,7 +1861,7 @@ class JsonUtils {
                     //ensures we dont encode object as well as put in included section
                     JsonObject container = new JsonObject()
 
-                    String type  = pogo.getClass().simpleName
+                    String type = pogo.getClass().simpleName
                     String id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id") : "1"
                     container.put("type", type)
                     container.put("id", id)
@@ -1879,7 +1872,7 @@ class JsonUtils {
                     if (options.optionalLinks) {
                         JsonObject links = new JsonObject()
                         Closure linkNames = getLinkNamingStrategy()
-                        links.put("self", linkNames ("self", pogo.getClass(), "", id ))
+                        links.put("self", linkNames("self", pogo.getClass(), "", id))
                         container.put("links", links)
                     }
 
@@ -1891,41 +1884,41 @@ class JsonUtils {
 
         //for non sub level object
         if (iterLevel.get() > 1) {
-            if (jsonRelationships && jsonRelationships.size() >0)
+            if (jsonRelationships && jsonRelationships.size() > 0)
                 (jsonApiObject as JsonObject).put("relationships", jsonRelationships)
 
         }
 
-        iterLevel.set (--level)
+        iterLevel.set(--level)
         if (iterLevel.get() == 0) {
             //format the final document to back to the client
             JsonObject container = new JsonObject()
-            JsonObject version = new JsonObject ()
-            version.put ("version", "1.0")
+            JsonObject version = new JsonObject()
+            version.put("version", "1.0")
             if (options.includeVersion)
-                container.put ("jsonapi", version)
+                container.put("jsonapi", version)
             String type = pogo.getClass().canonicalName
-            def  id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id") : "unknown"
-            def  altId = pogo.hasProperty("name") ? (pogo as GroovyObject)?.getProperty("name") : "unknown"
+            def id = pogo.hasProperty("id") ? (pogo as GroovyObject)?.getProperty("id") : "unknown"
+            def altId = pogo.hasProperty("name") ? (pogo as GroovyObject)?.getProperty("name") : "unknown"
             if (id == "unknown && altid != unknown")
                 id = altId
             container.put("type", type)
             if (isSimpleAttribute(id))
-                container.put("id", id )
+                container.put("id", id)
             else
                 container.put("id", id.toString())
             if (jsonAttributes && jsonAttributes.size() != 0)
                 container.put("attributes", jsonAttributes)
             if (options.optionalLinks) {
-                JsonObject links = new JsonObject ()
+                JsonObject links = new JsonObject()
                 Closure linkNames = options.getLinkNamingStrategy()
-                links.put ("self", linkNames ("self", pogo.getClass(), "", "$id"))
-                container.put ("links", links)
+                links.put("self", linkNames("self", pogo.getClass(), "", "$id"))
+                container.put("links", links)
             }
             if (jsonRelationships && jsonRelationships.size() != 0)
                 container.put("relationships", jsonRelationships)
             if (options.compoundDocument) {
-                 container.put ("included", compoundDocumentIncludedArray)
+                container.put("included", compoundDocumentIncludedArray)
             }
             (jsonApiObject as JsonObject).put("data", container)
 
@@ -1936,7 +1929,7 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private def encodeSimpleType (value, style) {
+    private def encodeSimpleType(value, style) {
         JsonObject json = new JsonObject()
 
         if (value instanceof Number)
@@ -1952,21 +1945,18 @@ class JsonUtils {
         else if (value instanceof Enum)
             return value
         else if (value instanceof Date) { //date, Time, Timestamp
-            json.put ("type", value.getClass().simpleName)
+            json.put("type", value.getClass().simpleName)
             //json.put ("value", value.toString()) - looses precision digits of time
-            json.put ("value", value.toLocalDateTime().toString()) //encode using modern LDT format
-        }
-        else if (value instanceof LocalDateTime || value instanceof LocalDate || value instanceof LocalTime) {
-            json.put ("type", value.getClass().simpleName)
-            json.put ("value", value.toString())
-        }
-        else if (value instanceof URL || value instanceof URI) {
-            json.put ("type", value.getClass().simpleName)
-            json.put ("value", value.toString())
-        }
-        else if (value instanceof UUID ) {
-            json.put ("type", value.getClass().simpleName)
-            json.put ("value", value.toString())
+            json.put("value", value.toLocalDateTime().toString()) //encode using modern LDT format
+        } else if (value instanceof LocalDateTime || value instanceof LocalDate || value instanceof LocalTime) {
+            json.put("type", value.getClass().simpleName)
+            json.put("value", value.toString())
+        } else if (value instanceof URL || value instanceof URI) {
+            json.put("type", value.getClass().simpleName)
+            json.put("value", value.toString())
+        } else if (value instanceof UUID) {
+            json.put("type", value.getClass().simpleName)
+            json.put("value", value.toString())
         } else {
             json.put("type", value.getClass().simpleName)
             json.put("unrecognised simple type", true)
@@ -1977,7 +1967,7 @@ class JsonUtils {
 
 
     @CompileStatic
-    private def encodeFieldType (Map.Entry prop, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray = null) {
+    private def encodeFieldType(Map.Entry prop, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray = null) {
         def json = new JsonObject()
         Closure converter
 
@@ -1985,54 +1975,49 @@ class JsonUtils {
             if (options.excludeNulls == true)
                 return
             else
-                return json.putNull((String)prop.key)
-        }
-        else if (prop.value instanceof Class && options.excludedFieldTypes.contains(prop.value))
+                return json.putNull((String) prop.key)
+        } else if (prop.value instanceof Class && options.excludedFieldTypes.contains(prop.value))
             return
-        else if (options.excludedFieldNames.contains (prop.key) )
+        else if (options.excludedFieldNames.contains(prop.key))
             return
-        else if ( (converter = classImplementsEncoderType (prop.value.getClass())) ) {
+        else if ((converter = classImplementsEncoderType(prop.value.getClass()))) {
             converter.delegate = prop.value
             return converter(prop.value)
-        }
-        else if (prop.value.getClass() == Optional ) {
+        } else if (prop.value.getClass() == Optional) {
             def value
             def result
             if ((prop.value as Optional).isPresent()) {
                 value = (prop.value as Optional).get()
-                Closure valueConverter = options.typeEncodingConverters.get (prop.value.getClass())
+                Closure valueConverter = options.typeEncodingConverters.get(prop.value.getClass())
                 if (valueConverter)
-                    result = valueConverter (value)  //will break for unsupported types
+                    result = valueConverter(value)  //will break for unsupported types
                 else
                     result = prop.value
             }
             return result
-        }
-        else if (prop.value.respondsTo("toSoftwoodJson")) {
+        } else if (prop.value.respondsTo("toSoftwoodJson")) {
             //type already has existing method to get JsonObject so use this
-            println "prop '${prop?.key}', with type '${prop?.value?.getClass()}' supports toSoftwoodJson(), prop.value methods " + prop.value?.metaClass?.methods.collect {it.name}
+            println "prop '${prop?.key}', with type '${prop?.value?.getClass()}' supports toSoftwoodJson(), prop.value methods " + prop.value?.metaClass?.methods.collect { it.name }
 
             def retJson = prop.value.invokeMethod("toSoftwoodJson", null)
             return retJson
-        }
-        else if (prop.key == "class" && prop.value instanceof Class ) {
+        } else if (prop.key == "class" && prop.value instanceof Class) {
             def name
             if (!options.excludeClass) {
                 name = (prop.value as Class).canonicalName
             }
             return name
-        } else if (prop.value instanceof Enum ) {
+        } else if (prop.value instanceof Enum) {
             return prop.value.toString()
-        }
-        else {
-            if (jsonEncodableStandardTypes.contains (prop.value.getClass())) {
+        } else {
+            if (jsonEncodableStandardTypes.contains(prop.value.getClass())) {
                 return prop.value
             } else {
                 def jsonEncClass
 
                 if (!options.summaryEnabled) {
                     switch (style) {
-                        case JsonEncodingStyle.softwood :
+                        case JsonEncodingStyle.softwood:
                             //recursive call to expand on this object
                             if (iterLevel.get() <= options.expandLevels)
                                 jsonEncClass = this?.toSoftwoodJson(prop.value)
@@ -2040,23 +2025,23 @@ class JsonUtils {
                                 //println "iter level $iterLevel exeeded default $options.expandLevels, just provide summary encoding for object   "
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
-                                    JsonObject previouslyEncodedObject  = new JsonObject()
+                                    JsonObject previouslyEncodedObject = new JsonObject()
                                     wrapper.put("entityType", prop.value.getClass().canonicalName)
-                                    wrapper.put ("isPreviouslyEncoded", true)
-                                    if (prop?.value.hasProperty ("id")) {
+                                    wrapper.put("isPreviouslyEncoded", true)
+                                    if (prop?.value.hasProperty("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
-                                            wrapper.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood) )
+                                            wrapper.put("id", encodeSimpleType(id, JsonEncodingStyle.softwood))
                                         else
                                             wrapper.put("id", id.toString().toString())
                                     }
-                                    if (prop?.value?.hasProperty ("name")) {
+                                    if (prop?.value?.hasProperty("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
 
-                                    wrapper.put ("shortForm", prop.value.toString())
-                                    previouslyEncodedObject.put ('entityData', wrapper)
+                                    wrapper.put("shortForm", prop.value.toString())
+                                    previouslyEncodedObject.put('entityData', wrapper)
                                     return previouslyEncodedObject
 
                                 } else {
@@ -2064,7 +2049,7 @@ class JsonUtils {
                                     JsonObject summarisedObject = new JsonObject()
                                     wrapper.put("entityType", prop.value.getClass().canonicalName)
                                     wrapper.put("isSummarised", true)
-                                    if (prop?.value.hasProperty ("id")) {
+                                    if (prop?.value.hasProperty("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
                                             wrapper.put("id", encodeSimpleType(id, style))
@@ -2072,13 +2057,13 @@ class JsonUtils {
                                             wrapper.put("id", id.toString().toString())
 
                                     }
-                                    if (prop?.value.hasProperty ("name")) {
+                                    if (prop?.value.hasProperty("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
 
                                     wrapper.put("shortForm", prop.value.toString())
-                                    summarisedObject.put ('entityData', wrapper)
+                                    summarisedObject.put('entityData', wrapper)
                                     return summarisedObject
                                 }
                             }
@@ -2086,7 +2071,7 @@ class JsonUtils {
                         case JsonEncodingStyle.jsonApi:
                             jsonEncClass = this?.toJsonApi(prop.value, includedArray)
                             break
-                        case JsonEncodingStyle.tmf :
+                        case JsonEncodingStyle.tmf:
                             //recursive call to expand on this object
                             if (iterLevel.get() <= options.expandLevels)
                                 jsonEncClass = this?.toTmfJson(prop.value)
@@ -2095,13 +2080,13 @@ class JsonUtils {
                                 //check first if object has already been encoded, if so make declare it
                                 JsonObject wrapper = new JsonObject()
                                 if (classInstanceHasBeenEncodedOnce.get(prop.value)) {
-                                    wrapper.put ("isPreviouslyEncoded", true)
+                                    wrapper.put("isPreviouslyEncoded", true)
                                     wrapper.put("@type", prop.value.getClass().canonicalName)
                                     if (tmfEntity) {
                                         def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                         wrapper.put("href", href)
                                     }
-                                    if (prop?.value.hasProperty ("id")) {
+                                    if (prop?.value.hasProperty("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
                                             wrapper.put("id", id)
@@ -2109,11 +2094,11 @@ class JsonUtils {
                                             wrapper.put("id", id.toString().toString())
 
                                     }
-                                    if (prop?.value.hasProperty ("name")) {
+                                    if (prop?.value.hasProperty("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
-                                    wrapper.put ("shortForm", prop.value.toString())
+                                    wrapper.put("shortForm", prop.value.toString())
 
                                 } else {
 
@@ -2124,7 +2109,7 @@ class JsonUtils {
                                         def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                         wrapper.put("href", href)
                                     }
-                                    if (prop?.value.hasProperty ("id")) {
+                                    if (prop?.value.hasProperty("id")) {
                                         def id = (prop.value as GroovyObject).getProperty("id")
                                         if (isSimpleAttribute(id.getClass()))
                                             wrapper.put("id", id)
@@ -2132,7 +2117,7 @@ class JsonUtils {
                                             wrapper.put("id", id.toString().toString())
 
                                     }
-                                    if (prop?.value.hasProperty ("name")) {
+                                    if (prop?.value.hasProperty("name")) {
                                         def name = (prop.value as GroovyObject).getProperty("name")
                                         wrapper.put("name", name)
                                     }
@@ -2146,16 +2131,16 @@ class JsonUtils {
 
                     if (jsonEncClass)
                         return jsonEncClass
-                }else {
+                } else {
                     //if summaryEnabled just put the field and toString form
                     switch (style) {
                         case JsonEncodingStyle.softwood:
                             if (options.excludeClass == false) {
-                                JsonObject previouslyEncodedObject  = new JsonObject()
-                                def wrapper = new JsonObject ()
+                                JsonObject previouslyEncodedObject = new JsonObject()
+                                def wrapper = new JsonObject()
                                 wrapper.put("entityType", prop.value.getClass().canonicalName)
-                                wrapper.put ("isSummarised" , true )
-                                if (prop?.value.hasProperty ("id")) {
+                                wrapper.put("isSummarised", true)
+                                if (prop?.value.hasProperty("id")) {
                                     def id = (prop.value as GroovyObject).getProperty("id")
                                     if (isSimpleAttribute(id.getClass()))
                                         wrapper.put("id", id)
@@ -2163,23 +2148,23 @@ class JsonUtils {
                                         wrapper.put("id", id.toString().toString())
 
                                 }
-                                if (prop.value.hasProperty ("name")) {
+                                if (prop.value.hasProperty("name")) {
                                     def name = (prop.value as GroovyObject).getProperty("name")
                                     wrapper.put("name", name)
                                 }
 
-                                wrapper.put ("shortForm", prop.value.toString())
-                                previouslyEncodedObject.put ('entityData', wrapper )
+                                wrapper.put("shortForm", prop.value.toString())
+                                previouslyEncodedObject.put('entityData', wrapper)
                                 return previouslyEncodedObject
                             } else
                                 return prop.value.toString()
 
                         case JsonEncodingStyle.jsonApi:
                             if (options.excludeClass == false) {
-                                def wrapper = new JsonObject ()
+                                def wrapper = new JsonObject()
                                 wrapper.put("entityType", prop.value.getClass().canonicalName)
-                                wrapper.put ("isSummarised" , true )
-                                if (prop?.value.hasProperty ("id")) {
+                                wrapper.put("isSummarised", true)
+                                if (prop?.value.hasProperty("id")) {
                                     def id = (prop.value as GroovyObject).getProperty("id")
                                     if (isSimpleAttribute(id.getClass()))
                                         wrapper.put("id", id)
@@ -2187,29 +2172,29 @@ class JsonUtils {
                                         wrapper.put("id", id.toString().toString())
 
                                 }
-                                if (prop.value.hasProperty ("name")) {
+                                if (prop.value.hasProperty("name")) {
                                     def name = (prop.value as GroovyObject).getProperty("name")
                                     wrapper.put("name", name)
                                 }
 
-                                wrapper.put ("shortForm", prop.value.toString())
+                                wrapper.put("shortForm", prop.value.toString())
                                 return wrapper
                             } else
                                 return prop.value.toString()
 
 
-                        case JsonEncodingStyle.tmf :
+                        case JsonEncodingStyle.tmf:
                             if (options.excludeClass == false) {
                                 Annotation tmfEntity = prop.value.getClass().getAnnotation(TmfEntity)
 
-                                def wrapper = new JsonObject ()
-                                wrapper.put ("isSummarised" , true )
+                                def wrapper = new JsonObject()
+                                wrapper.put("isSummarised", true)
                                 wrapper.put("@type", prop.value.getClass().canonicalName)
                                 if (tmfEntity) {
                                     def href = generateHref(tmfEntity.apiName(), tmfEntity.version(), prop as GroovyObject)
                                     wrapper.put("href", href)
                                 }
-                                if (prop?.value.hasProperty ("id")) {
+                                if (prop?.value.hasProperty("id")) {
                                     def id = (prop.value as GroovyObject).getProperty("id")
                                     if (isSimpleAttribute(id.getClass()))
                                         wrapper.put("id", id)
@@ -2217,12 +2202,12 @@ class JsonUtils {
                                         wrapper.put("id", id.toString().toString())
 
                                 }
-                                if (prop.value.hasProperty ("name")) {
+                                if (prop.value.hasProperty("name")) {
                                     def name = (prop.value as GroovyObject).getProperty("name")
                                     wrapper.put("name", name)
                                 }
 
-                                wrapper.put ("shortForm", prop.value.toString())
+                                wrapper.put("shortForm", prop.value.toString())
                                 return wrapper
                             } else
                                 return prop.value.toString()
@@ -2237,9 +2222,9 @@ class JsonUtils {
 
 
     //@CompileStatic
-    private JsonArray encodeIterableType (Iterable iterable, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray=null) {
+    private JsonArray encodeIterableType(Iterable iterable, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray = null) {
         JsonObject json = new JsonObject()
-        JsonArray jList = new JsonArray ()
+        JsonArray jList = new JsonArray()
 
 
         /* List || instanceof Queue || Map.Entry from any entrySet iterator )*/
@@ -2250,12 +2235,12 @@ class JsonUtils {
             }
 
             iterable.each {
-                if (jsonEncodableStandardTypes.contains (it.getClass())) {
-                    jList.add (it)
+                if (jsonEncodableStandardTypes.contains(it.getClass())) {
+                    jList.add(it)
                 } else {
                     def jItem
                     switch (style) {
-                        case JsonEncodingStyle.jsonApi :
+                        case JsonEncodingStyle.jsonApi:
                             def id, altId, type
                             def pogo
                             pogo = it
@@ -2266,26 +2251,26 @@ class JsonUtils {
                             type = it.getClass().canonicalName
 
                             jItem = new JsonObject()
-                            jItem.put ("type", type)
+                            jItem.put("type", type)
                             if (isSimpleAttribute(id))
-                                jItem.put ("id", id)
+                                jItem.put("id", id)
                             else
-                                jItem.put ("id", id.toString())
+                                jItem.put("id", id.toString())
 
                             if (options.compoundDocument) {
                                 //encode each iterable object, which will add and compoundDoc 'included' entries
-                                def  encodedClassInstance = toJsonApi (it, includedArray )
+                                def encodedClassInstance = toJsonApi(it, includedArray)
                             }
 
                             break
-                        case JsonEncodingStyle.softwood :
+                        case JsonEncodingStyle.softwood:
                             jItem = this.toSoftwoodJson(it)
                             break
-                        case JsonEncodingStyle.tmf :
+                        case JsonEncodingStyle.tmf:
                             jItem = this.toTmfJson(it)
 
                             break
-                        default :
+                        default:
                             if (jItem)
                                 jList.add(jItem)
                             break
@@ -2301,10 +2286,10 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private JsonObject encodeMapType (map, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray=null) {
-        JsonArray mapEntries = new JsonArray ()
-        JsonObject entry = new JsonObject ()
-        JsonObject encMapEntries = new JsonObject ()
+    private JsonObject encodeMapType(map, JsonEncodingStyle style = JsonEncodingStyle.softwood, JsonArray includedArray = null) {
+        JsonArray mapEntries = new JsonArray()
+        JsonObject entry = new JsonObject()
+        JsonObject encMapEntries = new JsonObject()
         boolean isSimpleKey = true  //default position, normally a string
 
         /* Map */
@@ -2314,7 +2299,7 @@ class JsonUtils {
 
             }
 
-            map.each {Map.Entry it ->
+            map.each { Map.Entry it ->
                 JsonObject json = new JsonObject()
 
                 //the key in a map might be a complex object - if so we need an encoded summary for json entry
@@ -2326,9 +2311,9 @@ class JsonUtils {
                     def entityRef = it.key
                     isSimpleKey = false
 
-                    JsonObject keyWrapper = new JsonObject ()
+                    JsonObject keyWrapper = new JsonObject()
 
-                    if (classInstanceHasBeenEncodedOnce [(entityRef)] ) {
+                    if (classInstanceHasBeenEncodedOnce[(entityRef)]) {
                         switch (style) {
                             case JsonEncodingStyle.softwood:
                                 //println "already encoded pogo $pogo so just put toString summary "
@@ -2337,9 +2322,9 @@ class JsonUtils {
                                 if (entityRef.hasProperty("id"))
                                     keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
                                 keyWrapper.put("shortForm", entityRef.toString())
-                                JsonObject mapEntityKey = new JsonObject ()
-                                mapEntityKey.put ("entityData", keyWrapper)
-                                encodedKey =  mapEntityKey
+                                JsonObject mapEntityKey = new JsonObject()
+                                mapEntityKey.put("entityData", keyWrapper)
+                                encodedKey = mapEntityKey
                                 break
 
                             case JsonEncodingStyle.jsonApi:
@@ -2348,12 +2333,12 @@ class JsonUtils {
                                 break
 
                             case JsonEncodingStyle.tmf:
-                                keyWrapper.put ("isPreviouslyEncoded", true)
-                                if (entityRef.hasProperty ("id")) {
+                                keyWrapper.put("isPreviouslyEncoded", true)
+                                if (entityRef.hasProperty("id")) {
                                     keyWrapper.put("@type", entityRef.getClass().canonicalName)
                                     keyWrapper.put("id", (entityRef as GroovyObject).getProperty("id").toString())
                                 }
-                                keyWrapper.put ("shortForm", entityRef.toString())
+                                keyWrapper.put("shortForm", entityRef.toString())
                                 encodedKey = keyWrapper
 
                                 break
@@ -2395,7 +2380,7 @@ class JsonUtils {
                 }
 
 
-                if (jsonEncodableStandardTypes.contains (it.value.getClass())) {
+                if (jsonEncodableStandardTypes.contains(it.value.getClass())) {
                     //value is simple value, just write key and value
                     switch (style) {
                         case JsonEncodingStyle.softwood:
@@ -2414,10 +2399,10 @@ class JsonUtils {
                         case JsonEncodingStyle.tmf:
                             if (isSimpleKey) {
                                 encMapEntries.put(encodedKey as String, it.value)
-                            } else  {
+                            } else {
                                 //encMapEntries.put ((encodedKey as JsonObject).encode(), it.value)
                                 //looks weird so just use toString as 'key' entry
-                                encMapEntries.put (it.key.toString(), it.value )
+                                encMapEntries.put(it.key.toString(), it.value)
                             }
                             break
                     }
@@ -2430,13 +2415,13 @@ class JsonUtils {
                         case JsonEncodingStyle.softwood:
                             jItem = this.toSoftwoodJson(it.value)
                             if (jItem) {
-                                json = new JsonObject ()
+                                json = new JsonObject()
                                 if (isSimpleKey)
-                                    json.put ("key", encodedKey as String)
+                                    json.put("key", encodedKey as String)
                                 else
-                                    json.put ("key", encodedKey as JsonObject)
-                                json.put ("value", jItem )
-                                mapEntries.add (json)
+                                    json.put("key", encodedKey as JsonObject)
+                                json.put("value", jItem)
+                                mapEntries.add(json)
                             }
 
                             break
@@ -2445,16 +2430,16 @@ class JsonUtils {
                             def pogo
 
                             //in json api the entries in array get encoded as rows of 'data':
-                            id = (it.value.hasProperty ("id")) ? (it.value as GroovyObject).getProperty("id") : "tba"
+                            id = (it.value.hasProperty("id")) ? (it.value as GroovyObject).getProperty("id") : "tba"
                             type = it.value.getClass().canonicalName
                             jItem = new JsonObject()
-                            jItem.put ("type", type)
-                            jItem.put ("id", id)
+                            jItem.put("type", type)
+                            jItem.put("id", id)
 
                             //todo not guard enough? - breaks out to toJsonApi
                             if (options.compoundDocument) {
                                 //double derefence to object if from map attribute
-                                def encodedClassInstance = toJsonApi (it.value, includedArray )
+                                def encodedClassInstance = toJsonApi(it.value, includedArray)
                             }
 
                             break
@@ -2462,7 +2447,7 @@ class JsonUtils {
                             jItem = this.toTmfJson(it.value)
                             if (jItem) {
                                 //just add each key, value to encodedMapEntries
-                                encMapEntries.put (encodedKey.toString(), jItem)
+                                encMapEntries.put(encodedKey.toString(), jItem)
                             }
                             break
                     }
@@ -2480,7 +2465,7 @@ class JsonUtils {
                 case JsonEncodingStyle.tmf:
                     //was directly writing each kay/value pair to encmapEntries - just return it
                     break
-                }
+            }
 
             return encMapEntries
 
@@ -2491,16 +2476,16 @@ class JsonUtils {
      * looks for first match in previouslyDecodeClassInstance List, uses class name as string, and entity id
      * as match fields.  in case of proxy looks matches on proxiedClassName and id
      */
-    private def findPreviouslyDecodedObjectMatch (String clazzName,  entityId, String entityName = null) {
+
+    private def findPreviouslyDecodedObjectMatch(String clazzName, entityId, String entityName = null) {
 
         //first check for concrete classes and check if they have been decoded
         def previouslyDecodedEntity = previouslyDecodedClassInstance.find {
             def test
-            if (entityId == null && entityName != null ) {
+            if (entityId == null && entityName != null) {
                 //weak test, type and name only
                 test = (it.getClass().canonicalName == clazzName && it?.name?.toString() == entityName.toString())
-            }
-            else {
+            } else {
                 //strong test using id
                 test = (it.getClass().canonicalName == clazzName && it?.id?.toString() == entityId.toString())
                 //test = (it.getClass().canonicalName && it?.id?.toString() == entityId.toString())
@@ -2514,13 +2499,13 @@ class JsonUtils {
                 test
             }
             if (previouslyDecodedProxyEntity)
-                previouslyDecodedEntity =  previouslyDecodedProxyEntity
+                previouslyDecodedEntity = previouslyDecodedProxyEntity
         }
         previouslyDecodedEntity
     }
 
     @CompileStatic
-    private Closure classImplementsEncoderType (Class<?> clazz ) {
+    private Closure classImplementsEncoderType(Class<?> clazz) {
 
         //eg. is Temporal assignable from LocalDateTime
 
@@ -2532,7 +2517,7 @@ class JsonUtils {
     }
 
     @CompileStatic
-    private Closure<?> classImplementsDecoderType (Class<?> clazz ) {
+    private Closure<?> classImplementsDecoderType(Class<?> clazz) {
 
         if (clazz == null)
             return {}
@@ -2553,14 +2538,14 @@ class JsonUtils {
      * @return true or false
      */
     @CompileStatic
-    private boolean isSimpleAttribute (def item) {
+    private boolean isSimpleAttribute(def item) {
         Class<?> clazz
         if (item instanceof Class)
             clazz = item
         else
             clazz = item.getClass()
 
-        simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
+        simpleAttributeTypes.find { (it as Class).isAssignableFrom(clazz) }
     }
 
     /**
@@ -2569,8 +2554,8 @@ class JsonUtils {
      * @return true or false
      */
     @CompileStatic
-    private boolean isSimpleType (Class<?> clazz) {
-        simpleAttributeTypes.find {(it as Class).isAssignableFrom (clazz)}
+    private boolean isSimpleType(Class<?> clazz) {
+        simpleAttributeTypes.find { (it as Class).isAssignableFrom(clazz) }
     }
 
     /**
@@ -2580,7 +2565,7 @@ class JsonUtils {
      * @return true or false
      */
     @CompileStatic
-    private boolean isJsonStandardEncodableAttribute (def item) {
+    private boolean isJsonStandardEncodableAttribute(def item) {
 
         Class<?> clazz
         if (item instanceof Class)
@@ -2589,7 +2574,7 @@ class JsonUtils {
             clazz = item.getClass()
 
         jsonEncodableStandardTypes.find {
-            boolean testRes = (it as Class).isAssignableFrom (clazz)
+            boolean testRes = (it as Class).isAssignableFrom(clazz)
             testRes
         }
     }
@@ -2597,12 +2582,13 @@ class JsonUtils {
     /*
      * checks if attribute field name is excluded names or types list
      */
+
     @CompileStatic
-    private boolean isInExcludesCategory (String field, Class<?> clazz) {
-        boolean isExcludedName = options.excludedFieldNames.find {it == "${field}".toString()}
+    private boolean isInExcludesCategory(String field, Class<?> clazz) {
+        boolean isExcludedName = options.excludedFieldNames.find { it == "${field}".toString() }
         if (isExcludedName)
             return true
-        boolean isExcludedType = options.excludedFieldTypes.find {it == clazz}
+        boolean isExcludedType = options.excludedFieldTypes.find { it == clazz }
         if (isExcludedType)
             return true
         else
@@ -2619,14 +2605,14 @@ class JsonUtils {
      * @return
      */
     @CompileStatic
-    private String generateHref (String apiName, String version,  GroovyObject pogo) {
+    private String generateHref(String apiName, String version, GroovyObject pogo) {
 
-        assert pogo 
+        assert pogo
         def id = '<no-id>'
         if (pogo.hasProperty('id')) {
             id = pogo.getProperty('id')
         }
-        StringBuilder href = new StringBuilder ('https://')
+        StringBuilder href = new StringBuilder('https://')
         href << options.host << ':' << options.port << '/' << options.apiRoot
         href << '/' << apiName
         href << '/' << version

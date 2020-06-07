@@ -29,17 +29,17 @@ class BasicAction implements Action {
 
     String name = ANONYMOUS_ACTION
     String description = ""
-    Closure doAction = {arg -> "Default Action: No Action"}  //do nothing
+    Closure doAction = { arg -> "Default Action: No Action" }  //do nothing
 
     //enable action to carry state data if required as context for doAction closure
     Map stateData = new ConcurrentHashMap<>()
 
     //dont permit change of state from without the action
-    Map getStateData () {
+    Map getStateData() {
         stateData
     }
 
-    void setStateData (final Map state) {
+    void setStateData(final Map state) {
         assert state
         stateData.putAll(new ConcurrentHashMap<>(state))
     }
@@ -48,23 +48,23 @@ class BasicAction implements Action {
         stateData.clear()
     }
 
-    void setAction (final Closure c) {
+    void setAction(final Closure c) {
         doAction = c.clone() as Closure  //clone is stupid and returns Object
         doAction.resolveStrategy = Closure.DELEGATE_FIRST
         //set the this action as the delegate for doAction.  closure can call getStateData() for action state
         doAction.delegate = this
     }
 
-    void setDoAction (final Closure c) {
+    void setDoAction(final Closure c) {
         setAction c
     }
 
-    Closure getAction () {
+    Closure getAction() {
         doAction
     }
 
     @Override
-    def invoke(final param = null ) {
+    def invoke(final param = null) {
         assert doAction
 
         def result
@@ -88,11 +88,11 @@ class BasicAction implements Action {
         result
     }
 
-    def call (final param = null) {
-        invoke (param)
+    def call(final param = null) {
+        invoke(param)
     }
 
-    String toString () {
+    String toString() {
         "$this.class.name ($name) "
     }
 }

@@ -22,7 +22,7 @@ class BasicCondition implements Condition {
      *
      *
      */
-    def lowerLimit  = 0
+    def lowerLimit = 0
     def upperLimit = 0
     def measure = 0
 
@@ -32,65 +32,64 @@ class BasicCondition implements Condition {
     String description = UNNAMED
 
     //basic version just embeds a closure as proxy to invoke when test() is called - returns false by default
-    Closure dynamicTest = {fact -> log.debug "default condition evaluated $fact, returning false"; return false}
+    Closure dynamicTest = { fact -> log.debug "default condition evaluated $fact, returning false"; return false }
 
     //this setter will NOT be called by default map constructor when creating BasicCondition -
     //the groovy logic directly tries to find public attribute - but this is a method so its not called
     //it generates a new instance of Condition with the new predicate set
-    Condition setConditionTest (Closure closurePredicate) {
+    Condition setConditionTest(Closure closurePredicate) {
         assert closurePredicate
-        dynamicTest =  closurePredicate.clone() as Closure
+        dynamicTest = closurePredicate.clone() as Closure
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
         dynamicTest.delegate = this
         this
     }
 
-    Condition setConditionTest (Predicate predicate) {
+    Condition setConditionTest(Predicate predicate) {
         assert predicate
-        dynamicTest =  predicate::test
+        dynamicTest = predicate::test
         dynamicTest.resolveStrategy = Closure.DELEGATE_FIRST
         dynamicTest.delegate = this
         this
     }
 
-    Closure getConditionTest () {
+    Closure getConditionTest() {
         dynamicTest
     }
 
-    boolean test (fact = null) {
+    boolean test(fact = null) {
         log.debug "evaluated test with <$fact> as input to the test"
         if (fact) {
             if (dynamicTest.maximumNumberOfParameters > 0)
-               return dynamicTest (fact)
+                return dynamicTest(fact)
             else
                 return dynamicTest(null)
-         }
-        else
+        } else
             return dynamicTest(null)    //just invoke the no args test
     }
 
-    Condition and (Condition other) {
-        Closure combined = {test(it) && other.test(it)}
+    Condition and(Condition other) {
+        Closure combined = { test(it) && other.test(it) }
         String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name & $other.name)"
-        BasicCondition condition =  new BasicCondition (name: "$combinedName", description: "logical AND")
-        condition.setConditionTest (combined as Predicate)
+        BasicCondition condition = new BasicCondition(name: "$combinedName", description: "logical AND")
+        condition.setConditionTest(combined as Predicate)
         condition
     }
 
     Condition negate() {
-       BasicCondition condition = this.clone() as BasicCondition
-       condition.dynamicTest = {! dynamicTest(it)}
-       condition.name = "(Not $name)"
+        BasicCondition condition = this.clone() as BasicCondition
+        condition.dynamicTest = { !dynamicTest(it) }
+        condition.name = "(Not $name)"
 
-       return condition
+        return condition
     }
 
-    Condition or (Condition other) {
+    Condition or(Condition other) {
         //return super.or(other)
-        Closure combined = {test(it) || other.test(it)}
+        Closure combined = { test(it) || other.test(it) }
         String combinedName = (name == UNNAMED && other.name == UNNAMED) ? UNNAMED : "($name | $other.name)"
-        BasicCondition condition =  new BasicCondition (name: "$combinedName", description: "logical OR")
-        condition.setConditionTest (combined as Predicate)
+        BasicCondition condition = new BasicCondition(name: "$combinedName", description: "logical OR")
+        condition.setConditionTest(combined as Predicate)
         condition
     }
 
@@ -98,7 +97,8 @@ class BasicCondition implements Condition {
      * if coerced to boolean evaluate the test and return it
      * otherwise just use the default groovy truth for this
      */
-    boolean asType (Class clazz, param=null) {
+
+    boolean asType(Class clazz, param = null) {
         assert clazz
         if (clazz == Boolean)
             if (param)

@@ -20,8 +20,8 @@ ClassLoader rootLoader = stLoader.getRootLoader()
 
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.setExpandLevels (2)
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.setExpandLevels(2)
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.summaryClassFormEnabled(false)

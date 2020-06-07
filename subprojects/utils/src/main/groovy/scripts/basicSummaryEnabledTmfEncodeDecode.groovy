@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject
 import java.time.LocalDateTime
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)
@@ -40,7 +40,7 @@ class SumSWSubClass {
     String name
     SumSWSub2Class sw2c
 
-    String toString () {
+    String toString() {
         "SumSWSubClass (name:$name) [id:$id]"
     }
 }
@@ -49,24 +49,24 @@ class SumSWSub2Class {
     long id
     String name
 
-    String toString () {
+    String toString() {
         "SumSWSub2Class (name:$name) [id:$id]"
     }
 }
 
-SumSWSubClass sc1 = new SumSWSubClass (id:1, name:"sum-subclass 1")
-SumSWSubClass sc2 = new SumSWSubClass (id:2, name:"sum-subclass 2")
-SumSWSubClass sc3 = new SumSWSubClass (id:3, name:"sum-subclass 3")
+SumSWSubClass sc1 = new SumSWSubClass(id: 1, name: "sum-subclass 1")
+SumSWSubClass sc2 = new SumSWSubClass(id: 2, name: "sum-subclass 2")
+SumSWSubClass sc3 = new SumSWSubClass(id: 3, name: "sum-subclass 3")
 
-SumSWSub2Class ss2c = new SumSWSub2Class (id:10, name:"2nd level sum-subclass")
+SumSWSub2Class ss2c = new SumSWSub2Class(id: 10, name: "2nd level sum-subclass")
 
 sc1.sw2c = ss2c
 
 arrayOfTmfSubClass = [sc1, sc2, sc3]
 
-def sumJson = jsonSumGenerator.toTmfJson( arrayOfTmfSubClass)
+def sumJson = jsonSumGenerator.toTmfJson(arrayOfTmfSubClass)
 println "sumJsonList of array of tmfSubClass"
-println  sumJson.encodePrettily()
+println sumJson.encodePrettily()
 
 
 System.exit(0)

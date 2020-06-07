@@ -15,7 +15,7 @@ enum FlowNodeStatus {
 
 @Slf4j
 abstract class AbstractFlowNode {
-    static AtomicLong sequenceGenerator = new AtomicLong (0)
+    static AtomicLong sequenceGenerator = new AtomicLong(0)
 
     protected Closure action
 
@@ -32,15 +32,15 @@ abstract class AbstractFlowNode {
 
     protected ConcurrentLinkedQueue dependencies = new ConcurrentLinkedQueue<>()
 
-    def dependsOn (Iterable taskList) {
+    def dependsOn(Iterable taskList) {
         dependencies.addAll(taskList)
     }
 
-    def dependsOn (AbstractFlowNode task) {
+    def dependsOn(AbstractFlowNode task) {
         dependencies.add(task)
     }
 
-    def dependsOn (String taskName) {
+    def dependsOn(String taskName) {
         //todo should this do a look up instead ?
         dependencies.add(taskName)
     }
@@ -50,20 +50,20 @@ abstract class AbstractFlowNode {
     }
 
 
-    void setResultValue (value) {
+    void setResultValue(value) {
         result << value
     }
 
 
     //provide a version that unwraps the DF result to get the value
-    def  getResultValue () {
+    def getResultValue() {
         def val = result.getVal()     //blocking get on DF result
         if (status != FlowNodeStatus.completed)
             status = FlowNodeStatus.completed       //close small possible timing gap
         val
     }
 
-    def  getResultValue (long timeout, TimeUnit unit) {
+    def getResultValue(long timeout, TimeUnit unit) {
         def val = result.getVal(timeout, unit)     //blocking get on DF result
     }
 
@@ -72,7 +72,7 @@ abstract class AbstractFlowNode {
      * new result set
      *
      */
-    void resetFlowNode () {
+    void resetFlowNode() {
         assert result.bound == true
 
         errors.clear()
@@ -80,11 +80,11 @@ abstract class AbstractFlowNode {
         status = FlowNodeStatus.ready
     }
 
-    def then (AbstractFlowNode nextStep, Closure errhandler = null) {
+    def then(AbstractFlowNode nextStep, Closure errhandler = null) {
         assert nextStep
         nextStep.previousNode = this
 
-        cloned  = nextStep.action.clone()
+        cloned = nextStep.action.clone()
         if (nextStep != this)
             nextStep.previousNode = this
         if (taskDelay == 0)
@@ -103,8 +103,8 @@ abstract class AbstractFlowNode {
     }
 
     //syntactic sugar
-    def rightShift (AbstractFlowNode nextStep,  Closure errhandler = null) {
-        then (nextStep, errhandler)
+    def rightShift(AbstractFlowNode nextStep, Closure errhandler = null) {
+        then(nextStep, errhandler)
     }
 
 
@@ -115,11 +115,11 @@ abstract class AbstractFlowNode {
 
         List<AbstractFlowNode> waitForDependentTasks
         if (dependencies.size() > 0 && dependencies[0] instanceof String) {
-            waitForDependentTasks = allFlowTasks.grep {task -> dependencies.contains(task.name) }
+            waitForDependentTasks = allFlowTasks.grep { task -> dependencies.contains(task.name) }
         } else {
-            waitForDependentTasks = allFlowTasks.grep {task -> task in dependencies }
+            waitForDependentTasks = allFlowTasks.grep { task -> task in dependencies }
         }
-        def List<DataflowVariable> dependentTaskResultsList = waitForDependentTasks.collect{it.result}
+        def List<DataflowVariable> dependentTaskResultsList = waitForDependentTasks.collect { it.result }
         //todo - timeout or interrupt ? how do we do this
 
         log.debug "waiting for dependant tasks $dependencies to finish"

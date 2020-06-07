@@ -6,16 +6,18 @@ import org.codehaus.groovy.reflection.CachedMethod
 import org.codehaus.groovy.runtime.InvokerHelper
 import org.codehaus.groovy.runtime.MethodClosure
 
-Closure scriptClos = {println "within closure scriptClos this is $this, hi "}
+Closure scriptClos = { println "within closure scriptClos this is $this, hi " }
 
 class A {
     String name = "my A instance"
-    Closure aClos = {println " toby "}
+    Closure aClos = { println " toby " }
+
     def greeting() {
         println "hi from my A"
         "done"
     }
 }
+
 aInst = new A()
 
 
@@ -29,11 +31,11 @@ class ConcreteClosure extends Closure {
         super(owner, thisObject)
         mc = (Closure) owner::doCall
         cc = owner
-        if (ctx){
+        if (ctx) {
             mc.delegate = ctx
-            mc.resolveStrategy= Closure.DELEGATE_FIRST
+            mc.resolveStrategy = Closure.DELEGATE_FIRST
             cc.delegate = ctx
-            cc.resolveStrategy= Closure.DELEGATE_FIRST
+            cc.resolveStrategy = Closure.DELEGATE_FIRST
 
         }
         assert mc
@@ -69,11 +71,11 @@ class ConcreteClosure extends Closure {
         //println "call() called, invoke metaClass docall() " + InvokerHelper.invokeMethod(this, "doCall", null)
         def result
         switch (arg) {
-            case "mc" :
+            case "mc":
                 print "call mc.call(): "
                 result = mc()
                 break
-            case "cc" :
+            case "cc":
                 print "call cc.call(): "
                 result = cc()
                 break
@@ -83,9 +85,9 @@ class ConcreteClosure extends Closure {
     }
 }
 
-def constructorClos = {"return with, my concrete Closure, with this = $this, and owner = $owner, and name = ${name}"}
+def constructorClos = { "return with, my concrete Closure, with this = $this, and owner = $owner, and name = ${name}" }
 
-ConcreteClosure cc = new ConcreteClosure (constructorClos, constructorClos, aInst)
+ConcreteClosure cc = new ConcreteClosure(constructorClos, constructorClos, aInst)
 
 println cc.call('mc')
 println cc.call('cc')
@@ -99,17 +101,17 @@ println "scriptclos owner : " + scriptClos.owner.toString() + " and aClos owner 
 println "scriptclos thisObject : " + scriptClos.thisObject + " and aClos thisObject : " + aInst.aClos.thisObject.toString()
 
 
-def methods  = scriptClos.metaClass.getMethods().findAll {it.getName() =~ /doCall/}
+def methods = scriptClos.metaClass.getMethods().findAll { it.getName() =~ /doCall/ }
 
 //methods for closure Does have a doCall() and doCall(Object)
 println "doCall method from methods "
-methods.each {println "$it"}
+methods.each { println "$it" }
 
-def metaMethods = scriptClos.metaClass.getMetaMethods().findAll { it.getName()  =~ /doCall/}
+def metaMethods = scriptClos.metaClass.getMetaMethods().findAll { it.getName() =~ /doCall/ }
 
 //metaMethods for closure Doesnt have a doCall()
 println "doCall method from metaMethods "
-metaMethods.each {println "$it"}
+metaMethods.each { println "$it" }
 
 MetaMethod code = scriptClos.metaClass.pickMethod("doCall", Object)
 //clos.metaClass.getMetaMethod("doCall", [])
@@ -127,7 +129,7 @@ MetaMethod codeClone = code.clone()
 assert code
 
 //chaneg to new closure
-scriptClos = {println "William "}
+scriptClos = { println "William " }
 //codeClone.doMethodInvoke(clos, [])
 mr()
 scriptClos()

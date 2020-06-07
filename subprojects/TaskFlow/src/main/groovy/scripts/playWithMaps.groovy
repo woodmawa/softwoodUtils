@@ -6,7 +6,7 @@ class MapDelegate {
 
     String name = "my object"
 
-    def getProperty (String name) {
+    def getProperty(String name) {
 
         def val
 
@@ -18,7 +18,7 @@ class MapDelegate {
         }
     }
 
-    void setProperty (String name, value ) {
+    void setProperty(String name, value) {
         if (this.hasProperty("$name")) {
             getMetaClass().setProperty(this, "$name", value)
         } else {

@@ -29,7 +29,7 @@ class GroovyBenchmark {
 
     }
 
-    @TearDown (Level.Trial)
+    @TearDown(Level.Trial)
     static public void teardown() throws IOException {
 
     }

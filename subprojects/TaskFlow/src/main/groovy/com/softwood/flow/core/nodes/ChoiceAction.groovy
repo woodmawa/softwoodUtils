@@ -17,7 +17,7 @@ class ChoiceAction extends AbstractFlowNode {
     ConcurrentLinkedQueue<Subflow> choiceSubflows = new ConcurrentLinkedQueue<>()
     def selectValue
 
-    def setSelectValue (def value) {
+    def setSelectValue(def value) {
         selectValue = value
     }
 
@@ -89,8 +89,8 @@ class ChoiceAction extends AbstractFlowNode {
             //ctx.newInClosure = new ConcurrentLinkedQueue<>()  //setup new frame
 
             //as this is a choice node - no point running as a task
-           //todo  - where should the calculator live ?  here or in the original closure
-            def selectorValue = subflowSelector (previousNode, args)
+            //todo  - where should the calculator live ?  here or in the original closure
+            def selectorValue = subflowSelector(previousNode, args)
 
             //cloned delegate is the FlowContext so no point passing as a parameter
             if (args instanceof Object[])
@@ -100,8 +100,7 @@ class ChoiceAction extends AbstractFlowNode {
                     step.result << cloned(selectorValue, args)
                 else
                     step.result << cloned(selectorValue)
-            }
-            else {
+            } else {
                 //in case closure takes two args, but we have only one - just pass a null
                 if (cloned.maximumNumberOfParameters == 2)
                     step.result << cloned(selectorValue, null)
@@ -120,33 +119,33 @@ class ChoiceAction extends AbstractFlowNode {
             }
 
             List newIns = ctx.newInClosure.toList()
-            def newSubflows = newIns.grep {it.class == Subflow}
-            def newActions = newIns.grep {it instanceof AbstractFlowNode}
+            def newSubflows = newIns.grep { it.class == Subflow }
+            def newActions = newIns.grep { it instanceof AbstractFlowNode }
 
             //if you dont decalare a subflow - quietly create one and add the actions into it
             if (!newSubflows && newActions) {
-                Subflow defaultSubflow = new Subflow (ctx : ctx, name: "choice[$name].defaultSubflow", subflowClosure: {"choice [$name] subflow done"})
+                Subflow defaultSubflow = new Subflow(ctx: ctx, name: "choice[$name].defaultSubflow", subflowClosure: { "choice [$name] subflow done" })
                 defaultSubflow.parent = ctx.flow
                 defaultSubflow << newActions
                 newSubflows = [defaultSubflow]
             }
 
-            choiceSubflows.addAll (newSubflows)
+            choiceSubflows.addAll(newSubflows)
 
             if (ctx.flow) {
-                choiceSubflows.each {it.parent = ctx.flow; ctx.flow.subflows << it}
+                choiceSubflows.each { it.parent = ctx.flow; ctx.flow.subflows << it }
             }
 
             //for each subflow declared in the choice closure execute each subflow and its nodes
-            choiceSubflows.each {sflow ->
+            choiceSubflows.each { sflow ->
                 //for each flow that makes it run each flow, use choice args if set else Queue of run task actions
                 if (args)
-                    sflow.run (args)
+                    sflow.run(args)
                 else
-                    sflow.run ()  //ctx.taskActions - but this will be all including the actions in this sflow
+                    sflow.run()  //ctx.taskActions - but this will be all including the actions in this sflow
             }
 
-           step
+            step
         } catch (Exception e) {
             if (errHandler) {
                 log.debug "choiceTask()  hit exception $e"
@@ -159,7 +158,7 @@ class ChoiceAction extends AbstractFlowNode {
     }
 
     //default selector logic for a choiceAction, this can be changed for anly choice by explicitly setting the calculator
-    def subflowSelector (AbstractFlowNode previousNode, args) {
+    def subflowSelector(AbstractFlowNode previousNode, args) {
 
         def previousResult
         //ovveride option choice
@@ -167,14 +166,13 @@ class ChoiceAction extends AbstractFlowNode {
             previousResult = selectValue
         else if (previousNode) {
             previousResult = previousNode.result.val
-        }
-        else
-            previousResult  = args    //default 'null logic' position
+        } else
+            previousResult = args    //default 'null logic' position
 
         previousResult
     }
 
-    String toString () {
+    String toString() {
         int sz = choiceSubflows.size()
         String insertTxt = "with # of subflows ${choiceSubflows.size()}"
         "Choice (name:$name, status:$status) ${sz ? insertTxt : ''}"

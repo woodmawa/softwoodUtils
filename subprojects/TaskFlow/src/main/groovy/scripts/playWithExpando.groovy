@@ -6,46 +6,45 @@ class SomeClass {
     String string = 'hello'
 
     //note this doesnt get called in groovy v3
-    Object get (String name) {
+    Object get(String name) {
         println "get $name called "
 
-        def prop = properties.grep{it.name == name}
+        def prop = properties.grep { it.name == name }
         prop
     }
 
-    void set (String name, def value) {
+    void set(String name, def value) {
 
     }
 
-    Object getProperty (String name) {
+    Object getProperty(String name) {
         println "getProperty $name called "
 
         //have to use method to get properties else it recurrs
-        ArrayList<Map.Entry> prop = getProperties().grep{it.key == name}
+        ArrayList<Map.Entry> prop = getProperties().grep { it.key == name }
 
-        Map.Entry match = prop?[0]
-        def val = match.getValue ()
+        Map.Entry match = prop ?[0]
+        def val = match.getValue()
         val
     }
 }
 
 
-
-def a = new SomeClass ()
+def a = new SomeClass()
 
 def num = a.'num'
 
 Expando exp = new Expando()
 
-exp.m = [a: {println "hello"},
-b: {println "william"}]
+exp.m = [a: { println "hello" },
+         b: { println "william" }]
 
 exp.m.a()
 exp.m.b()
 
 class WillsExpando extends Expando {
 
-    def getProperty (String name) {
+    def getProperty(String name) {
 
         List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
         MetaProperty prop = getMetaClass().getMetaProperty(name)
@@ -55,12 +54,12 @@ class WillsExpando extends Expando {
             //if not real property - get the expando property map and try and look in there using 'name' arg as the key
             def result
 
-            Map m = getProperties ()
+            Map m = getProperties()
             m.get(name)
         }
     }
 
-    void setProperty (String name, value ) {
+    void setProperty(String name, value) {
 
         List<PropertyValue> metaProps = getMetaClass().getMetaPropertyValues()
         MetaProperty prop = getMetaClass().getMetaProperty(name)
@@ -70,7 +69,7 @@ class WillsExpando extends Expando {
             //if not real property - get the expando property map and try and look in there using 'name' arg as the key
             def result
 
-            Map m = getProperties ()
+            Map m = getProperties()
             m.put(name, value)
         }
     }

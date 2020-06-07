@@ -35,7 +35,7 @@ class UuidUtil {
      *
      * @return
      */
-    static long getStartOfUuidRelativeToUnixEpochInMilliseconds () {
+    static long getStartOfUuidRelativeToUnixEpochInMilliseconds() {
         Calendar c = Calendar.getInstance(TimeZone.getTimeZone("GMT-0"))
         c.set(Calendar.YEAR, 1582)
         c.set(Calendar.MONTH, Calendar.OCTOBER)
@@ -58,32 +58,33 @@ class UuidUtil {
      * @param tuid
      * @return
      */
-    static long getMillisecondsFromUuid (UUID tuid) {
+    static long getMillisecondsFromUuid(UUID tuid) {
 
         assert tuid.version() == 1      //ensure its a time based UUID
 
         // timestamp returns in 10^-7 (100 nano second chunks),
         // java Date constructor  assumes 10^-3 (millisecond precision)
         // so we have to divide by 10^4 (10,000) to get millisecond precision
-        long milliseconds_since_UUID_baseline = tuid.timestamp() /10000L
+        long milliseconds_since_UUID_baseline = tuid.timestamp() / 10000L
 
     }
 
-    static getDateFromUuid (UUID tuid) {
+    static getDateFromUuid(UUID tuid) {
         // Allocates a Date object and initializes it to represent the specified number of milliseconds since the
         // standard java (unix) base time known as "the epoch", namely January 1, 1970, 00:00:00 GMT
         // have to add relative offset from UUID start date of unix epoch to get start date in unix time milliseconds
-        new Date (getMillisecondsFromUuid (tuid) + START_OF_UUID_RELATIVE_TO_UNIX_EPOCH_MILLIS )
+        new Date(getMillisecondsFromUuid(tuid) + START_OF_UUID_RELATIVE_TO_UNIX_EPOCH_MILLIS)
     }
 
-    static getLocalDateTimeFromUuid (UUID tuid) {
+    static getLocalDateTimeFromUuid(UUID tuid) {
         // Allocates a Date object and initializes it to represent the specified number of milliseconds since the
         // standard java (unix) base time known as "the epoch", namely January 1, 1970, 00:00:00 GMT
         // have to add relative offset from UUID start date of unix epoch to get start date in unix time milliseconds
-        long epochSec = (getMillisecondsFromUuid (tuid) + START_OF_UUID_RELATIVE_TO_UNIX_EPOCH_MILLIS)/1000
+        long epochSec = (getMillisecondsFromUuid(tuid) + START_OF_UUID_RELATIVE_TO_UNIX_EPOCH_MILLIS) / 1000
         LocalDateTime.ofEpochSecond(epochSec, 0, ZoneOffset.UTC)
     }
-    static UUID getTimeBasedUuid () {
+
+    static UUID getTimeBasedUuid() {
         UUID tuid = timeBasedGenerator.generate()
     }
 
@@ -91,30 +92,24 @@ class UuidUtil {
     /*****
      *
      * // https://www.programcreek.com/java-api-examples/?code=Netflix/sstable-adaptor/sstable-adaptor-master/sstable-adaptor-cassandra/src/main/java/org/apache/cassandra/utils/UUIDGen.java
-    private static long makeClockSeqAndNode()
-    {
-        long clock = new SecureRandom().nextLong();
+     private static long makeClockSeqAndNode(){long clock = new SecureRandom().nextLong();
 
-        long lsb = 0;
-        lsb |= 0x8000000000000000L;                 // variant (2 bits)
-        lsb |= (clock & 0x0000000000003FFFL) << 48; // clock sequence (14 bits)
-        lsb |= makeNode();                          // 6 bytes
-        return lsb;
-    }
-
-    private static long makeNode()
-    {  */
-        /*
-         * We don't have access to the MAC address but need to generate a node part
-         * that identify this host as uniquely as possible.
-         * The spec says that one option is to take as many source that identify
-         * this node as possible and hash them together. That's what we do here by
-         * gathering all the ip of this host.
-         * Note that FBUtilities.getBroadcastAddress() should be enough to uniquely
-         * identify the node *in the cluster* but it triggers DatabaseDescriptor
-         * instanciation and the UUID generator is used in Stress for instance,
-         * where we don't want to require the yaml.
-         */
+     long lsb = 0;
+     lsb |= 0x8000000000000000L;                 // variant (2 bits)
+     lsb |= (clock & 0x0000000000003FFFL) << 48; // clock sequence (14 bits)
+     lsb |= makeNode();                          // 6 bytes
+     return lsb;}private static long makeNode(){  */
+    /*
+     * We don't have access to the MAC address but need to generate a node part
+     * that identify this host as uniquely as possible.
+     * The spec says that one option is to take as many source that identify
+     * this node as possible and hash them together. That's what we do here by
+     * gathering all the ip of this host.
+     * Note that FBUtilities.getBroadcastAddress() should be enough to uniquely
+     * identify the node *in the cluster* but it triggers DatabaseDescriptor
+     * instanciation and the UUID generator is used in Stress for instance,
+     * where we don't want to require the yaml.
+     */
     /*
         Collection<InetAddress> localAddresses = FBUtilities.getAllLocalAddresses();
         if (localAddresses.isEmpty())

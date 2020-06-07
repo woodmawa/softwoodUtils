@@ -96,7 +96,7 @@ allprojects {
     dependencies {
 
         //implementation replaces compile and is not transitevly resolved, API is transitively resolved
-        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.2'
+        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.3'
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
         implementation group: 'javax.inject', name: 'javax.inject', version: '1'
@@ -124,7 +124,7 @@ allprojects {
     }*/
 
 //should include java and groovy
-    task sourceJar (type : Jar) {
+    task sourceJar(type: Jar) {
         from sourceSets.main.allGroovy
         classifier "sources"
     }
@@ -133,7 +133,7 @@ allprojects {
         publications {
             mavenGroovy(MavenPublication) {
                 from components.java
-                artifact (sourceJar) {
+                artifact(sourceJar) {
                     classifier = 'sources'
                 }
                 // more goes in here

@@ -2,10 +2,10 @@ rootProject.name = 'utils'
 
 def subprojects = ['TaskFlow',
                    'rules',
-        'rxJava',
-        'playpen',
-        'utils',
-        'Benchmark'
+                   'rxJava',
+                   'playpen',
+                   'utils',
+                   'Benchmark'
 ]
 
 //include these as projects

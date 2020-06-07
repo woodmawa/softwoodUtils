@@ -19,12 +19,12 @@ class BasicFact implements Fact {
     def value
 
 
-    BasicFact (Map.Entry e) {
+    BasicFact(Map.Entry e) {
         name = e.getKey()
         value = e.getValue()
     }
 
-    BasicFact leftShift (Map.Entry e) {
+    BasicFact leftShift(Map.Entry e) {
         assert e
         name = e.getKey()
         value = e.getValue()

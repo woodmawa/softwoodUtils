@@ -6,7 +6,7 @@ import com.softwood.utils.TmfEntity
 import java.time.LocalDateTime
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(2)
@@ -22,14 +22,14 @@ jsonGenerator = options.build()
 
 
 class Point {
-    int x, y,z
+    int x, y, z
 
     String toString() {
         "Point ($x,$y,$z)"
     }
 }
 
-@TmfEntity (baseType='OrgRole', apiName='CustomerManagement')
+@TmfEntity(baseType = 'OrgRole', apiName = 'CustomerManagement')
 class SimpleTmf {
     long id = 1
     String name = "simpleInst"
@@ -37,11 +37,11 @@ class SimpleTmf {
     Point locationRef
     List children = new ArrayList<TmfChild>()
     List simpleList = [1, '2']
-    Map simpleMap =[a:'c']
+    Map simpleMap = [a: 'c']
     Map tmfMap = [:]
 }
 
-@TmfEntity ()
+@TmfEntity()
 class TmfChild {
     String name
     SimpleTmf parent
@@ -57,8 +57,8 @@ println "encode simple s2 : " + jsonGenerator.toTmfJson(s2).encodePrettily()*/
 
 SimpleTmf s1 = new SimpleTmf()
 //s1.locationRef = new Point (x:1, y:1, z:1)
-TmfChild c1 = new TmfChild(name:"Tobias", parent:s1)
-TmfChild c2 = new TmfChild(name:"Dominic", parent:s1)
+TmfChild c1 = new TmfChild(name: "Tobias", parent: s1)
+TmfChild c2 = new TmfChild(name: "Dominic", parent: s1)
 s1.children << c1
 s1.children << c2
 //s1.simpleList = [c1,c2]
@@ -73,6 +73,6 @@ res  = jsonGenerator.toTmfJson([a:1,C:2,c:"hello"]).encodePrettily()
 println "simple map : $res" */
 
 //jsonGenerator.toTmfJson([a:c1/*, b:s1*/]).encodePrettily()
-res  = jsonGenerator.toTmfJson(s1).encodePrettily()
+res = jsonGenerator.toTmfJson(s1).encodePrettily()
 println "encoded object representation  :"
 println "$res"

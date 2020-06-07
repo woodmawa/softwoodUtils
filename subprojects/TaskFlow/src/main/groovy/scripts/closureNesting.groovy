@@ -14,11 +14,11 @@ public static String getCallerMethodName() {
 
 static List<String> fetchLines(Stream<StackFrame> stream) {
     List<String> lines = stream
-            //filter for doCall at line equals -1
-            .filter {stackFrame -> !stackFrame.getClassName().contains ('groovy') && stackFrame.getLineNumber() == -1}
-            .map{stackFrame ->
+    //filter for doCall at line equals -1
+            .filter { stackFrame -> !stackFrame.getClassName().contains('groovy') && stackFrame.getLineNumber() == -1 }
+            .map { stackFrame ->
 
-                def  clazzParts = stackFrame.getClassName().split('[$]')
+                def clazzParts = stackFrame.getClassName().split('[$]')
                 def clazz = clazzParts[0]
                 def clazzInst
                 if (clazzParts.size() > 1)
@@ -26,7 +26,8 @@ static List<String> fetchLines(Stream<StackFrame> stream) {
 
                 def s = "class: '${stackFrame.getClassName()}' of type ${clazz} inst $clazzInst,  invoked method: ${stackFrame.getMethodName()} at  line:${stackFrame.getLineNumber()}"
                 //def s = stackFrame.toString()
-            s}
+                s
+            }
             .collect(Collectors.toList());
     return lines;
 }
@@ -54,7 +55,7 @@ Closure another = {
 Closure outer = {
     println "outers this : $this, outer owner : $owner, with type $owner.class"
 
-    def  st = Thread.currentThread().getStackTrace()
+    def st = Thread.currentThread().getStackTrace()
     def caller = getCallerMethodName()
 
     List<StackFrame> stack = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).walk(s ->
@@ -74,8 +75,8 @@ Closure outer = {
 }
 
 
-boolean isClosure (someObject) {
-    someObject.hasProperty ('owner')
+boolean isClosure(someObject) {
+    someObject.hasProperty('owner')
 }
 
 //assert isClosure (new A()) == false

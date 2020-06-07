@@ -3,7 +3,7 @@ package scripts
 trait MyTrait {
     String name
 
-    def whatsThis () {
+    def whatsThis() {
         println "trait : $this"
         this
     }
@@ -19,7 +19,7 @@ wc.whatsThis()
 
 MyTrait mt = wc
 
-assert mt.whatsThis().is (wc)
+assert mt.whatsThis().is(wc)
 
 
 

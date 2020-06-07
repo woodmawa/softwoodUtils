@@ -20,7 +20,7 @@ class DeprecateBasicFact implements Fact {
         this.name = name
         if (!description)
             description = name
-        $entry = [(name):value]
+        $entry = [(name): value]
     }
 
     @Delegate
@@ -28,11 +28,11 @@ class DeprecateBasicFact implements Fact {
 
     void setName(Map e) {
         $entry = e
-        name = $entry.entrySet()?[0].key
+        name = $entry.entrySet() ?[0].key
     }
 
     def getName() {
-        name = $entry.entrySet()?[0].key
+        name = $entry.entrySet() ?[0].key
     }
 
     def getDescription() {
@@ -41,13 +41,13 @@ class DeprecateBasicFact implements Fact {
 
     def getValue() {
         def lov = $entry.values()
-        return $entry.values()?[0]
+        return $entry.values() ?[0]
     }
 
     void setEntry(Map arg) {
         assert arg.size() == 1
         $entry = arg
-        name = $entry.entrySet()?[0].key
+        name = $entry.entrySet() ?[0].key
         description = name
     }
 
@@ -56,7 +56,7 @@ class DeprecateBasicFact implements Fact {
     def getProperty(String name) {
         if (name == 'name')
             return getName()
-        else if (name =='description')
+        else if (name == 'description')
             return getDescription()
         else if (name == 'value')
             return getDescription()

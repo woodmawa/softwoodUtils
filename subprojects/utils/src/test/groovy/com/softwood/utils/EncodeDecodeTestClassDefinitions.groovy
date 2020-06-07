@@ -13,7 +13,7 @@ class Parent {
     String name
     List<Child> children = new LinkedList<Child>()
 
-    String toString () {
+    String toString() {
         "Parent (name:$name) "
     }
 }
@@ -44,7 +44,8 @@ class Demo {
     int realIntField
     public int publicIntField
     private int privateIntField
-    int getImaginaryFieldAccessor () { 1}
+
+    int getImaginaryFieldAccessor() { 1 }
 
 
 }

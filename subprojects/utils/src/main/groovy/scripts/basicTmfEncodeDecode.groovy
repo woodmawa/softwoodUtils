@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentLinkedQueue
 
 JsonUtils.Options options = new JsonUtils.Options()
-options.registerTypeEncodingConverter(LocalDateTime) {it.toString()}
+options.registerTypeEncodingConverter(LocalDateTime) { it.toString() }
 options.excludeFieldByNames("ci")
 options.excludeNulls(true)
 options.setExpandLevels(1)
@@ -48,7 +48,7 @@ class TmfSubClass {
     String name
     TmfSub2Class s2c
 
-    String toString () {
+    String toString() {
         "TmfSubClass (name:$name) [id:$id]"
     }
 }
@@ -58,18 +58,18 @@ class TmfSub2Class {
     long id
     String name
 
-    String toString () {
+    String toString() {
         "TmfSub2Class (name:$name) [id:$id]"
     }
 }
 
-TmfSubClass sc1 = new TmfSubClass (id:1, name:"subclass 1")
-TmfSub2Class s2c = new TmfSub2Class (id:10, name:"2nd level subclass")
+TmfSubClass sc1 = new TmfSubClass(id: 1, name: "subclass 1")
+TmfSub2Class s2c = new TmfSub2Class(id: 10, name: "2nd level subclass")
 sc1.s2c = s2c
 
-TmfTestClass tc = new TmfTestClass(id: UuidUtil.timeBasedUuid, name:"myTestClass", fl:12.9, today:Date.newInstance(), ldt:LocalDateTime.now())
-tc.simpleList = [LocalDateTime.now(),true, "test string", 3]
-tc.simpleMap = [a:1, b:true]
+TmfTestClass tc = new TmfTestClass(id: UuidUtil.timeBasedUuid, name: "myTestClass", fl: 12.9, today: Date.newInstance(), ldt: LocalDateTime.now())
+tc.simpleList = [LocalDateTime.now(), true, "test string", 3]
+tc.simpleMap = [a: 1, b: true]
 tc.subClassList = [sc1]
 tc.complexMap = ['a': sc1]
 tc.sc2 = s2c
@@ -103,7 +103,8 @@ class SimpleClass {
     long id
     String name
 }
-SimpleClass simple = new SimpleClass (id : 1, name: 'fred')
+
+SimpleClass simple = new SimpleClass(id: 1, name: 'fred')
 
 enc = jsonGenerator.toTmfJson(simple)
 
@@ -113,7 +114,7 @@ enc = jsonGenerator.toTmfJson(simple)
 
 println "simple class " + enc
 //def res = jsonGenerator.toObject (SimpleClass, enc, JsonEncodingStyle.tmf)
-def res = jsonGenerator.toObject (enc.toString(), JsonEncodingStyle.tmf)
+def res = jsonGenerator.toObject(enc.toString(), JsonEncodingStyle.tmf)
 
 enc = jsonGenerator.toTmfJson(tc)
 println "\nencoded test class as : " + enc.encodePrettily()
