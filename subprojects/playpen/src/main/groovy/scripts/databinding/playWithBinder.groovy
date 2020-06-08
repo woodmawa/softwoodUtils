@@ -1,5 +1,7 @@
 package scripts.databinding
 
+import groovy.transform.ToString
+
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
 import java.time.LocalDate
@@ -42,10 +44,11 @@ class Base {
     long id
 }
 
+@ToString
 class SomeClass extends Base {
 
     String someString
-    protected int someInt
+    private int  someInt
 }
 
 println basicTypeNames
@@ -69,8 +72,36 @@ while (clazz != null) {
 }
 
 
-List fields2 = fds.stream().filter {!fieldBlackList.contains(it.name) && !it.isSynthetic()}.map {Field f -> [f.name,f.type,f.modifiers, f.isAccessible(), f.isSynthetic()]}.collect(Collectors.toList())
-println "is private ? : " + Modifier.isPublic(fields2[1][2])
+List<Field> fields2 = fds.stream().filter {!fieldBlackList.contains(it.name) && !it.isSynthetic()}.map {Field field -> field}.collect(Collectors.toList())
+println "is private ? : " + Modifier.isPublic(fields2[1].modifiers) + " is accessible ? :  " + fields2[1].isAccessible()
+
+/** generaically if no public accessor - then
+ * reflect the named field,
+ * set the accessible flag
+ * swicth on the field type, and update the field with the required value (ignore synthetics), and special fields, or final fields
+ * reset the flag move on to next field
+ */
+
+if (sc.respondsTo('setSomeInt', Integer)) {
+    println "set using public accessor " + sc.invokeMethod('setSomeInt', 20)
+} else {
+    println "have to use reflection to set value "
+    try {
+        Field f = sc.class.getDeclaredField('someInt')
+        def accessible = f.isAccessible()
+        f.setAccessible(true)
+        println "try setting ${f.name} with value 30 "
+       // def rec = f.get(sc)
+        //rec = 30
+        f.setInt(sc, 30)  //field instance relative to sc instance
+        if (!accessible)
+            f.setAccessible(false)
+
+    } catch (Exception e) {
+        println e.message +  e.printStackTrace()
+    }
+}
+println "sc : $sc.someInt"
 
 println "fields -> " + fields2
 println "someclass props " + sc.properties.keySet()

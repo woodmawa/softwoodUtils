@@ -33,7 +33,7 @@ class JsonUtils {
 
     List jsonEncodableStandardTypes = [Integer, Long, Double, Float, byte[], Object, String, Boolean, Instant, JsonArray, JsonObject, CharSequence, Enum]
     //UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger,
-    List simpleAttributeTypes = [Number, Integer, Long, Float, Double, byte[], String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
+    List simpleAttributeTypes = [Number, Integer, Short, Long, Float, Double, Byte, byte[], String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
 
     Map classForSimpleTypesLookup = ['Number'       : Number, 'Enum': Enum, 'Temporal': Temporal,
                                      'Date'         : Date, 'Calendar': Calendar, 'Instant': Instant,
