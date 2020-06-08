@@ -66,7 +66,6 @@ def clazz = sc.getClass()
 while (clazz != null) {
     fds.addAll(clazz.declaredFields)
     clazz = clazz.superclass
-
 }
 
 
