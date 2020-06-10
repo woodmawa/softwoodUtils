@@ -4,6 +4,8 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
 import javax.inject.Inject
+import java.lang.reflect.Field
+import java.lang.reflect.Modifier
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDate
@@ -13,62 +15,65 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 @Slf4j
 
 class DataBinder {
 
-        List simpleAttributeTypes = [Number, Integer, Short, Long, Float, Double, byte[], Byte, String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
+    List simpleAttributeTypes = [Number, Integer, Short, Long, Float, Double, byte[], Byte, String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
 
-        Map classForSimpleTypesLookup = ['Number'       : Number, 'Enum': Enum, 'Temporal': Temporal,
-                                         'Date'         : Date, 'Calendar': Calendar, 'Instant': Instant,
-                                         'LocalDateTime': LocalDateTime, 'LocalDate': LocalDate, 'LocalTime': LocalTime,
-                                         'UUID'         : UUID, 'URI': URI, 'URL': URL,
-                                         'String'       : String, 'GString': GString,
-                                         'byte[]'       : Byte[], 'Byte': Byte,
-                                         'CharSequence' : CharSequence, 'Character': Character,
-                                         'Boolean'      : Boolean, 'Integer': Integer, 'Long': Long,
-                                         'Float'        : Float, 'Double': Double,
-                                         'BigDecimal'   : BigDecimal, 'BigInteger': BigInteger]
+    Map classForSimpleTypesLookup = ['Number'       : Number, 'Enum': Enum, 'Temporal': Temporal,
+                                     'Date'         : Date, 'Calendar': Calendar, 'Instant': Instant,
+                                     'LocalDateTime': LocalDateTime, 'LocalDate': LocalDate, 'LocalTime': LocalTime,
+                                     'UUID'         : UUID, 'URI': URI, 'URL': URL,
+                                     'String'       : String, 'GString': GString,
+                                     'byte[]'       : Byte[], 'Byte': Byte,
+                                     'CharSequence' : CharSequence, 'Character': Character,
+                                     'Boolean'      : Boolean, 'Integer': Integer, 'Long': Long,
+                                     'Float'        : Float, 'Double': Double,
+                                     'BigDecimal'   : BigDecimal, 'BigInteger': BigInteger]
 
-        //todo note these may need to be thread local ??
-        Map classInstanceHasBeenEncodedOnce = new ConcurrentHashMap()
-        Queue previouslyDecodedClassInstance = new ConcurrentLinkedQueue()
-        ThreadLocal<Integer> iterLevel = ThreadLocal.withInitial { 0 }
+    //todo note these may need to be thread local ??
+    Map classInstanceHasBeenEncodedOnce = new ConcurrentHashMap()
+    Queue previouslyDecodedClassInstance = new ConcurrentLinkedQueue()
+    ThreadLocal<Integer> iterLevel = ThreadLocal.withInitial { 0 }
 
-        List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
+    List defaultGroovyClassFields = ['$staticClassInfo', '__$stMC', 'metaClass', '$callSiteArray']
 
-        protected Options options
+    protected Options options
 
-        Options getOptions() { options }
+    Options getOptions() { options }
 
-        private JsonUtils(Options options) {
-            //add getAt function for array index notation on JsonObject
-            this.options = options
-        }
+    private DataBinder (Options options) {
+        //add getAt function for array index notation on JsonObject
+        this.options = options
+        this
+    }
 
-        /**
-         * inner class to set options in fluent api form and then build the
-         * generator with the options provided
-         */
-        @CompileStatic
-        class Options {
+    /**
+     * inner class to set options in fluent api form and then build the
+     * generator with the options provided
+     */
+    @CompileStatic
+    class Options {
 
-            ClassLoader defaultClassLoader = Thread.currentThread().getContextClassLoader()
+        ClassLoader defaultClassLoader = Thread.currentThread().getContextClassLoader()
 
-            boolean includeVersion = false
-            boolean compoundDocument = false
-            boolean excludeNulls = true
-            boolean excludeClass = true
-            boolean excludePrivateFields = false
-            boolean excludeStaticFields = true
-            List excludedFieldNames = []
-            List excludedFieldTypes = []
-            int expandLevels = 1
+        boolean includeVersion = false
+        boolean compoundDocument = false
+        boolean excludeNulls = true
+        boolean excludeClass = true
+        boolean excludePrivateFields = false
+        boolean excludeStaticFields = true
+        List excludedFieldNames = []
+        List excludedFieldTypes = []
+        int expandLevels = 1
 
-            //encoders and decoders for 'normal types'
-            Map typeEncodingConverters = new HashMap<Class, Closure>()
-            Map typeDecodingConverters = new HashMap<Class, Closure>()
+        //encoders and decoders for 'normal types'
+        Map typeEncodingConverters = new HashMap<Class, Closure>()
+        Map typeDecodingConverters = new HashMap<Class, Closure>()
 
            Options() {
                 //default type encoders to json text output
@@ -186,5 +191,33 @@ class DataBinder {
             }
         }
 
+    private Boolean isSimpleAttribute (Class clazz) {
+
+        simpleAttributeTypes.contains(clazz)
+
+    }
+
+     List getClassFields (Class clazz) {
+
+        assert clazz
+
+        List<Field> listOfAttributes =  []
+
+        Class parent = clazz
+
+        while (parent) {
+
+            List listOfFields = Stream.of (clazz.getDeclaredFields())
+                    .filter {!defaultGroovyClassFields.contains(it)
+                            && !Modifier.isSynthetic(it.modifiers)
+                            && !Modifier.isTransient(it.modifiers)}
+                    .collect (Collectors.toList())
+            listOfAttributes.addAll(clazz.getDeclaredFields() )
+            parent = parent.superclass
+        }
+
+         listOfAttributes
+
+    }
 
 }

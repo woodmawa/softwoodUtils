@@ -10,6 +10,9 @@ import java.time.temporal.Temporal
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+
+DataBinder db = new DataBinder.Options().build()
+
 String s = Integer.simpleName
 final Map basicTypes = [
         (Byte.simpleName): Byte,
