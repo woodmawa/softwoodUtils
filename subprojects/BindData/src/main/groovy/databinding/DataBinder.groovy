@@ -385,7 +385,7 @@ class DataBinder {
     /**
      *
      * @param def instance  to instantiate
-     * @param Map data - initialising map of data
+     * @param String jsonString - initialising map of data
      * @param String[] blacklist  - list of attribute names to drop from any mapping
      * @param String[] whitelist - list of absolute attribute names to include in any target mapping
      * @return
@@ -406,7 +406,7 @@ class DataBinder {
     /**
      *
      * @param def instance  to instantiate
-     * @param Map data - initialising map of data
+     * @param String jsonString - initialising map of data
      * @param String[] blacklist  - list of attribute names to drop from any mapping
      * @param String[] whitelist - list of absolute attribute names to include in any target mapping
      * @return
