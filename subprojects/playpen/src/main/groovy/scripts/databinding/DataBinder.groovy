@@ -23,7 +23,9 @@ import java.util.stream.Stream
 @Slf4j
 class DataBinder {
 
-    final List simpleAttributeTypes = [Number, Integer, Short, Long, Float, Double, byte[], Byte, String, GString, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
+    final List simpleAttributeTypes = [Number, int, Integer, short, Short, long, Long, float, Float, double, Double, byte[], byte, Byte, String, GString, boolean, Boolean, Instant, Character, CharSequence, Enum, UUID, URI, URL, Date, LocalDateTime, LocalDate, LocalTime, Temporal, BigDecimal, BigInteger]
+    final List rawAttributeTypes = [int, short, long, float, double, byte[], byte, boolean, char]
+    final Map rawTypeLookup = [(Integer):int, (Short):short, (Long):long, (Float):float, (Double):double, (Byte):byte, (Boolean):boolean, (Character): char]
 
     final Map classForSimpleTypesLookup = ['Number'       : Number, 'Enum': Enum, 'Temporal': Temporal,
                                      'Date'         : Date, 'Calendar': Calendar, 'Instant': Instant,
@@ -195,9 +197,21 @@ class DataBinder {
         }
 
     private Boolean isSimpleAttribute (Class clazz) {
-
         simpleAttributeTypes.contains(clazz)
+    }
 
+    private Boolean isRawAttribute (Class clazz) {
+        rawAttributeTypes.contains(clazz)
+    }
+
+    /**
+     * returns raw type for Object wrapper form
+     * @param clazz
+     * @return raw type - or null
+     */
+    private Class hasRawTypeForm (Class clazz) {
+        def res = rawTypeLookup.get (clazz)
+        res
     }
 
     @CompileStatic (TypeCheckingMode.SKIP)
@@ -322,10 +336,21 @@ class DataBinder {
             Closure decoder = options.typeDecodingConverters.get(value.getClass())
             ArrayList<Field> fieldMatch = loa.grep { Field f -> f.name == key} as ArrayList<Field>
             Field field = fieldMatch?[0]
+            String setter = 'set' +  key?[0].capitalize() + key?.substring(1)
             if (field) {
                 //try and use a setter if available
-                String setter = 'set' +  key[0].capitalize() + key.substring(1)
-                if (field.type.isAssignableFrom(value.getClass()) && instance.respondsTo (setter, value.getClass())) {
+
+                if (!isRawAttribute(field.type) && !isSimpleAttribute(field.type)) {
+                    //try and create new instance from submap
+                    def newRefInstance = owner.bind (field.type, value)
+                    assert newRefInstance
+
+                    boolean access = field.accessible
+                    field.setAccessible(true)
+                    field.set (instance, newRefInstance)
+                    field.setAccessible(access)
+
+                } else if (instance.respondsTo (setter, value.getClass())) {
                     instance.invokeMethod (setter, value)
                 } else if  (decoder) {
                     def converted = decoder (value)
@@ -339,7 +364,11 @@ class DataBinder {
                     if (field.trySetAccessible()) {
                         if (decoder) {
                             field.set (instance, decoder(value))
-                        } else if (field.type.isAssignableFrom(value.getClass()) ) {
+                        } else if (field.type == value.getClass()) {
+                            field.set (instance, value)
+                        } else if (field.type == hasRawTypeForm(value.getClass()) ) {
+                            field.set (instance, value)
+                        }else if (field.type.isAssignableFrom(value.getClass()) ) {
                             field.set (instance, value)
                         } else {
                             log.debug ("value $value is not type assignable to field [$field.name] with type [$field.type] - skipping bind operation for this field")

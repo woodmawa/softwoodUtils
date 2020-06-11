@@ -10,6 +10,14 @@ import java.time.temporal.Temporal
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
+
+boolean assignable1 = int.isAssignableFrom(Integer) //false
+boolean assignable2 = Integer.isAssignableFrom(int) //false
+boolean assignable3 = Number.isAssignableFrom(Integer)  //true - is a superclass of - no loss of precision
+boolean assignable4 = Integer.isAssignableFrom(Number)  //false - is in fact a subclass of
+
+
+
 String s = Integer.simpleName
 final Map basicTypes = [
         (Byte.simpleName): Byte,
@@ -49,6 +57,14 @@ class SomeClass extends Base {
 
     String someString
     private int  someInt
+    RefClass refClass
+}
+
+@ToString
+class RefClass extends Base {
+
+    String refString
+    private int  refInt
 }
 
 //DataBinder dbind = new DataBinder.Options().excludeFieldByNames('id').build()
@@ -56,8 +72,9 @@ DataBinder dbind = new DataBinder.Options().build()
 
 List<Field> loa = dbind.getFilteredClassFields(SomeClass)
 
-SomeClass instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10], [blacklist:['id'], whitelist:['someString']])
-instance = dbind.bind (new SomeClass(), [someString:"hi", id:1, someInt:10])
+SomeClass instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]], [blacklist:['id'], whitelist:['someString']])
+instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
+instance = dbind.bind (new SomeClass(), [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
 
 println basicTypeNames
 println temporalTypeNames
