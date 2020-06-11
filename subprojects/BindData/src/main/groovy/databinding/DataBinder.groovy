@@ -1,5 +1,6 @@
 package scripts.databinding
 
+import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import groovy.transform.TypeCheckingMode
 import groovy.util.logging.Slf4j
@@ -179,11 +180,6 @@ class DataBinder {
                 excludedFieldTypes.addAll(clazzes)
                 this
             }
-
-            /*Options registerTypeEncodingConverter(Class clazz, Closure converter) {
-                typeEncodingConverters.put(clazz, converter)
-                this
-            }*/
 
             Options registerTypeDecodingConverter(Class clazz, Closure converter) {
                 typeDecodingConverters.put(clazz, converter)
@@ -380,5 +376,37 @@ class DataBinder {
         }
 
         instance
+    }
+
+    /**
+     *
+     * @param def instance  to instantiate
+     * @param Map data - initialising map of data
+     * @param String[] blacklist  - list of attribute names to drop from any mapping
+     * @param String[] whitelist - list of absolute attribute names to include in any target mapping
+     * @return
+     */
+    def bind (Class<?> clazz, String json, String[] blacklist, String[] whitelist) {
+
+        def jsonSlurper = new JsonSlurper()
+        Map dataMap = jsonSlurper.parseText(json)
+
+        bind (clazz, dataMap, blacklist, whitelist)
+    }
+
+    /**
+     *
+     * @param def instance  to instantiate
+     * @param Map data - initialising map of data
+     * @param String[] blacklist  - list of attribute names to drop from any mapping
+     * @param String[] whitelist - list of absolute attribute names to include in any target mapping
+     * @return
+     */
+    def bind (Object instance, String json, String[] blacklist, String[] whitelist) {
+
+        def jsonSlurper = new JsonSlurper()
+        Map dataMap = jsonSlurper.parseText(json)
+
+        bind (instance, dataMap, blacklist, whitelist)
     }
 }
