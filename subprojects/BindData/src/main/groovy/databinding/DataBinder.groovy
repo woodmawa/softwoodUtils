@@ -378,6 +378,10 @@ class DataBinder {
         instance
     }
 
+    def bind (Class<?> clazz, String json) {
+        bind (clazz, json, null, null)
+    }
+
     /**
      *
      * @param def instance  to instantiate
@@ -392,6 +396,11 @@ class DataBinder {
         Map dataMap = jsonSlurper.parseText(json)
 
         bind (clazz, dataMap, blacklist, whitelist)
+    }
+
+
+    def bind (Object instance, String json) {
+        bind (instance, json, null, null)
     }
 
     /**
