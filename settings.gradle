@@ -5,7 +5,8 @@ def subprojects = ['TaskFlow',
                    'rxJava',
                    'playpen',
                    'utils',
-                   'Benchmark'
+                   'Benchmark',
+                   'BindData'
 ]
 
 //include these as projects
