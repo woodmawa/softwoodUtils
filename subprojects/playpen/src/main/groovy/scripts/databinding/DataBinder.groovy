@@ -73,7 +73,7 @@ class DataBinder {
         int expandLevels = 1
 
         //encoders and decoders for 'normal types'
-        Map typeEncodingConverters = new HashMap<Class, Closure>()
+        //Map typeEncodingConverters = new HashMap<Class, Closure>()
         Map typeDecodingConverters = new HashMap<Class, Closure>()
 
            Options() {
@@ -178,10 +178,10 @@ class DataBinder {
                 this
             }
 
-            Options registerTypeEncodingConverter(Class clazz, Closure converter) {
+            /*Options registerTypeEncodingConverter(Class clazz, Closure converter) {
                 typeEncodingConverters.put(clazz, converter)
                 this
-            }
+            }*/
 
             Options registerTypeDecodingConverter(Class clazz, Closure converter) {
                 typeDecodingConverters.put(clazz, converter)
@@ -325,7 +325,7 @@ class DataBinder {
             if (field) {
                 //try and use a setter if available
                 String setter = 'set' +  key[0].capitalize() + key.substring(1)
-                if (instance.respondsTo (setter, value.getClass())) {
+                if (field.type.isAssignableFrom(value.getClass()) && instance.respondsTo (setter, value.getClass())) {
                     instance.invokeMethod (setter, value)
                 } else if  (decoder) {
                     def converted = decoder (value)
@@ -339,10 +339,11 @@ class DataBinder {
                     if (field.trySetAccessible()) {
                         if (decoder) {
                             field.set (instance, decoder(value))
-                        } else {
+                        } else if (field.type.isAssignableFrom(value.getClass()) ) {
                             field.set (instance, value)
+                        } else {
+                            log.debug ("value $value is not type assignable to field [$field.name] with type [$field.type] - skipping bind operation for this field")
                         }
-                        field.set (instance, value)
                         field.setAccessible(access)
                     }
                 }
