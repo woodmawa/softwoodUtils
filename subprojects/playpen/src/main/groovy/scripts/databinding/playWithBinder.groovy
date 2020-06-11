@@ -10,9 +10,6 @@ import java.time.temporal.Temporal
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
-
-DataBinder db = new DataBinder.Options().build()
-
 String s = Integer.simpleName
 final Map basicTypes = [
         (Byte.simpleName): Byte,
@@ -44,7 +41,7 @@ List<String> temporalTypeNames = temporalTypes.keySet().stream().collect(Collect
 List fieldBlackList = ['class', '$staticClassInfo', '__$stMC', '$callSiteArray']
 
 class Base {
-    long id
+    protected long id
 }
 
 @ToString
@@ -53,6 +50,14 @@ class SomeClass extends Base {
     String someString
     private int  someInt
 }
+
+//DataBinder dbind = new DataBinder.Options().excludeFieldByNames('id').build()
+DataBinder dbind = new DataBinder.Options().build()
+
+List<Field> loa = dbind.getFilteredClassFields(SomeClass)
+
+SomeClass instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10], [blacklist:['id'], whitelist:['someString']])
+instance = dbind.bind (new SomeClass(), [someString:"hi", id:1, someInt:10])
 
 println basicTypeNames
 println temporalTypeNames
