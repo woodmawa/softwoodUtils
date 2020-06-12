@@ -1,4 +1,4 @@
-package scripts.databinding
+package databinding
 
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
@@ -56,6 +56,24 @@ class DataBinder {
         this
     }
 
+    Closure rawTypeConverter =  {Class targetType, def val ->
+
+        String targetTypeName = targetType.simpleName
+        Class sourceClassType = val.getClass()
+
+        Map lookup = [(int): "int", (Integer): "int", (long): "long", (Long): "long", (short): "short", (Short): "short", (float): "float", (Float): "float", (double): "double", (Double): "double", (byte): "byte", (Byte): "byte"]
+
+        String convertMethod = "${lookup.get(targetType, '')}Value"
+
+        def result
+        if (val.respondsTo(convertMethod)) {
+            result = val."$convertMethod"()
+        } else {
+            log.debug "Can't convert value [$val] of type [$sourceClassType] to target type [$targetType] "
+        }
+        return result
+    }
+
     /**
      * inner class to set options in fluent api form and then build the
      * generator with the options provided
@@ -78,8 +96,16 @@ class DataBinder {
         //encoders and decoders for 'normal types'
         //Map typeEncodingConverters = new HashMap<Class, Closure>()
         Map typeDecodingConverters = new HashMap<Class, Closure>()
+        Map basicTypeConverters = new HashMap<Tuple<Class>, Closure>()
+
 
            Options() {
+                // Tuple < Source class, target class >
+               basicTypeConverters.put (new Tuple (Integer, Long), { int val -> new Long (new Integer(val).longValue())})
+               basicTypeConverters.put (new Tuple (Long, Integer), { long val -> new Integer (new Long(val).intValue())})
+               basicTypeConverters.put (new Tuple (GString, String), { GString gstr -> gstr.toString()})
+
+
                 //default type encoders to json text output
                /*
                 typeEncodingConverters.put(Date, { Date it -> it.toLocalDateTime().toString() })  //save in LDT format
@@ -337,7 +363,7 @@ class DataBinder {
                 //try and use a setter if available
 
                 if (!isRawAttribute(field.type) && !isSimpleAttribute(field.type)) {
-                    //try and create new instance from submap
+                    //complex objects - just delegate to build try and create new instance from submap
                     def newRefInstance = owner.bind (field.type, value)
                     assert newRefInstance
 
@@ -362,8 +388,9 @@ class DataBinder {
                             field.set (instance, decoder(value))
                         } else if (field.type == value.getClass()) {
                             field.set (instance, value)
-                        } else if (field.type == hasRawTypeForm(value.getClass()) ) {
-                            field.set (instance, value)
+                        } else if (hasRawTypeForm(value.getClass()) ) {
+                            def convertedValue = rawTypeConverter (field.type, value)
+                            field.set (instance, convertedValue)
                         }else if (field.type.isAssignableFrom(value.getClass()) ) {
                             field.set (instance, value)
                         } else {

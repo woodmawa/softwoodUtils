@@ -1,6 +1,9 @@
-package scripts.databinding
+package scripts
 
+import databinding.DataBinder
+import databinding.TargetClass
 import groovy.transform.ToString
+
 
 import java.lang.reflect.Field
 import java.lang.reflect.Modifier
@@ -16,6 +19,7 @@ boolean assignable2 = Integer.isAssignableFrom(int) //false
 boolean assignable3 = Number.isAssignableFrom(Integer)  //true - is a superclass of - no loss of precision
 boolean assignable4 = Integer.isAssignableFrom(Number)  //false - is in fact a subclass of
 
+boolean assignable5 = Long.isAssignableFrom(Integer)  //false - is in fact a subclass of
 
 
 String s = Integer.simpleName
@@ -48,38 +52,22 @@ List<String> temporalTypeNames = temporalTypes.keySet().stream().collect(Collect
 
 List fieldBlackList = ['class', '$staticClassInfo', '__$stMC', '$callSiteArray']
 
-class Base {
-    protected long id
-}
-
-@ToString
-class SomeClass extends Base {
-
-    String someString
-    private int  someInt
-    RefClass refClass
-}
-
-@ToString
-class RefClass extends Base {
-
-    String refString
-    private int  refInt
-}
-
 //DataBinder dbind = new DataBinder.Options().excludeFieldByNames('id').build()
 DataBinder dbind = new DataBinder.Options().build()
 
-List<Field> loa = dbind.getFilteredClassFields(SomeClass)
+List<Field> loa = dbind.getFilteredClassFields(TargetClass)
 
-SomeClass instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]], [blacklist:['id'], whitelist:['someString']])
-instance = dbind.bind (SomeClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
-instance = dbind.bind (new SomeClass(), [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
+def res = dbind.rawTypeConverter (Integer, 3L)
+
+TargetClass instance = dbind.bind (TargetClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]], [blacklist:['id'], whitelist:['someString']])
+instance = dbind.bind (TargetClass, [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
+instance = dbind.bind (new TargetClass(), [someString:"hi", id:1, someInt:10, refClass:[refString:'my refString', refInt: 100]])
+
 
 println basicTypeNames
 println temporalTypeNames
 
-SomeClass sc = new SomeClass (someString : "will", someInt:5)
+TargetClass sc = new TargetClass (someString : "will", someInt:5)
 
 //only shows public properities
 Map props = sc.properties
@@ -97,36 +85,3 @@ while (clazz != null) {
 }
 
 
-List<Field> fields2 = fds.stream().filter {!fieldBlackList.contains(it.name) && !it.isSynthetic()}.map {Field field -> field}.collect(Collectors.toList())
-println "is private ? : " + Modifier.isPublic(fields2[1].modifiers) + " is accessible ? :  " + fields2[1].isAccessible()
-
-/** generaically if no public accessor - then
- * reflect the named field,
- * set the accessible flag
- * swicth on the field type, and update the field with the required value (ignore synthetics), and special fields, or final fields
- * reset the flag move on to next field
- */
-
-if (sc.respondsTo('setSomeInt', Integer)) {
-    println "set using public accessor " + sc.invokeMethod('setSomeInt', 20)
-} else {
-    println "have to use reflection to set value "
-    try {
-        Field f = sc.class.getDeclaredField('someInt')
-        def accessible = f.isAccessible()
-        f.setAccessible(true)
-        println "try setting ${f.name} with value 30 "
-       // def rec = f.get(sc)
-        //rec = 30
-        f.setInt(sc, 30)  //field instance relative to sc instance
-        if (!accessible)
-            f.setAccessible(false)
-
-    } catch (Exception e) {
-        println e.message +  e.printStackTrace()
-    }
-}
-println "sc : $sc.someInt"
-
-println "fields -> " + fields2
-println "someclass props " + sc.properties.keySet()
