@@ -61,9 +61,9 @@ class DataBinder {
         String targetTypeName = targetType.simpleName
         Class sourceClassType = val.getClass()
 
-        Map lookup = [(int): "int", (Integer): "int", (long): "long", (Long): "long", (short): "short", (Short): "short", (float): "float", (Float): "float", (double): "double", (Double): "double", (byte): "byte", (Byte): "byte"]
+        Map rawTypeToStringLookup = [(int): "int", (Integer): "int", (long): "long", (Long): "long", (short): "short", (Short): "short", (float): "float", (Float): "float", (double): "double", (Double): "double", (byte): "byte", (Byte): "byte"]
 
-        String convertMethod = "${lookup.get(targetType, '')}Value"
+        String convertMethod = "${rawTypeToStringLookup.get(targetType, '')}Value"
 
         def result
         if (val.respondsTo(convertMethod)) {
