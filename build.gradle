@@ -97,7 +97,7 @@ allprojects {
     dependencies {
 
         //implementation replaces compile and is not transitevly resolved, API is transitively resolved
-        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.4'
+        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.5'
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
         implementation group: 'javax.inject', name: 'javax.inject', version: '1'
