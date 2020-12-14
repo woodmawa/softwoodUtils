@@ -8,7 +8,7 @@ import org.apache.poi.ss.util.*
 import org.apache.poi.ss.usermodel.*
 import java.io.*
 
-//http://poi.apache.org/spreadsheet/quick-guide.html#Iterator
+//see http://poi.apache.org/spreadsheet/quick-guide.html#Iterator
 class Excel {
 
     def parse(String path, sheetIndex=0) {
