@@ -15,6 +15,12 @@ headers.each { header ->
 println "\n"
 println 'Rows'
 println '------------------'
+//rows.each { row ->
+//    println excel.toXml(headers, row)
+//}
+
+println "[\n"
 rows.each { row ->
-    println excel.toXml(headers, row)
+    println excel.toJson(headers, row)
 }
+println "\n]"

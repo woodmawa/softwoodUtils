@@ -149,4 +149,17 @@ class Excel {
         obj += "</object>"
     }
 
+    def toJson(header, row) {
+        def obj = ""
+        obj += "\t{\n"
+
+        def len = row.size()-1
+
+        row.eachWithIndex { datum, i ->
+            def headerName = header[i]
+            def end = i < len ? "," : ""
+            obj += "\t\t'$headerName' : $datum$end\n"
+        }
+        obj += "\t}"
+    }
 }
