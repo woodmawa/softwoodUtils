@@ -40,6 +40,39 @@ class Excel {
         data
     }
 
+    def getCellValue (Row row, Cell cell) {
+        def rowIndex = row.getRowNum()
+        def colIndex = cell.getColumnIndex()
+
+        def value = ""
+        switch (cell.getCellType()) {
+            case CellType.STRING:
+                value = cell.getRichStringCellValue().getString()
+                break
+
+            case CellType.NUMERIC:
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    value = cell.getDateCellValue()
+                } else {
+                    value = cell.getNumericCellValue()
+                }
+                break
+
+            case CellType.BOOLEAN:
+                value = cell.getBooleanCellValue()
+                break
+
+            case CellType.FORMULA:
+                value = cell.getCellFormula()
+                break
+
+            default:
+                value = "<unknown sell type>"
+        }
+
+        value
+    }
+
     def getRowReference(Row row, Cell cell) {
         def rowIndex = row.getRowNum()
         def colIndex = cell.getColumnIndex()
