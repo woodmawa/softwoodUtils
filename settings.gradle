@@ -6,7 +6,8 @@ def subprojects = ['TaskFlow',
                    'playpen',
                    'utils',
                    'Benchmark',
-                   'BindData'
+                   'BindData',
+                    'Office'
 ]
 
 //include these as projects

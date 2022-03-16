@@ -11,7 +11,7 @@ dependencies {
     implementation group: 'com.mashape.unirest', name: 'unirest-java', version: '1.4.9'
     implementation group: 'org.codehaus.groovy.modules.http-builder', name: 'http-builder', version: '0.7.1'
     implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
-    implementation group: 'org.groovyx.gpars', name: 'gpars-all', version: '2.0-SNAPSHOT'
+    implementation group: 'org.groovyx.gpars', name: 'gpars', version: '2.0-SNAPSHOT'
 
     implementation group: 'tech.tablesaw', name: 'tablesaw-core', version: '0.38.1'
     implementation group: 'tech.tablesaw', name: 'tablesaw-excel', version: '0.38.1'
