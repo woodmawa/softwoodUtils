@@ -1,7 +1,7 @@
 package scripts
 
 import com.softwood.utils.ClasspathHelper
-import sun.applet.AppletClassLoader
+//import sun.applet.AppletClassLoader
 
 import java.util.stream.Stream
 
@@ -13,7 +13,7 @@ println "file name from getResource on class using relative path  : " + filename
 println "file name from getResource on script class loader  : " + filename
 
 URL res = this.class.getResource("/testfile.config")
-URL res2 = AppletClassLoader.getResource("testfile.config") // comes back with null
+//URL res2 = AppletClassLoader.getResource("testfile.config") // comes back with null
 
 String resourcesClasspath = ClasspathHelper.getProjectResourcesClasspath()
 
