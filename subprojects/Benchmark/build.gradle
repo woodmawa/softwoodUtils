@@ -19,7 +19,7 @@ repositories {
 }
 
 dependencies {
-    compile 'org.codehaus.groovy:groovy-all:2.4.12'
+    compileOnly 'org.codehaus.groovy:groovy-all:3.0.9'
 }
 
 jmh {

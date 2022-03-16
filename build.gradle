@@ -96,11 +96,13 @@ allprojects {
     dependencies {
 
         //implementation replaces compile and is not transitevly resolved, API is transitively resolved
-        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.4'
+        implementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.9'
         implementation group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
         implementation group: 'javax.inject', name: 'javax.inject', version: '1'
         testImplementation group: 'junit', name: 'junit', version: '4.13'
+        //need to remove this dependency !
+        testImplementation group: 'org.testng', name: 'testng', version: '7.5'
         testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-M2-groovy-3.0' /*{
         exclude group: 'org.codehaus.groovy', name: 'groovy-all'
     }*/
